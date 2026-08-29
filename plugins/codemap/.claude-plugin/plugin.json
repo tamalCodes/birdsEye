@@ -1,0 +1,23 @@
+{
+  "name": "codemap",
+  "version": "0.1.0",
+  "description": "Maps a codebase to a single self-contained interactive HTML file: modules and their dependencies, routes and screens, and the spec files to read before touching any of it.",
+  "author": {
+    "name": "tamalcodes",
+    "email": "dev@perccent.com"
+  },
+  "keywords": [
+    "codebase",
+    "visualization",
+    "architecture",
+    "dependency-graph",
+    "documentation"
+  ],
+  "commands": [
+    "./commands/map.md"
+  ],
+  "skills": [
+    "./skills/extract-routes",
+    "./skills/extract-docs"
+  ]
+}

@@ -1,0 +1,2204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>__TITLE__</title>
+    <style>
+      :root {
+        /* Exactly five node colours, one per node type. */
+        --c-module: #7aa2f7;
+        --c-file: #9ece6a;
+        --c-route: #e0af68;
+        --c-screen: #bb9af7;
+        --c-doc: #f7768e;
+
+        --bg: #0f1117;
+        --bg-panel: #161a24;
+        --bg-raised: #1d2230;
+        --line: #2a3040;
+        --line-soft: #222735;
+        --text: #ccd2e0;
+        --text-dim: #7c8497;
+        --accent: #7aa2f7;
+        --font: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font: 13px/1.5 var(--font);
+        display: grid;
+        grid-template-rows: auto 1fr;
+        overflow: hidden;
+      }
+
+      /* ---- toolbar ---- */
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--line);
+        background: var(--bg-panel);
+        flex-wrap: wrap;
+      }
+      .brand { font-weight: 600; }
+      .brand span { color: var(--text-dim); font-weight: 400; margin-left: 6px; }
+
+      .views { display: flex; gap: 2px; background: var(--bg-raised); border-radius: 7px; padding: 2px; }
+      .views button {
+        appearance: none; border: 0; background: transparent; color: var(--text-dim);
+        font: inherit; padding: 5px 12px; border-radius: 5px; cursor: pointer;
+      }
+      .views button:hover:not(:disabled) { color: var(--text); }
+      .views button[aria-selected="true"] { background: var(--bg); color: var(--text); }
+      .views button:disabled { opacity: .35; cursor: not-allowed; }
+
+      #search {
+        background: var(--bg-raised); border: 1px solid var(--line); color: var(--text);
+        border-radius: 6px; padding: 6px 10px; font: inherit; min-width: 200px;
+      }
+      #search:focus { outline: none; border-color: var(--accent); }
+
+      .filters { display: flex; gap: 10px; align-items: center; color: var(--text-dim); }
+      .filters label { display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
+      .filters input { accent-color: var(--accent); margin: 0; }
+      .swatch { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+      .spacer { flex: 1; }
+      .ghost {
+        appearance: none; background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+        border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; white-space: nowrap;
+      }
+      .ghost:hover { color: var(--text); border-color: var(--text-dim); }
+      .ghost[hidden] { display: none; }
+      .ghost.on { color: var(--text); border-color: var(--accent); }
+
+      /* ---- stage ---- */
+      main {
+        position: relative; display: grid; grid-template-columns: 1fr 0;
+        transition: grid-template-columns .15s; min-height: 0;
+      }
+      main.panel-open { grid-template-columns: 1fr 340px; }
+      #cy { width: 100%; height: 100%; min-width: 0; }
+
+      #empty {
+        position: absolute; inset: 0; display: none; place-items: center; text-align: center;
+        color: var(--text-dim); pointer-events: none; padding: 40px;
+      }
+      #empty.on { display: grid; }
+      #empty b { display: block; color: var(--text); margin-bottom: 6px; font-weight: 600; }
+      #hint { position: absolute; left: 14px; bottom: 12px; color: var(--text-dim); font-size: 12px; pointer-events: none; }
+
+      /* ---- side panel ---- */
+      aside {
+        border-left: 1px solid var(--line); background: var(--bg-panel);
+        overflow-y: auto; overflow-x: hidden; padding: 16px; display: none;
+      }
+      main.panel-open aside { display: block; }
+      /* ---- detail content (shared by the small side panel and the full page) ---- */
+      .detail h2 { margin: 0 0 2px; font-size: 15px; word-break: break-word; }
+      .kind { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
+      .badge {
+        display: inline-block; font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
+        border: 1px solid var(--c-doc); color: var(--c-doc); border-radius: 4px; padding: 1px 5px; margin-left: 6px;
+      }
+      /* Every section is a visibly separate block: a rule above it, its title
+         left, its count right. Without that the panel reads as one long run. */
+      .detail section { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+      .detail h3 {
+        display: flex; align-items: baseline; gap: 8px;
+        margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
+        color: var(--text-dim); font-weight: 600;
+      }
+      .detail h3 .muted { margin-left: auto; font-size: 11px; }
+      .detail ul { list-style: none; margin: 0; padding: 0; }
+      .detail li { padding: 2px 0; }
+      .detail .summary { color: var(--text); margin: 8px 0 0; }
+      .path { font-family: var(--mono); font-size: 11.5px; word-break: break-all; }
+      a.path, .node-link {
+        color: var(--accent); text-decoration: none; cursor: pointer; background: none; border: 0;
+        font: inherit; padding: 0; text-align: left;
+      }
+      a.path:hover, .node-link:hover { text-decoration: underline; }
+      .muted { color: var(--text-dim); }
+      .guard { border-left: 2px solid var(--c-doc); padding-left: 8px; margin: 4px 0; color: var(--text); }
+      .panel-actions { display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: wrap; }
+      .close { float: right; }
+      .stats { display: flex; gap: 12px; color: var(--text-dim); font-size: 12px; }
+      .stats b { color: var(--text); font-weight: 600; }
+
+      /* ---- module detail ---- */
+      main.panel-open.panel-wide { grid-template-columns: 1fr 440px; }
+      .detail .lead { color: var(--text-dim); margin: 6px 0 4px; }
+      .detail details { margin: 2px 0; }
+      .detail details > ul { padding: 2px 0 4px 16px; }
+      .detail details details { margin-left: 14px; }
+      .detail summary { cursor: pointer; user-select: none; }
+      .detail summary:hover .folder { text-decoration: underline; }
+      .folder { font-family: var(--mono); font-size: 11.5px; }
+      ol.steps { margin: 4px 0 10px; padding-left: 22px; }
+      ol.steps li { padding: 2px 0; }
+      /* Sub-heading inside a section: sub-areas, doc groups, blast-radius lists. */
+      .detail h4.grp {
+        display: flex; align-items: baseline; gap: 8px;
+        margin: 16px 0 4px; padding-top: 12px; border-top: 1px solid var(--line-soft);
+        font-size: 12px; font-weight: 600; color: var(--text);
+      }
+      .detail h4.grp:first-of-type { border-top: 0; padding-top: 0; margin-top: 8px; }
+      .detail h4.grp .grow { flex: 1; min-width: 0; }
+      .detail h4.grp .muted { font-weight: 400; font-size: 11.5px; white-space: nowrap; }
+
+      /* ---- full-page module/area detail ---- */
+      /* Same trick #empty/#hint already use: an absolutely positioned layer
+         over main's relative box, independent of the panel-open grid columns. */
+      #detailPage {
+        position: absolute; inset: 0; z-index: 5; display: none;
+        background: var(--bg); overflow-y: auto;
+      }
+      #detailPage.on { display: block; }
+      #detailPage .detail-inner { max-width: 760px; margin: 0 auto; padding: 24px 32px 80px; }
+      .page-back { margin-bottom: 14px; }
+      .crumb { color: var(--text-dim); font-size: 12px; margin: 0 0 6px; }
+      .crumb .node-link { font-size: inherit; }
+
+      /* Name left, number right - a list of counts should read as a column. */
+      ul.rows > li {
+        display: flex; align-items: baseline; gap: 10px;
+        padding: 5px 0; border-top: 1px solid var(--line-soft);
+      }
+      ul.rows > li:first-child { border-top: 0; }
+      ul.rows .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+      ul.rows .count {
+        color: var(--text-dim); font-size: 11.5px; white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* An entry carries a title, tags, a summary and sometimes guardrails - it
+         needs room and a divider, or each one runs into the next. */
+      ul.entries > li { padding: 8px 0 9px; border-top: 1px solid var(--line-soft); }
+      ul.entries > li:first-child { border-top: 0; padding-top: 2px; }
+      .entry-head { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+      .entry-head .node-link { font-weight: 600; }
+      .entry-head .badge { margin-left: 0; }
+      .sub { color: var(--text-dim); font-size: 12px; margin: 3px 0 0; }
+      ul.entries details { margin-top: 4px; }
+      ol.steps > li .entry-head .node-link { font-weight: 400; }
+
+      /* Metadata as a chip, so it stops competing with the title next to it. */
+      .tag {
+        display: inline-block; font-size: 10px; line-height: 16px; letter-spacing: .04em;
+        color: var(--text-dim); background: var(--bg-raised); border-radius: 3px;
+        padding: 0 5px; white-space: nowrap;
+      }
+      .tag.area { font-family: var(--mono); color: var(--accent); }
+      .tag.loc { font-family: var(--mono); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">__TITLE__<span id="stat-line"></span></div>
+      <div class="views" role="tablist">
+        <button data-view="overview" role="tab" aria-selected="true">Overview</button>
+        <button data-view="focus" role="tab" aria-selected="false" disabled>Focus</button>
+        <button data-view="routes" role="tab" aria-selected="false">Routes</button>
+        <button data-view="docs" role="tab" aria-selected="false">Docs</button>
+      </div>
+      <input id="search" type="search" placeholder="Search name or path" autocomplete="off" />
+      <div class="filters" id="filters"></div>
+      <div class="spacer"></div>
+      <button class="ghost" id="up" hidden>&#11185; Up</button>
+      <button class="ghost" id="orientation" hidden>Top-down</button>
+      <button class="ghost" id="crosslinks" hidden></button>
+      <button class="ghost" id="granularity" hidden></button>
+      <button class="ghost" id="relayout">Reset layout</button>
+      <button class="ghost" id="fit">Fit</button>
+    </header>
+
+    <main id="stage">
+      <div id="cy"></div>
+      <div id="empty"></div>
+      <div id="hint"></div>
+      <aside id="panel" class="detail"></aside>
+      <div id="detailPage" class="detail"></div>
+    </main>
+
+    <script>__VENDOR__</script>
+    <script id="graph-data" type="application/json">__GRAPH__</script>
+    <script>
+      (function () {
+        'use strict';
+        var GRAPH = JSON.parse(document.getElementById('graph-data').textContent);
+        var STORE = '__STORAGE_KEY__';
+
+        cytoscape.use(cytoscapeFcose);
+
+        // ---------------------------------------------------------------- data
+        var nodeById = Object.create(null);
+        GRAPH.nodes.forEach(function (n) { nodeById[n.id] = n; });
+
+        var TYPES = ['module', 'file', 'route', 'screen', 'doc'];
+        var COLOR = {};
+        TYPES.forEach(function (t) {
+          COLOR[t] = getComputedStyle(document.documentElement).getPropertyValue('--c-' + t).trim();
+        });
+
+        var outgoing = Object.create(null);
+        var incoming = Object.create(null);
+        GRAPH.edges.forEach(function (e) {
+          (outgoing[e.from] || (outgoing[e.from] = [])).push(e);
+          (incoming[e.to] || (incoming[e.to] = [])).push(e);
+        });
+
+        var counts = {};
+        TYPES.forEach(function (t) {
+          counts[t] = GRAPH.nodes.filter(function (n) { return n.type === t; }).length;
+        });
+        var hasRoutes = counts.route + counts.screen > 0;
+        var hasDocs = counts.doc > 0;
+
+        var moduleFiles = Object.create(null);
+        GRAPH.nodes.forEach(function (n) {
+          if (n.type !== 'file' || !n.module) return;
+          (moduleFiles[n.module] || (moduleFiles[n.module] = [])).push(n);
+        });
+
+        // ---------------------------------------------------------- sub-areas
+        // Most modules are filed by layer: components/, services/, pages/. A few
+        // are filed by sub-feature instead, and then the sub-feature is the real
+        // unit - "kyc" and "investorOnboarding" inside onboarding are two
+        // different journeys, not two folders. Naming that split is the whole
+        // difference between "14 screens" and "6 onboarding, 8 KYC".
+        var LAYER_DIR = Object.create(null);
+        ('components component pages page screens screen views containers widgets '
+          + 'services service api queries mutations hooks hook utils util helpers '
+          + 'types type interfaces interface enums enum models schemas validators '
+          + 'constants constant context contexts providers store stores slices '
+          + 'styles style theme assets icons svgs images config lib specs docs '
+          + 'layouts navigation navigators locales fixtures mocks test tests __tests__'
+        ).split(' ').forEach(function (d) { LAYER_DIR[d] = 1; });
+
+        var subAreaCache = Object.create(null);
+
+        /**
+         * The sub-areas of a module, or an empty list when it is filed by layer.
+         * A candidate is a top folder that is not itself a layer and that holds
+         * layers of its own - a little module inside the module. It only counts
+         * when there are at least two of them holding most of the code, so one
+         * stray nested folder never rewrites how a module is described.
+         */
+        function subAreas(slug) {
+          if (subAreaCache[slug]) return subAreaCache[slug];
+          var out = [];
+          var mod = nodeById['module:' + slug];
+          var files = moduleFiles[slug] || [];
+          if (mod && files.length) {
+            var baseLen = mod.path.length + 1;
+            var top = Object.create(null);
+            files.forEach(function (f) {
+              var parts = f.path.slice(baseLen).split('/');
+              if (parts.length < 3) return;   // needs area/layer/file to qualify
+              var g = top[parts[0]] || (top[parts[0]] = { files: [], layers: {} });
+              g.files.push(f);
+              g.layers[parts[1]] = 1;
+            });
+            var keys = Object.keys(top).filter(function (k) {
+              if (LAYER_DIR[k.toLowerCase()]) return false;
+              return Object.keys(top[k].layers).some(function (l) { return LAYER_DIR[l.toLowerCase()]; });
+            }).sort();
+            var covered = 0;
+            keys.forEach(function (k) { covered += top[k].files.length; });
+            if (keys.length >= 2 && covered >= files.length * 0.6) {
+              out = keys.map(function (k) {
+                return { key: k, module: slug, prefix: mod.path + '/' + k + '/', files: top[k].files };
+              });
+            }
+          }
+          subAreaCache[slug] = out;
+          return out;
+        }
+
+        /** The sub-area a path sits in, or null. */
+        function areaOf(slug, path) {
+          if (!slug || !path) return null;
+          var areas = subAreas(slug);
+          for (var i = 0; i < areas.length; i++) {
+            if (path.indexOf(areas[i].prefix) === 0) return areas[i];
+          }
+          return null;
+        }
+
+        /** "a, b and c" - a list a person can read out loud. */
+        function andList(items) {
+          if (items.length <= 1) return items.join('');
+          return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1];
+        }
+
+        // ------------------------------------------------------------- editor
+        var EDITOR = (GRAPH.config && GRAPH.config.editor) || 'vscode';
+        function editorHref(relPath) {
+          if (!relPath || EDITOR === 'none') return null;
+          var abs = GRAPH.repo.root.replace(/\/$/, '') + '/' + relPath;
+          if (EDITOR === 'idea') return 'idea://open?file=' + encodeURI(abs);
+          return EDITOR + '://file/' + encodeURI(abs);
+        }
+
+        // ------------------------------------------------------------- helpers
+        function esc(s) {
+          return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+          });
+        }
+        function save(key, value) { try { localStorage.setItem(STORE + ':' + key, value); } catch (e) {} }
+        function load(key) { try { return localStorage.getItem(STORE + ':' + key); } catch (e) { return null; } }
+
+        // --------------------------------------------------------------- state
+        var state = {
+          view: 'overview',
+          focus: null,
+          focusPath: [],
+          selected: null,
+          granularity: 'folders',   // 'folders' | 'files'
+          treeDir: load('treeDir') || 'auto',
+          // Off by default: the cross-links are a dense dotted web behind the
+          // tree, and they only help once you are hunting for one of them.
+          crossLinks: load('crossLinks') === 'on',
+          hidden: Object.create(null),
+          query: '',
+        };
+        // Positions from the layout engine, and positions the user set by hand.
+        // Kept per view, so switching tabs never scrambles your arrangement.
+        var computed = Object.create(null);
+        var userMoved = Object.create(null);
+
+        var routeBoxWidth = function (label) {
+          return Math.max(74, Math.min(230, String(label).length * 7.2 + 26));
+        };
+
+        // ----------------------------------------------------------- cytoscape
+        var cy = cytoscape({
+          container: document.getElementById('cy'),
+          wheelSensitivity: 0.25,
+          maxZoom: 3,
+          minZoom: 0.03,
+          style: [
+            {
+              selector: 'node',
+              style: {
+                'background-color': function (n) { return COLOR[n.data('type')] || '#888'; },
+                label: 'data(label)',
+                color: '#ccd2e0',
+                'font-size': 11,
+                'font-family': 'ui-sans-serif, -apple-system, sans-serif',
+                'text-valign': 'bottom',
+                'text-margin-y': 4,
+                'text-max-width': 150,
+                'text-wrap': 'ellipsis',
+                width: 'data(size)',
+                height: 'data(size)',
+                'border-width': 0,
+                'text-background-color': '#0f1117',
+                'text-background-opacity': 0.55,
+                'text-background-padding': 2,
+                'transition-property': 'opacity',
+                'transition-duration': '120ms',
+              },
+            },
+            { selector: 'node[type="doc"]', style: { shape: 'round-diamond' } },
+            {
+              // Routes read as boxes with the name inside, like an org chart.
+              selector: 'node[type="route"], node[type="screen"]',
+              style: {
+                shape: 'round-rectangle',
+                width: 'data(w)',
+                height: 26,
+                'text-valign': 'center',
+                'text-halign': 'center',
+                'text-margin-y': 0,
+                'text-max-width': 210,
+                color: '#12151d',
+                'font-size': 10.5,
+                'font-weight': 600,
+                'text-background-opacity': 0,
+              },
+            },
+            { selector: 'node[group]', style: { shape: 'round-rectangle' } },
+            { selector: 'node[?up]', style: { 'background-opacity': 0.25, 'border-width': 1.5, 'border-style': 'dashed', 'border-color': '#7c8497' } },
+            {
+              // Feature sections in Routes, doc clusters in Docs.
+              selector: ':parent',
+              style: {
+                shape: 'round-rectangle',
+                'background-color': '#7aa2f7',
+                'background-opacity': 0.05,
+                'border-width': 1,
+                'border-color': '#39415a',
+                label: 'data(label)',
+                'text-valign': 'top',
+                'text-halign': 'center',
+                'text-margin-y': -3,
+                color: '#9aa5c4',
+                'font-size': 11,
+                'font-weight': 600,
+                'text-background-opacity': 0,
+                padding: '12px',
+              },
+            },
+            {
+              selector: 'edge',
+              style: {
+                width: 'data(width)',
+                'line-color': '#39415a',
+                'target-arrow-color': '#39415a',
+                'target-arrow-shape': 'triangle',
+                'arrow-scale': 0.7,
+                'curve-style': 'bezier',
+                opacity: 0.7,
+                'transition-property': 'opacity',
+                'transition-duration': '120ms',
+              },
+            },
+            {
+              // Orthogonal elbows for the tree spine - this is what makes the
+              // Routes view read as a flow chart rather than a spray of curves.
+              selector: 'edge[?hierarchy]',
+              style: {
+                'curve-style': 'taxi',
+                'taxi-direction': function (e) { return e.data('taxiDir') || 'downward'; },
+                'taxi-turn': 22,
+                'taxi-turn-min-distance': 8,
+                'line-color': '#5a6480',
+                'target-arrow-color': '#5a6480',
+                opacity: 0.95,
+                width: 1.4,
+              },
+            },
+            {
+              selector: 'edge[type="navigates"][!hierarchy]',
+              style: { 'line-color': '#e0af68', 'target-arrow-color': '#e0af68', 'line-style': 'dashed', opacity: 0.3, width: 1 },
+            },
+            { selector: 'edge[type="documents"]', style: { 'line-color': '#f7768e', 'target-arrow-color': '#f7768e', opacity: 0.35, width: 1 } },
+            { selector: 'edge[type="links"]', style: { 'line-color': '#8a6577', 'target-arrow-color': '#8a6577', 'line-style': 'dotted', opacity: 0.3, width: 1 } },
+            { selector: 'edge[type="renders"]', style: { 'line-color': '#bb9af7', 'target-arrow-color': '#bb9af7', 'line-style': 'dashed' } },
+            // Cross-cluster doc edges are noise until you ask about one node.
+            { selector: 'edge.faint', style: { opacity: 0.06 } },
+            // Dimmed nodes still have to read as a map. At 0.12 the canvas went
+            // black and the only thing left on it was a highlighted edge running
+            // off the side, which looks like a bug rather than an answer.
+            { selector: '.dim', style: { opacity: 0.28, 'text-opacity': 0.18 } },
+            // Edges are the exception: faded lines across a whole viewport are
+            // noise, and they are what made a dimmed graph look like scribble.
+            { selector: 'edge.dim', style: { opacity: 0.05 } },
+            { selector: 'node.nolabel', style: { 'text-opacity': 0 } },
+            { selector: 'edge.hot', style: { opacity: 1, width: 'data(hotWidth)', 'line-color': '#9aa5c4', 'target-arrow-color': '#9aa5c4' } },
+            { selector: 'node.hit', style: { 'border-width': 2, 'border-color': '#ffffff' } },
+            { selector: 'node.selected', style: { 'border-width': 3, 'border-color': '#ffffff', 'text-opacity': 1 } },
+            { selector: 'node.hover', style: { 'text-opacity': 1, 'border-width': 2, 'border-color': '#ffffff' } },
+          ],
+        });
+
+        // ------------------------------------------------------------- sizing
+        function moduleSize(n) {
+          var c = (n.meta && n.meta.fileCount) || 1;
+          return Math.round(Math.min(84, 20 + Math.sqrt(c) * 6));
+        }
+        function edgeWidth(w) { return Math.min(9, 1 + Math.log2((w || 1) + 1) * 1.1); }
+
+        function toEl(n, extra) {
+          var isRoute = n.type === 'route' || n.type === 'screen';
+          var data = {
+            id: n.id, label: n.label, type: n.type, module: n.module,
+            size: n.type === 'module' ? moduleSize(n) : n.type === 'doc' ? 15 : 13,
+          };
+          if (isRoute) data.w = routeBoxWidth(n.label);
+          if (extra) Object.keys(extra).forEach(function (k) { data[k] = extra[k]; });
+          return { data: data };
+        }
+        function toEdgeEl(e, idPrefix) {
+          var base = e.type === 'imports' ? edgeWidth(e.weight) : 1.2;
+          var d = {
+            id: (idPrefix || '') + e.from + '>' + e.to + '>' + e.type,
+            source: e.from, target: e.to, type: e.type,
+            weight: e.weight || 1, width: base, hotWidth: base + 1.5,
+          };
+          if (e.hierarchy) d.hierarchy = true;
+          return { data: d };
+        }
+
+        // ======================================================= LAYOUT ENGINE
+        // Trees, sections and clusters have a correct answer; a physics solver
+        // only approximates one, differently every run. Everything here is
+        // plain arithmetic: same graph in, same picture out.
+
+        var SEC_PAD = 14, SEC_PAD_TOP = 30;
+
+        /**
+         * Group a wide flat run of sibling leaves into labelled feature
+         * sections. A navigator that registers 38 screens flat is telling the
+         * truth about itself, but each screen knows which feature owns it -
+         * that structure is what a human wants to see.
+         */
+        function sectionize(els, dir) {
+          var WIDE = 8;
+          var nodes = els.filter(function (e) { return e.data.source == null; });
+          var edges = els.filter(function (e) { return e.data.source != null; });
+          var byId = {};
+          nodes.forEach(function (n) { byId[n.data.id] = n; });
+          var kids = {};
+          edges.forEach(function (e) {
+            if (e.data.hierarchy) (kids[e.data.source] || (kids[e.data.source] = [])).push(e.data.target);
+          });
+          var isLeaf = function (id) { return !(kids[id] || []).length; };
+
+          var sections = [];
+          var dropEdge = {};
+
+          function makeSection(parent, key, label, ref, area, members) {
+            var secId = 'sec:' + parent + '/' + key;
+            var cellW = 0;
+            members.forEach(function (id) { cellW = Math.max(cellW, (byId[id].data.w || 90) + 16); });
+            var cellH = 38;
+            var cols = dir === 'TB'
+              ? Math.max(1, Math.ceil(Math.sqrt(members.length / 1.4)))
+              : Math.max(1, Math.min(members.length, Math.round(Math.sqrt(members.length * 1.7))));
+            var rows = Math.ceil(members.length / cols);
+            sections.push({
+              data: {
+                id: secId, label: label, section: 1, ref: ref, area: area || undefined,
+                cols: cols, cellW: cellW, cellH: cellH,
+                // Never narrower than its own title, or the label overhangs.
+                w: Math.max(cols * cellW + SEC_PAD * 2, label.length * 7 + SEC_PAD * 2),
+                h: rows * cellH + SEC_PAD_TOP + SEC_PAD,
+              },
+            });
+            members.forEach(function (id) {
+              byId[id].data.parent = secId;
+              dropEdge[parent + '>' + id] = 1;
+            });
+            edges.push({
+              data: {
+                id: 'h:' + parent + '>' + secId, source: parent, target: secId,
+                type: 'navigates', hierarchy: true, width: 1.4, hotWidth: 3, weight: 1,
+              },
+            });
+          }
+
+          Object.keys(kids).sort().forEach(function (p) {
+            var leaves = kids[p].filter(isLeaf).filter(function (id) { return byId[id]; });
+            if (leaves.length <= WIDE) return;
+            // Group by feature, and by sub-area within a feature that has them:
+            // an "onboarding" box holding only KYC screens is mislabelled.
+            var byMod = {}, order = [];
+            leaves.forEach(function (id) {
+              var gn = nodeById[id];
+              var m = (gn && gn.module) || byId[id].data.module || 'other';
+              var area = gn ? areaOf(gn.module, gn.path) : null;
+              var key = area ? m + '/' + area.key : m;
+              if (!byMod[key]) {
+                byMod[key] = {
+                  label: area ? m + ' / ' + area.key : m,
+                  ref: nodeById['module:' + m] ? 'module:' + m : null,
+                  area: area ? area.key : null,
+                  ids: [],
+                };
+                order.push(key);
+              }
+              byMod[key].ids.push(id);
+            });
+            var loose = [];
+            order.sort().forEach(function (key) {
+              var g = byMod[key];
+              var members = g.ids.sort();
+              if (members.length < 2) { loose.push.apply(loose, members); return; }
+              makeSection(p, key, g.label, g.ref, g.area, members);
+            });
+            if (loose.length >= 3) makeSection(p, 'other', 'other', null, null, loose.sort());
+          });
+
+          var kept = edges.filter(function (e) {
+            return !(e.data.hierarchy && dropEdge[e.data.source + '>' + e.data.target]);
+          });
+          // Compounds must precede their children in the element list.
+          return sections.concat(nodes, kept);
+        }
+
+        /**
+         * Tidy tree over the skeleton (everything that is not inside a
+         * section). Depth sets one axis, an in-order walk sets the other, and
+         * every parent is centred over its own children. Node width and height
+         * are respected, so a wide section block gets the room it needs.
+         */
+        function treeLayout(els, dir) {
+          var nodes = els.filter(function (e) { return e.data.source == null && !e.data.parent; });
+          var edges = els.filter(function (e) { return e.data.source != null; });
+          var byId = {};
+          nodes.forEach(function (n) { byId[n.data.id] = n; });
+          var wOf = function (id) { return byId[id].data.w || byId[id].data.size || 30; };
+          var hOf = function (id) {
+            var d = byId[id].data;
+            return d.h || (d.type === 'route' || d.type === 'screen' ? 26 : d.size || 30);
+          };
+
+          var children = {}, hasParent = {};
+          edges.forEach(function (e) {
+            if (!e.data.hierarchy || !byId[e.data.source] || !byId[e.data.target]) return;
+            (children[e.data.source] || (children[e.data.source] = [])).push(e.data.target);
+            hasParent[e.data.target] = true;
+          });
+          Object.keys(children).forEach(function (k) { children[k].sort(); });
+
+          var ids = nodes.map(function (n) { return n.data.id; }).sort();
+          var roots = ids.filter(function (id) { return !hasParent[id]; });
+
+          var depth = {}, seen = {};
+          (function assign(list, d) {
+            var next = [];
+            list.forEach(function (id) {
+              if (seen[id]) return;
+              seen[id] = 1;
+              depth[id] = d;
+              (children[id] || []).forEach(function (c) { if (!seen[c]) next.push(c); });
+            });
+            if (next.length) assign(next, d + 1);
+          })(roots, 0);
+          ids.forEach(function (id) { if (depth[id] == null) { depth[id] = 0; roots.push(id); } });
+
+          var maxDepth = 0;
+          ids.forEach(function (id) { if (depth[id] > maxDepth) maxDepth = depth[id]; });
+
+          // Depth axis: each rank is as deep as its deepest node.
+          var axis = [], run = 0;
+          for (var d = 0; d <= maxDepth; d++) {
+            var deepest = 0;
+            ids.forEach(function (id) {
+              if (depth[id] === d) deepest = Math.max(deepest, dir === 'LR' ? wOf(id) : hOf(id));
+            });
+            axis[d] = run + deepest / 2;
+            run += deepest + (dir === 'LR' ? 110 : 80);
+          }
+
+          var pos = {}, placed = {}, cursor = 0;
+          function place(id) {
+            if (placed[id] != null) return placed[id];
+            placed[id] = 0;
+            var kidsK = (children[id] || []).filter(function (c) { return placed[c] == null; });
+            var cross;
+            if (!kidsK.length) {
+              var span = dir === 'LR' ? hOf(id) + 18 : wOf(id) + 26;
+              cross = cursor + span / 2;
+              cursor += span;
+            } else {
+              var cs = kidsK.map(place);
+              cross = (Math.min.apply(null, cs) + Math.max.apply(null, cs)) / 2;
+              // A parent wider than its subtree still needs its own clearance.
+              cursor = Math.max(cursor, cross + (dir === 'LR' ? hOf(id) / 2 + 9 : wOf(id) / 2 + 13));
+            }
+            placed[id] = cross;
+            pos[id] = dir === 'LR'
+              ? { x: axis[depth[id]], y: cross }
+              : { x: cross, y: axis[depth[id]] };
+            return cross;
+          }
+          roots.sort(function (a, b) {
+            return (children[b] || []).length - (children[a] || []).length || (a < b ? -1 : 1);
+          });
+          roots.forEach(function (r) { place(r); cursor += dir === 'LR' ? 40 : 70; });
+          ids.forEach(function (id) { if (!pos[id]) place(id); });
+          return pos;
+        }
+
+        /** Fill each section's grid with its member boxes. */
+        function placeSectionMembers(els, pos) {
+          var members = {};
+          els.forEach(function (e) {
+            if (e.data.source == null && e.data.parent) {
+              (members[e.data.parent] || (members[e.data.parent] = [])).push(e.data.id);
+            }
+          });
+          els.forEach(function (e) {
+            var d = e.data;
+            if (!d.section || !pos[d.id]) return;
+            var list = (members[d.id] || []).sort();
+            var left = pos[d.id].x - d.w / 2 + SEC_PAD;
+            var top = pos[d.id].y - d.h / 2 + SEC_PAD_TOP;
+            list.forEach(function (m, i) {
+              pos[m] = {
+                x: left + (i % d.cols) * d.cellW + d.cellW / 2,
+                y: top + Math.floor(i / d.cols) * d.cellH + d.cellH / 2,
+              };
+            });
+          });
+          return pos;
+        }
+
+        function cloneEls(els) {
+          return els.map(function (e) {
+            var c = { data: {} };
+            Object.keys(e.data).forEach(function (k) { c.data[k] = e.data[k]; });
+            if (e.classes) c.classes = e.classes;
+            return c;
+          });
+        }
+
+        /**
+         * Section, then lay the tree out. On 'auto' both orientations are
+         * built and the one closer to a screen-shaped aspect wins - fan-out
+         * heuristics guess, geometry knows.
+         */
+        function routesLayout(rawEls, forcedDir) {
+          function build(dir) {
+            var els = sectionize(cloneEls(rawEls), dir);
+            var pos = placeSectionMembers(els, treeLayout(els, dir));
+            var xs = [], ys = [];
+            Object.keys(pos).forEach(function (k) { xs.push(pos[k].x); ys.push(pos[k].y); });
+            var w = xs.length ? Math.max.apply(null, xs) - Math.min.apply(null, xs) : 1;
+            var h = ys.length ? Math.max.apply(null, ys) - Math.min.apply(null, ys) : 1;
+            return { dir: dir, els: els, pos: pos, aspect: (w || 1) / (h || 1) };
+          }
+          if (forcedDir) return build(forcedDir);
+          var lr = build('LR'), tb = build('TB');
+          var score = function (r) { return Math.abs(Math.log(r.aspect / 1.7)); };
+          return score(tb) <= score(lr) ? tb : lr;
+        }
+        function currentRouteDir() {
+          if (state.treeDir !== 'auto') return state.treeDir;
+          return routesLayout(elementsForRoutes(), null).dir;
+        }
+
+        /** Which cluster a doc belongs to: its feature, else its directory. */
+        function docClusterOf(d) {
+          if (d.module && nodeById['module:' + d.module]) {
+            return { key: 'module:' + d.module, label: d.module, ref: 'module:' + d.module };
+          }
+          var segs = d.path.split('/');
+          if (segs.length === 1) return { key: 'dir:.', label: 'repo root', ref: null };
+          var dirPath = segs.slice(0, Math.min(segs.length - 1, 2)).join('/');
+          return { key: 'dir:' + dirPath, label: dirPath + '/', ref: null };
+        }
+
+        /**
+         * Docs: labelled cluster cards, one per feature or directory, docs in a
+         * grid inside. Cell size is chosen to fit the label, which is the whole
+         * trick - rings spaced tighter than their own text were the old bug.
+         */
+        function docsLayout(els) {
+          var CELL_W = 178, CELL_H = 58, PAD = 16, PAD_TOP = 34, GAP = 100;
+          var members = {}, order = [];
+          els.forEach(function (e) {
+            var d = e.data;
+            if (d.source != null) return;
+            if (d.cluster) { order.push(d.id); return; }
+            if (d.parent) (members[d.parent] || (members[d.parent] = [])).push(d.id);
+          });
+          order.sort(function (a, b) {
+            return (members[b] || []).length - (members[a] || []).length || (a < b ? -1 : 1);
+          });
+
+          var dims = {};
+          order.forEach(function (id) {
+            var n = (members[id] || []).length || 1;
+            var cols = Math.max(1, Math.min(n, Math.round(Math.sqrt(n * 2.6))));
+            var rows = Math.ceil(n / cols);
+            dims[id] = { cols: cols, w: cols * CELL_W + PAD * 2, h: rows * CELL_H + PAD_TOP + PAD };
+          });
+
+          var total = 0;
+          order.forEach(function (id) { total += dims[id].w * dims[id].h; });
+          var targetW = Math.max(1200, Math.sqrt(total) * 1.5);
+
+          var pos = {};
+          var x = 0, y = 0, rowH = 0;
+          order.forEach(function (id) {
+            var dm = dims[id];
+            if (x > 0 && x + dm.w > targetW) { x = 0; y += rowH + GAP; rowH = 0; }
+            var left = x + PAD, top = y + PAD_TOP;
+            (members[id] || []).sort().forEach(function (m, i) {
+              pos[m] = {
+                x: left + (i % dm.cols) * CELL_W + CELL_W / 2,
+                y: top + Math.floor(i / dm.cols) * CELL_H + CELL_H / 2,
+              };
+            });
+            x += dm.w + GAP;
+            rowH = Math.max(rowH, dm.h);
+          });
+          return pos;
+        }
+
+        // -------------------------------------------------------------- views
+        function typeAllowed(t) { return !state.hidden[t]; }
+
+        function elementsForOverview() {
+          var mods = GRAPH.nodes.filter(function (n) { return n.type === 'module' && typeAllowed('module'); });
+          var ids = {};
+          mods.forEach(function (m) { ids[m.id] = true; });
+          var els = mods.map(function (m) { return toEl(m); });
+          GRAPH.edges.forEach(function (e) {
+            if (e.type !== 'imports') return;
+            if (ids[e.from] && ids[e.to]) els.push(toEdgeEl(e));
+          });
+          return els;
+        }
+
+        // Focus is a file explorer over the import graph: the current folder's
+        // subfolders and files, everything else collapsed into the modules
+        // around it. Click a folder to open it, ../ to go back up.
+        function elementsForFocus() {
+          var node = nodeById[state.focus];
+          if (!node) return elementsForOverview();
+          var moduleId = node.type === 'module' ? node.id : node.module ? 'module:' + node.module : null;
+          var els = elementsForOverview();
+          if (!moduleId || !nodeById[moduleId]) return els;
+          var slug = nodeById[moduleId].module;
+          var files = moduleFiles[slug] || [];
+          if (!files.length || !typeAllowed('file')) return els;
+
+          var base = nodeById[moduleId].path;
+          var prefix = state.focusPath.length ? state.focusPath.join('/') + '/' : '';
+          var flat = state.granularity === 'files';
+          var upId = 'up:' + slug;
+
+          var childOf = {}, groups = {}, fileEls = [];
+          var hasUp = false;
+          files.forEach(function (f) {
+            var rest = f.path.slice(base.length + 1);
+            if (prefix && rest.indexOf(prefix) !== 0) {
+              childOf[f.id] = upId;   // same module, outside the open folder
+              hasUp = true;
+              return;
+            }
+            var local = prefix ? rest.slice(prefix.length) : rest;
+            var slash = local.indexOf('/');
+            if (flat || slash === -1) {
+              childOf[f.id] = f.id;
+              fileEls.push(toEl(f));
+            } else {
+              var gid = 'group:' + slug + '/' + prefix + local.slice(0, slash);
+              childOf[f.id] = gid;
+              (groups[gid] || (groups[gid] = [])).push(f);
+            }
+          });
+
+          Object.keys(groups).sort().forEach(function (gid) {
+            var seg = gid.slice(gid.lastIndexOf('/') + 1);
+            els.push({
+              data: {
+                id: gid, label: seg + '/', type: 'file', module: slug, group: 1,
+                size: Math.round(Math.min(60, 18 + Math.sqrt(groups[gid].length) * 6)),
+              },
+            });
+          });
+          fileEls.forEach(function (el) { els.push(el); });
+          if (prefix && hasUp) {
+            els.push({ data: { id: upId, label: '../', type: 'file', module: slug, group: 1, up: 1, size: 24 } });
+          }
+
+          var drawn = {};
+          els.forEach(function (el) { if (el.data.source == null) drawn[el.data.id] = true; });
+
+          var agg = Object.create(null);
+          GRAPH.edges.forEach(function (e) {
+            if (e.type !== 'imports') return;
+            var a = childOf[e.from], b = childOf[e.to];
+            if (!a && !b) return;
+            var from = a || ('module:' + (nodeById[e.from] && nodeById[e.from].module));
+            var to = b || ('module:' + (nodeById[e.to] && nodeById[e.to].module));
+            if (!drawn[from] || !drawn[to] || from === to) return;
+            var key = from + '>' + to;
+            agg[key] = (agg[key] || 0) + (e.weight || 1);
+          });
+          Object.keys(agg).sort().forEach(function (key) {
+            var parts = key.split('>');
+            els.push(toEdgeEl({ from: parts[0], to: parts[1], type: 'imports', weight: agg[key] }, 'f:'));
+          });
+          return els;
+        }
+
+        function elementsForRoutes() {
+          var routes = GRAPH.nodes.filter(function (n) {
+            return (n.type === 'route' || n.type === 'screen') && typeAllowed(n.type);
+          });
+          var ids = {};
+          routes.forEach(function (r) { ids[r.id] = true; });
+          var els = routes.map(function (r) { return toEl(r); });
+          GRAPH.edges.forEach(function (e) {
+            if (e.type !== 'navigates') return;
+            if (!ids[e.from] || !ids[e.to]) return;
+            if (!e.hierarchy && !state.crossLinks) return;
+            els.push(toEdgeEl(e));
+          });
+          return els;
+        }
+
+        // Docs never draws import edges: they answer a different question.
+        function elementsForDocs() {
+          var docs = GRAPH.nodes.filter(function (n) { return n.type === 'doc' && typeAllowed('doc'); });
+          var clusters = {}, clusterOrder = [];
+          docs.forEach(function (d) {
+            var c = docClusterOf(d);
+            if (!clusters[c.key]) {
+              clusters[c.key] = { id: 'dcl:' + c.key, label: c.label, ref: c.ref, docs: [] };
+              clusterOrder.push(c.key);
+            }
+            clusters[c.key].docs.push(d);
+          });
+          clusterOrder.sort();
+
+          var els = [], present = {}, clusterOf = {};
+          clusterOrder.forEach(function (key) {
+            var c = clusters[key];
+            els.push({ data: { id: c.id, label: c.label, cluster: 1, ref: c.ref } });
+          });
+          clusterOrder.forEach(function (key) {
+            var c = clusters[key];
+            if (c.ref && typeAllowed('module')) {
+              els.push(toEl(nodeById[c.ref], { parent: c.id, size: 20 }));
+              present[c.ref] = true;
+              clusterOf[c.ref] = c.id;
+            }
+            c.docs.forEach(function (d) {
+              els.push(toEl(d, { parent: c.id }));
+              present[d.id] = true;
+              clusterOf[d.id] = c.id;
+            });
+          });
+
+          // Modules referenced by these docs but owning none of them.
+          if (typeAllowed('module')) {
+            var refMods = {};
+            GRAPH.edges.forEach(function (e) {
+              if (e.type !== 'documents' || !present[e.from]) return;
+              if (e.to.indexOf('module:') === 0 && !present[e.to] && nodeById[e.to]) refMods[e.to] = true;
+            });
+            var refIds = Object.keys(refMods).sort();
+            if (refIds.length) {
+              var refCl = 'dcl:ref';
+              els.unshift({ data: { id: refCl, label: 'referenced modules', cluster: 1 } });
+              refIds.forEach(function (id) {
+                els.push(toEl(nodeById[id], { parent: refCl, size: 18 }));
+                present[id] = true;
+                clusterOf[id] = refCl;
+              });
+            }
+          }
+
+          GRAPH.edges.forEach(function (e) {
+            if (e.type !== 'documents' && e.type !== 'links') return;
+            if (!present[e.from] || !present[e.to]) return;
+            var el = toEdgeEl(e);
+            if (clusterOf[e.from] !== clusterOf[e.to]) el.classes = 'faint';
+            els.push(el);
+          });
+          return els;
+        }
+
+        var EMPTY_COPY = {
+          routes: ['No routes detected', 'This repo has no router that could be read - a library or a service with no UI has nothing to show here.'],
+          docs: ['No docs found', 'Nothing matched the doc globs in the config. Add paths to <code>docGlobs</code> if your docs live elsewhere.'],
+          overview: ['Nothing to show', 'No modules were detected. Check <code>moduleRoots</code> in the config.'],
+          focus: ['Nothing to show', 'Double-click a module in the Overview first.'],
+        };
+
+        function elementsFor(view) {
+          if (view === 'routes') return elementsForRoutes();
+          if (view === 'docs') return elementsForDocs();
+          if (view === 'focus' && state.focus) return elementsForFocus();
+          return elementsForOverview();
+        }
+
+        var lastRoutesDir = null;
+
+        function render() {
+          var view = state.view;
+          var els = elementsFor(view);
+          var routePlan = null;
+          if (view === 'routes') {
+            routePlan = routesLayout(els, state.treeDir === 'auto' ? null : state.treeDir);
+            els = routePlan.els;
+            lastRoutesDir = routePlan.dir;
+            els.forEach(function (el) {
+              if (el.data.source != null && el.data.hierarchy) {
+                el.data.taxiDir = routePlan.dir === 'LR' ? 'rightward' : 'downward';
+              }
+            });
+          }
+          var nodeCount = els.filter(function (e) { return e.data.source == null && !e.data.cluster && !e.data.section; }).length;
+
+          var empty = document.getElementById('empty');
+          if (!nodeCount) {
+            var copy = EMPTY_COPY[view] || EMPTY_COPY.overview;
+            empty.innerHTML = '<div><b>' + copy[0] + '</b>' + copy[1] + '</div>';
+            empty.classList.add('on');
+          } else {
+            empty.classList.remove('on');
+          }
+
+          cy.startBatch();
+          cy.elements().remove();
+          cy.add(els);
+          cy.endBatch();
+          if (!nodeCount) { applyDim(); updateHint(); return; }
+
+          var mine = userMoved[view] || (userMoved[view] = Object.create(null));
+
+          if (view === 'routes' || view === 'docs') {
+            var pos = view === 'routes' ? routePlan.pos : docsLayout(els);
+            computed[view] = pos;
+            cy.nodes().forEach(function (n) {
+              if (n.isParent()) return;   // compounds derive their box from children
+              var p = mine[n.id()] || pos[n.id()];
+              if (p) n.position({ x: p.x, y: p.y });
+            });
+            cy.layout({ name: 'preset', fit: false }).run();
+          } else {
+            var known = computed[view] || (computed[view] = Object.create(null));
+            var missing = 0;
+            cy.nodes().forEach(function (n) {
+              var p = mine[n.id()] || known[n.id()];
+              if (p) n.position({ x: p.x, y: p.y }); else missing++;
+            });
+            if (missing) {
+              cy.layout({
+                name: 'fcose', quality: 'default', animate: false,
+                randomize: Object.keys(known).length === 0,
+                nodeSeparation: 90, idealEdgeLength: nodeCount > 40 ? 120 : 170,
+                nodeRepulsion: 9000, gravity: 0.2, padding: 40, packComponents: true,
+              }).run();
+              cy.nodes().forEach(function (n) { known[n.id()] = { x: n.position('x'), y: n.position('y') }; });
+            }
+          }
+
+          cy.fit(undefined, 50);
+          applyDim();
+          applySearch();
+          updateLabels();
+          updateHint();
+          updateToolbar();
+        }
+
+        // Highlighting never rebuilds elements or re-runs a layout - that is
+        // what once made the graph snap back the moment you dragged anything.
+        function applyDim() {
+          cy.elements().removeClass('dim hot selected');
+          var id = state.selected;
+          if (!id) { updateLabels(); return; }
+          var self = cy.getElementById(id);
+          if (self.empty()) { updateLabels(); return; }
+          var neighbourhood = self.closedNeighborhood();
+          cy.elements().not(neighbourhood).addClass('dim');
+          self.addClass('selected');
+          self.connectedEdges().addClass('hot');
+          updateLabels();
+        }
+
+        function applySearch() {
+          cy.nodes().removeClass('hit');
+          var q = state.query.trim().toLowerCase();
+          if (!q) { if (!state.selected) cy.elements().removeClass('dim'); else applyDim(); return; }
+          var hits = cy.nodes().filter(function (n) {
+            var meta = nodeById[n.id()];
+            var hay = (n.data('label') || '') + ' ' + ((meta && meta.path) || '');
+            return hay.toLowerCase().indexOf(q) !== -1;
+          });
+          cy.elements().addClass('dim');
+          hits.removeClass('dim').addClass('hit');
+          hits.connectedEdges().removeClass('dim');
+        }
+
+        // Hide the small-node labels only when zoomed far out; the layouts now
+        // reserve room for labels, so at working zoom they never collide.
+        function updateLabels() {
+          var dense = cy.nodes().length > 70;
+          var threshold = state.view === 'docs' ? 0.45 : 0.7;
+          var z = cy.zoom();
+          // The selected neighbourhood keeps its labels at any zoom: it is the
+          // one part of a dimmed graph the user is actually looking at.
+          var keep = null;
+          if (state.selected) {
+            var sel = cy.getElementById(state.selected);
+            if (sel.nonempty()) {
+              keep = {};
+              sel.closedNeighborhood().nodes().forEach(function (n) { keep[n.id()] = true; });
+            }
+          }
+          cy.batch(function () {
+            cy.nodes().forEach(function (n) {
+              var t = n.data('type');
+              var always = t === 'module' || t === 'route' || t === 'screen' || n.isParent();
+              n.toggleClass('nolabel', !always && !(keep && keep[n.id()]) && dense && z < threshold);
+            });
+          });
+        }
+        cy.on('zoom', updateLabels);
+
+        function updateHint() {
+          var n = cy.nodes().filter(function (x) { return !x.isParent(); }).length;
+          var e = cy.edges().length;
+          var extra = '';
+          if (state.view === 'overview') extra = '  -  double-click a module to open it';
+          if (state.view === 'focus' && state.focus && nodeById[state.focus]) {
+            var meta = nodeById[state.focus];
+            var slug = meta.type === 'module' ? meta.label : meta.module;
+            extra = '  -  ' + slug + (state.focusPath.length ? '/' + state.focusPath.join('/') : '')
+              + '  -  click a folder to open it';
+          }
+          if (state.view === 'routes') {
+            extra = '  -  ' + (lastRoutesDir === 'LR' ? 'left to right' : 'top down') + ', boxed by feature';
+          }
+          if (state.view === 'docs') extra = '  -  clustered by feature';
+          document.getElementById('hint').textContent = n + ' nodes, ' + e + ' edges' + extra;
+        }
+
+        function updateToolbar() {
+          var upBtn = document.getElementById('up');
+          upBtn.hidden = !(state.view === 'focus' && state.focusPath.length);
+          if (!upBtn.hidden) {
+            var parent = state.focusPath.length > 1
+              ? state.focusPath[state.focusPath.length - 2]
+              : (nodeById[state.focus] && (nodeById[state.focus].module || nodeById[state.focus].label));
+            upBtn.textContent = '⭱ Up to ' + parent;
+          }
+        }
+
+        // --------------------------------------------------------------- panel
+        var stage = document.getElementById('stage');
+        var panel = document.getElementById('panel');
+        var detailPage = document.getElementById('detailPage');
+
+        function related(id, type, dir) {
+          var list = (dir === 'in' ? incoming[id] : outgoing[id]) || [];
+          return list.filter(function (e) { return e.type === type; })
+            .map(function (e) { return { node: nodeById[dir === 'in' ? e.from : e.to], weight: e.weight }; })
+            .filter(function (r) { return r.node; })
+            .sort(function (a, b) { return (b.weight || 0) - (a.weight || 0) || (a.node.label < b.node.label ? -1 : 1); });
+        }
+        function nodeLink(n, suffix, text) {
+          return '<button class="node-link" data-goto="' + esc(n.id) + '">'
+            + esc(text == null ? n.label : text) + '</button>'
+            + (suffix ? ' <span class="muted">' + esc(suffix) + '</span>' : '');
+        }
+        function tag(text, cls) {
+          return text ? '<span class="tag' + (cls ? ' ' + cls : '') + '">' + esc(text) + '</span>' : '';
+        }
+        /** One line of a counted list: name on the left, number on the right. */
+        function row(main, count) {
+          return '<li><span class="grow">' + main + '</span>'
+            + (count ? '<span class="count">' + esc(count) + '</span>' : '') + '</li>';
+        }
+        function rowList(items) { return '<ul class="rows">' + items.join('') + '</ul>'; }
+        /** Sub-heading inside a section. */
+        function groupHead(label, meta) {
+          return '<h4 class="grp"><span class="grow">' + label + '</span>'
+            + (meta ? '<span class="muted">' + esc(meta) + '</span>' : '') + '</h4>';
+        }
+        function listSection(title, items) {
+          if (!items.length) return '';
+          return '<section><h3>' + title + ' <span class="muted">' + items.length + '</span></h3><ul>'
+            + items.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul></section>';
+        }
+
+        // ---- broken references ----
+        // A doc naming a path that is not there is worth knowing about, but only
+        // if the reader can tell the three cases apart. A file git deleted last
+        // Tuesday is a document to fix; a path belonging to a different repo is
+        // not rot at all. Merged into one red list they cancel each other out,
+        // so each gets its own group and its own reason for being there.
+
+        /** The badge means one thing: git removed a file this doc still names. */
+        function staleBadge(n) {
+          var gone = n.meta && n.meta.refs && n.meta.refs.deleted;
+          if (!gone || !gone.length) return '';
+          return '<span class="badge">' + gone.length + ' removed</span>';
+        }
+
+        function refPath(text, note) {
+          return '<li><div class="path">' + esc(text) + '</div>'
+            + (note ? '<div class="sub">' + note + '</div>' : '') + '</li>';
+        }
+
+        function brokenRefsHtml(n) {
+          var refs = (n.meta && n.meta.refs) || null;
+          if (!refs) return '';
+          var gone = refs.deleted || [], never = refs.unknown || [], out = refs.external || [];
+          var total = gone.length + never.length + out.length;
+          if (!total) return '';
+
+          var html = '<section><h3>Broken references <span class="muted">' + total + '</span></h3>'
+            + '<p class="lead">Paths this doc names that point at nothing. Every path listed'
+            + ' above this section was checked and does resolve.</p>';
+
+          if (gone.length) {
+            html += groupHead('Removed from the repo', pluralize(gone.length, 'path'))
+              + '<p class="lead">Git has the commit that took each of these out, so the doc is'
+              + ' out of date and worth fixing.</p><ul class="entries">'
+              + gone.map(function (d) {
+                  var note = d.sha
+                    ? 'removed in <span class="path">' + esc(d.sha) + '</span>'
+                      + (d.date ? ' on ' + esc(d.date) : '')
+                    : 'removed at some point in the history';
+                  // The doc may have written it module-relative; show both, or
+                  // the reader cannot find the line to edit.
+                  if (d.wrote && d.wrote !== d.path) {
+                    note += ' &middot; written as <span class="path">' + esc(d.wrote) + '</span>';
+                  }
+                  return refPath(d.path, note);
+                }).join('')
+              + '</ul>';
+          }
+          if (never.length) {
+            html += groupHead('Never in this repo', pluralize(never.length, 'path'))
+              + '<p class="lead">Nothing by these names is here now, and nothing ever was. Usually'
+              + ' another repo\'s tree, or files a plan described and nobody built.</p>'
+              + '<ul class="entries">' + never.map(function (p) { return refPath(p); }).join('') + '</ul>';
+          }
+          if (out.length) {
+            html += groupHead('Outside this repo', pluralize(out.length, 'path'))
+              + '<p class="lead">Home directories, absolute paths and wildcards. There is nothing'
+              + ' here to check them against, so they are listed, not judged.</p>'
+              + '<ul class="entries">' + out.map(function (p) { return refPath(p); }).join('') + '</ul>';
+          }
+          return html + '</section>';
+        }
+
+        // ---- module detail ----
+        // One place that tells a module's whole story in plain words: what is
+        // inside, which screens it owns, what documents it, and what would be
+        // affected by a change. Built entirely from the graph, so same graph
+        // in, same panel out.
+
+        function pluralize(count, word) { return count + ' ' + word + (count === 1 ? '' : 's'); }
+
+        /**
+         * Two-level folder tree over an arbitrary base path and file list - a
+         * whole module, or just one of its areas. Nesting instead of repeated
+         * path prefixes: each top folder appears once with its subfolders
+         * indented under it, and anything deeper folds into its second-level
+         * folder.
+         */
+        function buildFolderTree(basePath, srcFiles) {
+          var baseLen = basePath.length + 1;
+          var files = srcFiles.slice()
+            .sort(function (a, b) { return a.path < b.path ? -1 : 1; });
+          var rootFiles = [], top = {};
+          files.forEach(function (f) {
+            var rest = f.path.slice(baseLen);
+            var slash = rest.indexOf('/');
+            if (slash === -1) { rootFiles.push(f); return; }
+            var key = rest.slice(0, slash);
+            var g = top[key] || (top[key] = { files: [], sub: {} });
+            var rest2 = rest.slice(slash + 1);
+            var slash2 = rest2.indexOf('/');
+            if (slash2 === -1) { g.files.push(f); return; }
+            var k2 = rest2.slice(0, slash2);
+            (g.sub[k2] || (g.sub[k2] = [])).push(f);
+          });
+          var groups = Object.keys(top).sort().map(function (key) {
+            var g = top[key];
+            var subs = Object.keys(g.sub).sort().map(function (k2) {
+              return { label: k2, files: g.sub[k2] };
+            });
+            var total = g.files.length;
+            subs.forEach(function (s) { total += s.files.length; });
+            return { label: key, files: g.files, subs: subs, total: total };
+          });
+          return { rootFiles: rootFiles, groups: groups, total: files.length };
+        }
+
+        /** A file's path relative to a base path - what actually names it. */
+        function relIn(basePath, f) { return f.path.slice(basePath.length + 1); }
+
+        /**
+         * Deeper files fold up into their second-level folder, so a folder can
+         * hold two files called index.ts from different sub-folders. Show the
+         * remaining path for those; a plain name for the ones directly inside.
+         */
+        function fileList(files, base) {
+          return '<ul>' + files.map(function (f) {
+            var label = null;
+            if (base && f.path.indexOf(base + '/') === 0) {
+              var rest = f.path.slice(base.length + 1);
+              if (rest.indexOf('/') !== -1) label = rest;
+            }
+            return '<li>' + nodeLink(f, '', label) + '</li>';
+          }).join('') + '</ul>';
+        }
+        function folderDetails(label, count, inner, open) {
+          return '<details' + (open ? ' open' : '') + '><summary><span class="folder">' + esc(label)
+            + '</span> <span class="muted">' + pluralize(count, 'file') + '</span></summary>' + inner + '</details>';
+        }
+
+        /** Every doc about this module: owned by it, describing it, or describing a file inside it. */
+        function moduleDocs(mod) {
+          var seen = {}, out = [];
+          function add(d) { if (d && d.type === 'doc' && !seen[d.id]) { seen[d.id] = 1; out.push(d); } }
+          GRAPH.nodes.forEach(function (x) { if (x.type === 'doc' && x.module === mod.module) add(x); });
+          related(mod.id, 'documents', 'in').forEach(function (r) { add(r.node); });
+          (moduleFiles[mod.module] || []).forEach(function (f) {
+            related(f.id, 'documents', 'in').forEach(function (r) { add(r.node); });
+          });
+          return out.sort(function (a, b) {
+            return a.label < b.label ? -1 : a.label > b.label ? 1 : (a.id < b.id ? -1 : 1);
+          });
+        }
+
+        // What a document is for. Order runs from "rules you must follow" down to
+        // "background reading", which is also the order a reader wants them in.
+        var DOC_KINDS = [
+          ['AGENTS', 'Rules for working here'],
+          ['MAP', 'Routing maps'],
+          ['SPEC', 'Specs and flows'],
+          ['REFERENCE', 'Reference'],
+          ['OTHER', 'Plans and notes'],
+        ];
+
+        /** The leftover pile once sub-areas (if any) have claimed their own docs:
+         * cut by doc kind once it is long enough that a flat list stops helping. */
+        function docGroupsRest(rest, labeled) {
+          var groups = [];
+          if (!rest.length) return groups;
+          if (rest.length > 6) {
+            var byKind = Object.create(null);
+            rest.forEach(function (d) {
+              var k = (d.meta && d.meta.docKind) || 'OTHER';
+              if (!byKind[k]) byKind[k] = [];
+              byKind[k].push(d);
+            });
+            var known = Object.create(null);
+            DOC_KINDS.forEach(function (pair) {
+              known[pair[0]] = 1;
+              if (byKind[pair[0]]) groups.push({ label: esc(pair[1]), docs: byKind[pair[0]], hideKind: true });
+            });
+            var spare = [];
+            Object.keys(byKind).sort().forEach(function (k) { if (!known[k]) spare = spare.concat(byKind[k]); });
+            if (spare.length) groups.push({ label: 'Other', docs: spare });
+            return groups;
+          }
+          groups.push({ label: labeled ? 'Across the whole module' : null, docs: rest });
+          return groups;
+        }
+        /**
+         * Docs cut into groups a reader can skim. Sub-areas first, since a KYC
+         * spec and an investor-onboarding spec are not interchangeable. What is
+         * left over is module-wide; if that pile is still long, cut it again by
+         * what each document is for. A flat list of 29 is not an answer.
+         */
+        function docGroups(slug, list) {
+          var areas = subAreas(slug);
+          if (!areas.length) return docGroupsRest(list, false);
+          var groups = [], byArea = Object.create(null), rest = [];
+          list.forEach(function (d) {
+            var a = areaOf(slug, d.path);
+            if (a) (byArea[a.key] || (byArea[a.key] = [])).push(d);
+            else rest.push(d);
+          });
+          areas.forEach(function (a) {
+            if (!byArea[a.key]) return;
+            // The group name already says the area, so the rows drop that tag.
+            groups.push({ label: '<span class="folder">' + esc(a.key) + '/</span>',
+              docs: byArea[a.key], hideArea: true });
+          });
+          return groups.concat(docGroupsRest(rest, groups.length > 0));
+        }
+        /** A module's docs still split by area/kind as docGroups does; a single
+         * area's docs are already scoped, so they only need the kind split. */
+        function docGroupsFor(slug, list, isArea) {
+          return isArea ? docGroupsRest(list, false) : docGroups(slug, list);
+        }
+
+        /**
+         * Step screens in the order the user walks them. The extractor writes
+         * the sequence down as navigates edges between siblings; following
+         * that chain recovers the order the sorted graph file loses.
+         */
+        function flowOrder(steps) {
+          var inSet = {}, next = {}, hasPrev = {};
+          steps.forEach(function (s) { inSet[s.id] = s; });
+          steps.forEach(function (s) {
+            (outgoing[s.id] || []).forEach(function (e) {
+              if (e.type === 'navigates' && !e.hierarchy && inSet[e.to]) { next[s.id] = e.to; hasPrev[e.to] = 1; }
+            });
+          });
+          var ordered = [], seen = {};
+          function walk(id) {
+            while (id && inSet[id] && !seen[id]) { seen[id] = 1; ordered.push(inSet[id]); id = next[id]; }
+          }
+          steps.forEach(function (s) { if (!hasPrev[s.id]) walk(s.id); });
+          steps.forEach(function (s) { walk(s.id); });
+          return ordered;
+        }
+
+        /**
+         * File-level edges crossing an area's own boundary - the "in"/"out"
+         * equivalent of a module's related() lookup, but there is no graph node
+         * for an area to look up. Built straight from the file-level imports
+         * indexes, excluding edges that stay inside the area (that's the area's
+         * own internal wiring, not its blast radius).
+         */
+        function areaEdges(area, dir) {
+          var inSet = Object.create(null);
+          area.files.forEach(function (f) { inSet[f.id] = 1; });
+          var rows = Object.create(null);
+          area.files.forEach(function (f) {
+            ((dir === 'in' ? incoming[f.id] : outgoing[f.id]) || []).forEach(function (e) {
+              if (e.type !== 'imports') return;
+              var otherId = dir === 'in' ? e.from : e.to;
+              if (inSet[otherId]) return;
+              var other = nodeById[otherId];
+              if (!other) return;
+              var r = rows[otherId] || (rows[otherId] = { node: other, weight: 0 });
+              r.weight += e.weight || 1;
+            });
+          });
+          return Object.keys(rows).map(function (k) { return rows[k]; });
+        }
+
+        /** Collapse file-level rows into one row per module, summing weight - the
+         * same {node, weight} shape related() returns, so the module-level row
+         * renderer needs no changes to draw either. */
+        function groupFilesByModule(rows) {
+          var byMod = Object.create(null), order = [];
+          rows.forEach(function (r) {
+            var m = r.node.module;
+            if (!byMod[m]) { byMod[m] = { node: nodeById['module:' + m], weight: 0 }; order.push(m); }
+            byMod[m].weight += r.weight;
+          });
+          return order.map(function (m) { return byMod[m]; }).filter(function (r) { return r.node; })
+            .sort(function (a, b) { return b.weight - a.weight || (a.node.label < b.node.label ? -1 : 1); });
+        }
+
+        /** Everything detailHtml needs, gathered up front so the same builder
+         * can describe a whole module or just one of its areas. */
+        function moduleDetailScope(n) {
+          var slug = n.module;
+          return {
+            slug: slug, areaKey: null, basePath: n.path, modPath: n.path,
+            files: moduleFiles[slug] || [],
+            screens: GRAPH.nodes.filter(function (x) { return x.type === 'screen' && x.module === slug; }),
+            docs: moduleDocs(n),
+            areas: subAreas(slug),
+            fanIn: related(n.id, 'imports', 'in'),
+            fanOut: related(n.id, 'imports', 'out'),
+            inModuleIn: [], inModuleOut: [],
+          };
+        }
+        function areaDetailScope(mod, area) {
+          var slug = mod.module;
+          var edgesIn = areaEdges(area, 'in');
+          var edgesOut = areaEdges(area, 'out');
+          var pool = moduleDocs(mod);
+          return {
+            slug: slug, areaKey: area.key, basePath: area.prefix.slice(0, -1), modPath: mod.path,
+            files: area.files,
+            screens: GRAPH.nodes.filter(function (x) { return x.type === 'screen' && areaOf(slug, x.path) === area; }),
+            docs: pool.filter(function (d) { return areaOf(slug, d.path) === area; }),
+            areas: [],
+            fanIn: groupFilesByModule(edgesIn.filter(function (r) { return r.node.module !== slug; })),
+            fanOut: groupFilesByModule(edgesOut.filter(function (r) { return r.node.module !== slug; })),
+            inModuleIn: edgesIn.filter(function (r) { return r.node.module === slug; }),
+            inModuleOut: edgesOut.filter(function (r) { return r.node.module === slug; }),
+          };
+        }
+
+        function detailHtml(scope) {
+          var slug = scope.slug, isArea = !!scope.areaKey;
+          var boundary = isArea ? esc(scope.areaKey) + '/' : 'this module';
+          var tree = buildFolderTree(scope.basePath, scope.files);
+          var risky = scope.files.filter(function (f) { return f.meta && f.meta.fanIn > 0; })
+            .sort(function (a, b) { return (b.meta.fanIn || 0) - (a.meta.fanIn || 0) || (a.path < b.path ? -1 : 1); })
+            .slice(0, 5);
+
+          // Screens split by sub-area first, then by flow versus standalone
+          // inside each. Without the first split, an onboarding flow and the
+          // KYC pages read as one undifferentiated pile of 14 screens.
+          function bucketScreens(list) {
+            var flows = {}, plain = [];
+            list.forEach(function (s) {
+              if (s.meta && s.meta.navigatorType === 'flow' && s.meta.parent) {
+                (flows[s.meta.parent] || (flows[s.meta.parent] = [])).push(s);
+              } else plain.push(s);
+            });
+            var keys = Object.keys(flows).sort();
+            var steps = 0, owner = {};
+            keys.forEach(function (k) {
+              steps += flows[k].length;
+              owner['screen:' + k] = owner['route:' + k] = 1;
+            });
+            // The screen that runs a flow already heads its own step list; it is
+            // not also a standalone page sitting next to it.
+            plain = plain.filter(function (s) { return !owner[s.id]; });
+            return { flows: flows, flowKeys: keys, plain: plain, stepTotal: steps };
+          }
+
+          var screenGroups = [];
+          if (scope.areas.length) {
+            scope.areas.forEach(function (a) {
+              var inArea = scope.screens.filter(function (x) { return areaOf(slug, x.path) === a; });
+              if (inArea.length) screenGroups.push({ label: a.key + '/', screens: inArea });
+            });
+            var rest = scope.screens.filter(function (x) { return !areaOf(slug, x.path); });
+            if (rest.length) screenGroups.push({ label: 'elsewhere in the module', screens: rest });
+          } else if (scope.screens.length) {
+            screenGroups.push({ label: null, screens: scope.screens });
+          }
+
+          var all = bucketScreens(scope.screens);
+
+          function itemWithSummary(node2, chip) {
+            return '<li><div class="entry-head">' + nodeLink(node2) + tag(chip) + '</div>'
+              + (node2.summary ? '<div class="sub">' + esc(node2.summary) + '</div>' : '') + '</li>';
+          }
+
+          /** The "does a change here ripple out" sentence - shared by the top
+           * summary and the blast-radius section below, so the two never drift
+           * apart into two different numbers for the same question. */
+          function changeSentence() {
+            if (!isArea) {
+              return scope.fanIn.length
+                ? pluralize(scope.fanIn.length, 'other module') + ' use' + (scope.fanIn.length === 1 ? 's' : '')
+                  + ' code from here, so a change can ripple beyond this module.'
+                : 'No other module uses code from here, so changes stay local.';
+            }
+            if (scope.fanIn.length) {
+              return pluralize(scope.fanIn.length, 'other module') + ' use' + (scope.fanIn.length === 1 ? 's' : '')
+                + ' code from ' + boundary + ' directly.';
+            }
+            if (scope.inModuleIn.length) {
+              return 'No module outside ' + esc(slug) + ' imports from ' + boundary + ' directly, though '
+                + pluralize(scope.inModuleIn.length, 'file') + ' elsewhere in the module '
+                + (scope.inModuleIn.length === 1 ? 'does' : 'do') + '.';
+            }
+            return 'Nothing outside ' + boundary + ' imports from it, so changes stay local.';
+          }
+
+          // The story in words first; the sections below only back it up.
+          var story = [];
+          story.push('Holds ' + pluralize(scope.files.length, 'file')
+            + (scope.screens.length ? ' and ' + pluralize(scope.screens.length, 'screen') + ' the user can see' : '') + '.');
+          story.push(changeSentence());
+          if (scope.fanOut.length) story.push('It draws on ' + pluralize(scope.fanOut.length, 'other module') + '.');
+          if (risky.length) {
+            story.push('The riskiest file to touch is ' + nodeLink(risky[0]) + ', used by '
+              + pluralize(risky[0].meta.fanIn, 'file') + '.');
+          }
+          var html = '<p class="summary">' + story.join(' ') + '</p>';
+
+          // The folders on disk already name the sub-journeys inside a module.
+          // Say them out loud rather than flattening everything into one bag.
+          if (scope.areas.length) {
+            html += '<section><h3>Areas <span class="muted">' + scope.areas.length + '</span></h3>'
+              + '<p class="lead">This module is split into ' + pluralize(scope.areas.length, 'area')
+              + ' that sit side by side on disk. Each is its own little module, with its own'
+              + ' components, pages and services:</p>';
+            html += rowList(scope.areas.map(function (a) {
+              var aScreens = scope.screens.filter(function (x) { return areaOf(slug, x.path) === a; });
+              var bits = [pluralize(a.files.length, 'file')];
+              if (aScreens.length) bits.push(pluralize(aScreens.length, 'screen'));
+              return row('<button class="node-link" data-area="' + esc(slug) + '/' + esc(a.key)
+                + '"><span class="folder">' + esc(a.key) + '/</span></button>', andList(bits));
+            }));
+            html += '</section>';
+          }
+
+          // What the user sees comes before how the code is filed: screens and
+          // flows first, docs next, blast radius, and the file inventory last.
+          function screenShape(b) {
+            var parts = [];
+            if (b.flowKeys.length === 1) parts.push('a guided flow of ' + pluralize(b.stepTotal, 'step'));
+            if (b.flowKeys.length > 1) {
+              parts.push(b.flowKeys.length + ' guided flows totalling ' + pluralize(b.stepTotal, 'step'));
+            }
+            if (b.plain.length) parts.push(pluralize(b.plain.length, 'standalone page'));
+            return parts.join(', plus ');
+          }
+
+          if (scope.screens.length) {
+            html += '<section><h3>Screens <span class="muted">' + scope.screens.length + '</span></h3>'
+              + '<p class="lead">' + (isArea ? 'This area owns ' : 'This module owns ') + screenShape(all)
+              + (screenGroups.length > 1 ? ', split across ' + pluralize(screenGroups.length, 'area') : '')
+              + '.</p>';
+            screenGroups.forEach(function (g) {
+              var b = bucketScreens(g.screens);
+              if (g.label) {
+                // Plain screen counts here, so the areas visibly add up to the
+                // number in the heading; the shape is described above.
+                html += groupHead('<span class="folder">' + esc(g.label) + '</span>',
+                  pluralize(g.screens.length, 'screen'));
+              }
+              b.flowKeys.forEach(function (parent) {
+                var parentNode = nodeById['screen:' + parent] || nodeById['route:' + parent];
+                html += '<div class="lead">' + (parentNode ? nodeLink(parentNode) : esc(parent))
+                  + ' walks the user through these steps, in order:</div><ol class="steps">'
+                  + flowOrder(b.flows[parent]).map(function (s) { return itemWithSummary(s); }).join('')
+                  + '</ol>';
+              });
+              if (b.plain.length) {
+                html += '<ul class="entries">' + b.plain.map(function (s) {
+                  return itemWithSummary(s, s.meta && s.meta.navigatorType);
+                }).join('') + '</ul>';
+              }
+            });
+            html += '</section>';
+          }
+
+          if (scope.docs.length) {
+            var guardTotal = 0, staleCount = 0;
+            scope.docs.forEach(function (d) {
+              guardTotal += ((d.meta && d.meta.guardrails) || []).length;
+              if (d.meta && d.meta.stale) staleCount++;
+            });
+            var docLead = 'What is written down about ' + (isArea ? 'this area' : 'this module') + '.';
+            if (guardTotal) {
+              docLead += ' ' + pluralize(guardTotal, 'rule') + ' to respect '
+                + (guardTotal === 1 ? 'is' : 'are') + ' spelled out below.';
+            }
+            if (staleCount) {
+              docLead += ' ' + pluralize(staleCount, 'doc') + ' still name'
+                + (staleCount === 1 ? 's' : '') + ' files git has since removed.';
+            }
+            html += '<section><h3>Docs and specs <span class="muted">' + scope.docs.length + '</span></h3>'
+              + '<p class="lead">' + docLead + '</p>';
+
+            docGroupsFor(slug, scope.docs, isArea).forEach(function (g) {
+              if (g.label) html += groupHead(g.label, pluralize(g.docs.length, 'doc'));
+              html += '<ul class="entries">'
+                + g.docs.map(function (d) { return docItem(d, g, slug, scope.modPath); }).join('') + '</ul>';
+            });
+            html += '</section>';
+          }
+
+          // Three different questions - who feels a change, what can break this,
+          // what is fragile inside - so three headed blocks, not one long run.
+          function importRows(list) {
+            return rowList(list.map(function (r) {
+              return row(nodeLink(r.node), pluralize(r.weight || 1, 'import'));
+            }));
+          }
+          function fileRows(list) {
+            return rowList(list.map(function (r) {
+              return row(nodeLink(r.node, '', relIn(scope.modPath, r.node)), pluralize(r.weight || 1, 'import'));
+            }));
+          }
+          html += '<section><h3>If you change ' + boundary + '</h3>';
+          html += groupHead('Modules that would feel it',
+            scope.fanIn.length ? pluralize(scope.fanIn.length, 'module') : '');
+          html += '<p class="lead">' + changeSentence() + '</p>';
+          if (scope.fanIn.length) html += importRows(scope.fanIn);
+          if (isArea && scope.inModuleIn.length) {
+            html += groupHead('Files elsewhere in the module that lean on this', pluralize(scope.inModuleIn.length, 'file'))
+              + fileRows(scope.inModuleIn);
+          }
+          if (scope.fanOut.length) {
+            html += groupHead('What ' + boundary + ' leans on', pluralize(scope.fanOut.length, 'module'))
+              + '<p class="lead">A change over there can break things here:</p>'
+              + importRows(scope.fanOut);
+          }
+          if (isArea && scope.inModuleOut.length) {
+            html += groupHead('Files elsewhere in the module it leans on', pluralize(scope.inModuleOut.length, 'file'))
+              + fileRows(scope.inModuleOut);
+          }
+          if (risky.length) {
+            html += groupHead('Riskiest files inside', pluralize(risky.length, 'file'))
+              + '<p class="lead">The most leaned-on files - touch these with extra care:</p>'
+              + rowList(risky.map(function (f) {
+                  // Bare filenames repeat (three index.ts tell you nothing);
+                  // the path inside identifies the file.
+                  return row(nodeLink(f, '', relIn(scope.basePath, f)), 'used by ' + pluralize(f.meta.fanIn, 'file'));
+                }));
+          }
+          html += '</section>';
+
+          if (scope.files.length) {
+            var filesLead = 'The files that make up ' + (isArea ? 'this area' : 'this module')
+              + ', grouped as the folders sit on disk.';
+            if (scope.areas.length) {
+              filesLead = 'The top folders here are the areas above - '
+                + andList(scope.areas.map(function (a) { return a.key + '/'; }))
+                + ' - each with its own layers inside.';
+            } else if (tree.groups.length > 1) {
+              var biggest = tree.groups[0];
+              tree.groups.forEach(function (g) { if (g.total > biggest.total) biggest = g; });
+              if (biggest.total >= tree.total * 0.4) {
+                filesLead += ' Most of it sits in ' + esc(biggest.label) + '/ ('
+                  + pluralize(biggest.total, 'file') + ').';
+              }
+            }
+            html += '<section><h3>Inside, folder by folder <span class="muted">' + scope.files.length + '</span></h3>'
+              + '<p class="lead">' + filesLead + '</p>';
+            tree.groups.forEach(function (g) {
+              var gBase = scope.basePath + '/' + g.label;
+              var inner = g.subs.map(function (s) {
+                return folderDetails(s.label + '/', s.files.length, fileList(s.files, gBase + '/' + s.label));
+              }).join('') + (g.files.length ? fileList(g.files, gBase) : '');
+              html += folderDetails(g.label + '/', g.total, inner, tree.groups.length <= 2);
+            });
+            if (tree.rootFiles.length) {
+              html += folderDetails('module root', tree.rootFiles.length, fileList(tree.rootFiles, scope.basePath));
+            }
+            html += '</section>';
+          }
+          return html;
+        }
+
+        // Where a doc that lives outside the module actually sits. Without it
+        // half the list is filenames with no address.
+        function docWhere(d, modPath) {
+          if (d.path.indexOf(modPath + '/') === 0) return '';
+          var segs = d.path.split('/');
+          if (segs.length < 2) return '';
+          return segs.slice(0, Math.min(segs.length - 1, 2)).join('/') + '/';
+        }
+        function docItem(d, group, slug, modPath) {
+          var guards = (d.meta && d.meta.guardrails) || [];
+          var dArea = areaOf(slug, d.path);
+          var out = '<li><div class="entry-head">' + nodeLink(d)
+            + (group.hideArea || !dArea ? '' : tag(dArea.key + '/', 'area'))
+            + (dArea ? '' : tag(docWhere(d, modPath), 'loc'))
+            + (group.hideKind ? '' : tag(d.meta && d.meta.docKind))
+            + staleBadge(d)
+            + '</div>';
+          if (d.summary) out += '<div class="sub">' + esc(d.summary) + '</div>';
+          if (guards.length) {
+            out += '<details><summary class="muted">' + pluralize(guards.length, 'guardrail') + '</summary>'
+              + guards.map(function (g) { return '<div class="guard">' + esc(g) + '</div>'; }).join('')
+              + '</details>';
+          }
+          return out + '</li>';
+        }
+
+        function openFolderPanel(gid) {
+          var rest = gid.slice('group:'.length);
+          var slug = rest.slice(0, rest.indexOf('/'));
+          var rel = rest.slice(slug.length + 1);
+          var mod = nodeById['module:' + slug];
+          if (!mod) return;
+          var folder = mod.path + '/' + rel;
+          var inside = (moduleFiles[slug] || []).filter(function (f) {
+            return f.path.indexOf(folder + '/') === 0;
+          });
+          panel.innerHTML =
+            '<button class="ghost close" data-close="1">Close</button>'
+            + '<div class="kind">folder</div><h2>' + esc(rel.slice(rel.lastIndexOf('/') + 1)) + '/</h2>'
+            + '<div class="path muted">' + esc(folder) + '</div>'
+            + '<div class="panel-actions"><button class="ghost" data-drill="' + esc(rel) + '">Open folder</button></div>'
+            + listSection('Files inside', inside.map(function (f) { return nodeLink(f); }));
+          stage.classList.add('panel-open');
+        }
+
+        function closeDetailPage() { detailPage.classList.remove('on'); }
+
+        /** A module's full story fills the window - the side drawer only has
+         * room for its summary, not its areas, screens, docs and folder tree. */
+        function openModulePage(n, headerHtml) {
+          detailPage.innerHTML = '<div class="detail-inner">'
+            + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
+            + headerHtml + detailHtml(moduleDetailScope(n))
+            + '</div>';
+          detailPage.classList.add('on');
+          stage.classList.remove('panel-open', 'panel-wide');
+        }
+
+        /** Same full-page treatment, scoped to one area inside a module - a KYC
+         * box on the Routes graph should not dump the whole onboarding module. */
+        function openAreaPage(slug, areaKey) {
+          var mod = nodeById['module:' + slug];
+          if (!mod) return;
+          var areas = subAreas(slug);
+          var area = null;
+          for (var i = 0; i < areas.length; i++) { if (areas[i].key === areaKey) { area = areas[i]; break; } }
+          if (!area) { openPanel('module:' + slug); return; }
+          var header = '<p class="crumb">' + nodeLink(mod) + ' / ' + esc(area.key) + '/</p>'
+            + '<div class="kind">area of ' + esc(slug) + '</div>'
+            + '<h2>' + esc(area.key) + '/</h2>'
+            + '<div class="path muted">' + esc(area.prefix.slice(0, -1)) + '</div>';
+          detailPage.innerHTML = '<div class="detail-inner">'
+            + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
+            + header + detailHtml(areaDetailScope(mod, area))
+            + '</div>';
+          detailPage.classList.add('on');
+          stage.classList.remove('panel-open', 'panel-wide');
+        }
+
+        function openPanel(id) {
+          closeDetailPage();
+          stage.classList.remove('panel-wide');
+          if (id.indexOf('group:') === 0) { openFolderPanel(id); return; }
+          var n = nodeById[id];
+          if (!n) return;
+
+          var href = editorHref(n.path);
+          var guardrails = (n.meta && n.meta.guardrails) || [];
+
+          var html = '<div class="kind">' + esc(n.type)
+            + (n.meta && n.meta.docKind ? ' &middot; ' + esc(n.meta.docKind) : '')
+            + (n.meta && n.meta.navigatorType ? ' &middot; ' + esc(n.meta.navigatorType) : '')
+            + '</div>';
+          html += '<h2>' + esc(n.label) + staleBadge(n) + '</h2>';
+          if (n.path) {
+            html += href
+              ? '<a class="path" href="' + esc(href) + '">' + esc(n.path) + '</a>'
+              : '<div class="path muted">' + esc(n.path) + '</div>';
+          }
+          if (n.meta && n.meta.routePath) html += '<div class="path muted">' + esc(n.meta.routePath) + '</div>';
+          if (n.summary) html += '<p class="summary">' + esc(n.summary) + '</p>';
+
+          // A module gets the full story on its own page; everything else stays
+          // in the small drawer.
+          if (n.type === 'module') {
+            openModulePage(n, html);
+            return;
+          }
+
+          if (n.type === 'file') {
+            html += '<div class="panel-actions"><button class="ghost" data-focus="' + esc(n.id) + '">Open in Focus</button></div>';
+          }
+
+          // Say which module (and area, if any) this sits in - a lone screen or
+          // file otherwise reads as if it exists with no owner.
+          if (n.module && nodeById['module:' + n.module]) {
+            var ownerMod = nodeById['module:' + n.module];
+            var ownerArea = areaOf(n.module, n.path);
+            html += '<p class="lead module-context">Part of the ' + nodeLink(ownerMod) + ' module'
+              + (ownerArea ? ', in the ' + esc(ownerArea.key) + ' area' : '') + '.'
+              + (ownerMod.summary ? ' ' + esc(ownerMod.summary) : '') + '</p>';
+          }
+
+          // Most files and screens have no doc naming them directly - specs
+          // usually cover a module or area, not every file in it. Falling back
+          // to those keeps the section from just being empty, but the lead
+          // sentence must say so plainly: it never claims these name the file.
+          var directDocs = related(n.id, 'documents', 'in');
+          if (directDocs.length) {
+            html += listSection('Specs documenting this', directDocs.map(function (r) {
+              return nodeLink(r.node, r.node.meta && r.node.meta.docKind);
+            }));
+          } else if ((n.type === 'file' || n.type === 'screen') && n.module && nodeById['module:' + n.module]) {
+            var ownerMod2 = nodeById['module:' + n.module];
+            var ownerArea2 = areaOf(n.module, n.path);
+            var pool = moduleDocs(ownerMod2);
+            var scoped = ownerArea2 ? pool.filter(function (d) { return areaOf(n.module, d.path) === ownerArea2; }) : [];
+            var fallback = scoped.length ? scoped : pool;
+            if (fallback.length) {
+              html += '<section><h3>Specs documenting this</h3>'
+                + '<p class="lead">No doc names this file directly. These describe the wider '
+                + (scoped.length ? 'area' : 'module') + ':</p><ul>'
+                + fallback.map(function (d) { return '<li>' + nodeLink(d, d.meta && d.meta.docKind) + '</li>'; }).join('')
+                + '</ul></section>';
+            }
+          }
+          if (guardrails.length) {
+            html += '<section><h3>Guardrails</h3>'
+              + guardrails.map(function (g) { return '<div class="guard">' + esc(g) + '</div>'; }).join('')
+              + '</section>';
+          }
+          html += listSection('Describes', related(n.id, 'documents', 'out').map(function (r) { return nodeLink(r.node); }));
+          html += listSection('Links to', related(n.id, 'links', 'out').map(function (r) { return nodeLink(r.node); }));
+          html += listSection('Linked from', related(n.id, 'links', 'in').map(function (r) { return nodeLink(r.node); }));
+          // Last, and only for docs: everything above is a path that resolves
+          // today and can be clicked. What follows is the part that does not.
+          html += brokenRefsHtml(n);
+          html += listSection('Navigates to', related(n.id, 'navigates', 'out').map(function (r) { return nodeLink(r.node); }));
+          html += listSection('Reached from', related(n.id, 'navigates', 'in').map(function (r) { return nodeLink(r.node); }));
+          html += listSection('Rendered by', related(n.id, 'renders', 'out').map(function (r) { return nodeLink(r.node); }));
+          html += listSection('Renders', related(n.id, 'renders', 'in').map(function (r) { return nodeLink(r.node); }));
+          html += listSection('Depends on', related(n.id, 'imports', 'out').slice(0, 60).map(function (r) {
+            return nodeLink(r.node, r.weight > 1 ? r.weight + ' imports' : '');
+          }));
+          html += listSection('Depended on by', related(n.id, 'imports', 'in').slice(0, 60).map(function (r) {
+            return nodeLink(r.node, r.weight > 1 ? r.weight + ' imports' : '');
+          }));
+
+          panel.innerHTML = '<button class="ghost close" data-close="1">Close</button>' + html;
+          stage.classList.add('panel-open');
+        }
+
+        stage.addEventListener('click', function (ev) {
+          if (ev.target.closest('[data-close]')) { stage.classList.remove('panel-open'); return; }
+          if (ev.target.closest('[data-close-page]')) { closeDetailPage(); return; }
+          var focusBtn = ev.target.closest('[data-focus]');
+          if (focusBtn) { enterFocus(focusBtn.getAttribute('data-focus')); return; }
+          var drillBtn = ev.target.closest('[data-drill]');
+          if (drillBtn) { drillTo(drillBtn.getAttribute('data-drill')); return; }
+          var areaBtn = ev.target.closest('[data-area]');
+          if (areaBtn) {
+            var val = areaBtn.getAttribute('data-area');
+            var slash = val.indexOf('/');
+            openAreaPage(val.slice(0, slash), val.slice(slash + 1));
+            return;
+          }
+          var link = ev.target.closest('[data-goto]');
+          if (link) select(link.getAttribute('data-goto'), true);
+        });
+
+        document.addEventListener('keydown', function (ev) {
+          if (ev.key !== 'Escape') return;
+          if (detailPage.classList.contains('on')) { closeDetailPage(); return; }
+          if (stage.classList.contains('panel-open')) {
+            stage.classList.remove('panel-open');
+            state.selected = null;
+            applyDim();
+          }
+        });
+
+        // -------------------------------------------------------------- events
+        function resetFocusCaches() {
+          computed.focus = Object.create(null);
+          userMoved.focus = Object.create(null);
+        }
+        function saveFocusState() {
+          save('focus', state.focus || '');
+          save('focusPath', JSON.stringify(state.focusPath));
+        }
+
+        function focusPathForFile(n) {
+          var m = nodeById['module:' + n.module];
+          if (!m) return [];
+          var parts = n.path.slice(m.path.length + 1).split('/');
+          parts.pop();
+          return parts;
+        }
+
+        function enterFocus(id) {
+          var n = nodeById[id];
+          if (!n) return;
+          state.focus = id;
+          state.focusPath = n.type === 'file' ? focusPathForFile(n) : [];
+          resetFocusCaches();
+          saveFocusState();
+          document.querySelector('[data-view="focus"]').disabled = false;
+          setView('focus');
+          select(id, false);
+        }
+
+        function drillTo(rel) {
+          state.focusPath = rel.split('/');
+          resetFocusCaches();
+          saveFocusState();
+          if (state.view !== 'focus') setView('focus'); else render();
+        }
+        function drillUp() {
+          if (!state.focusPath.length) return;
+          state.focusPath.pop();
+          resetFocusCaches();
+          saveFocusState();
+          render();
+        }
+
+        /**
+         * Put a node and everything it touches on screen. Dimming the rest only
+         * works if what survives is actually visible: centring on a doc whose
+         * only neighbours sit in a different cluster left a black canvas with
+         * two long edges crossing it, which reads as a broken render.
+         */
+        function frame(el) {
+          var nb = el.closedNeighborhood();
+          cy.animate({ fit: { eles: nb, padding: 70 } }, {
+            duration: 220,
+            complete: function () {
+              // A node with no neighbours in this view fits to a single dot.
+              if (cy.zoom() > 1.2) { cy.zoom(1.2); cy.center(nb); }
+            },
+          });
+        }
+
+        /** Highlight and describe a node. Never moves anything. */
+        function select(id, jump) {
+          state.selected = id;
+          openPanel(id);
+          var el = cy.getElementById(id);
+          if (el.nonempty()) {
+            applyDim();
+            if (jump || cy.zoom() < (state.view === 'docs' ? 0.45 : 0.7)) frame(el);
+            return;
+          }
+          if (!jump) return;
+          // The node lives in another view - go there, then highlight it.
+          var n = nodeById[id];
+          if (!n) return;
+          if (n.type === 'file') { enterFocus(id); return; }
+          // A module's full page (just opened above by openPanel) already tells
+          // its whole story regardless of which view it was opened from - there
+          // is nothing left to frame, and setView would only close the page we
+          // just opened to go looking for a graph element that doesn't matter.
+          if (n.type === 'module') return;
+          var target = n.type === 'doc' ? 'docs'
+            : n.type === 'route' || n.type === 'screen' ? 'routes' : 'overview';
+          setView(target);
+          var el2 = cy.getElementById(id);
+          if (el2.nonempty()) { applyDim(); frame(el2); }
+        }
+
+        /** Sections and clusters stand in for their feature's module node. */
+        function compoundRef(el) {
+          var ref = el.data('ref');
+          return ref && nodeById[ref] ? ref : null;
+        }
+
+        /**
+         * A section box opens its module or area's full page in place, without
+         * leaving the view it was tapped in - unlike a plain node, a module has
+         * no element of its own here to jump to, so the old path bounced the
+         * user out to Overview just to show something.
+         */
+        function selectSection(el) {
+          var ref = compoundRef(el);
+          if (!ref) return;
+          var area = el.data('area') || null;
+          state.selected = el.id();
+          applyDim();
+          frame(el);
+          if (area) openAreaPage(ref.slice('module:'.length), area);
+          else openModulePage(nodeById[ref]);
+        }
+
+        cy.on('tap', 'node', function (ev) {
+          var id = ev.target.id();
+          if (id.indexOf('up:') === 0) { drillUp(); return; }
+          if (id.indexOf('group:') === 0) {
+            var rest = id.slice('group:'.length);
+            drillTo(rest.slice(rest.indexOf('/') + 1));
+            return;
+          }
+          if (ev.target.data('section')) { selectSection(ev.target); return; }
+          if (ev.target.isParent()) return;
+          select(id, false);
+        });
+        cy.on('dbltap', 'node', function (ev) {
+          var n = nodeById[ev.target.id()];
+          if (n && (n.type === 'module' || n.type === 'file')) enterFocus(n.id);
+        });
+        cy.on('tap', function (ev) {
+          if (ev.target !== cy) return;
+          state.selected = null;
+          stage.classList.remove('panel-open');
+          applyDim();
+          applySearch();
+        });
+        cy.on('mouseover', 'node', function (ev) { ev.target.addClass('hover'); });
+        cy.on('mouseout', 'node', function (ev) { ev.target.removeClass('hover'); });
+        // Remember where you put things. Dragging a section moves its members,
+        // so store every descendant, not the compound itself.
+        cy.on('dragfree', 'node', function (ev) {
+          var store = userMoved[state.view] || (userMoved[state.view] = Object.create(null));
+          ev.target.union(ev.target.descendants()).forEach(function (n) {
+            if (n.isParent()) return;
+            store[n.id()] = { x: n.position('x'), y: n.position('y') };
+          });
+        });
+
+        function setView(view) {
+          closeDetailPage();
+          state.view = view;
+          save('view', view);
+          document.querySelectorAll('.views button').forEach(function (b) {
+            b.setAttribute('aria-selected', String(b.dataset.view === view));
+          });
+          document.getElementById('granularity').hidden = view !== 'focus';
+          document.getElementById('orientation').hidden = view !== 'routes';
+          document.getElementById('crosslinks').hidden = view !== 'routes';
+          render();
+        }
+
+        document.querySelectorAll('.views button').forEach(function (b) {
+          b.addEventListener('click', function () { if (!b.disabled) setView(b.dataset.view); });
+        });
+        document.querySelector('[data-view="routes"]').disabled = !hasRoutes;
+        document.querySelector('[data-view="docs"]').disabled = !hasDocs;
+        if (!hasRoutes) document.querySelector('[data-view="routes"]').title = 'No routes detected in this repo';
+        if (!hasDocs) document.querySelector('[data-view="docs"]').title = 'No docs matched in this repo';
+
+        document.getElementById('fit').addEventListener('click', function () { cy.fit(undefined, 50); });
+        document.getElementById('relayout').addEventListener('click', function () {
+          userMoved[state.view] = Object.create(null);
+          computed[state.view] = Object.create(null);
+          render();
+        });
+        document.getElementById('up').addEventListener('click', drillUp);
+
+        var orientBtn = document.getElementById('orientation');
+        function orientLabel() {
+          var dir = state.treeDir === 'auto' ? (lastRoutesDir || currentRouteDir()) : state.treeDir;
+          orientBtn.textContent = dir === 'LR' ? 'Left to right' : 'Top down';
+        }
+        orientBtn.addEventListener('click', function () {
+          var dir = state.treeDir === 'auto' ? (lastRoutesDir || currentRouteDir()) : state.treeDir;
+          state.treeDir = dir === 'LR' ? 'TB' : 'LR';
+          save('treeDir', state.treeDir);
+          orientLabel();
+          userMoved.routes = Object.create(null);
+          render();
+        });
+
+        var crossBtn = document.getElementById('crosslinks');
+        function crossLabel() {
+          crossBtn.classList.toggle('on', state.crossLinks);
+          crossBtn.textContent = state.crossLinks ? 'Hide jumps' : 'Show jumps';
+          crossBtn.title = 'Jumps between screens that are not part of the navigation tree';
+        }
+        crossBtn.addEventListener('click', function () {
+          state.crossLinks = !state.crossLinks;
+          save('crossLinks', state.crossLinks ? 'on' : 'off');
+          crossLabel();
+          render();
+        });
+
+        var granBtn = document.getElementById('granularity');
+        function granLabel() {
+          granBtn.textContent = state.granularity === 'files' ? 'All files' : 'By folder';
+        }
+        granBtn.addEventListener('click', function () {
+          state.granularity = state.granularity === 'files' ? 'folders' : 'files';
+          granLabel();
+          resetFocusCaches();
+          render();
+        });
+
+        var searchEl = document.getElementById('search');
+        var searchTimer;
+        searchEl.addEventListener('input', function () {
+          clearTimeout(searchTimer);
+          searchTimer = setTimeout(function () { state.query = searchEl.value; applySearch(); }, 120);
+        });
+        searchEl.addEventListener('keydown', function (ev) {
+          if (ev.key !== 'Enter') return;
+          var hit = cy.nodes('.hit').first();
+          if (hit.nonempty()) select(hit.id(), true);
+        });
+
+        var filters = document.getElementById('filters');
+        filters.innerHTML = TYPES.filter(function (t) { return counts[t] > 0; }).map(function (t) {
+          return '<label><input type="checkbox" data-type="' + t + '" checked>'
+            + '<span class="swatch" style="background:var(--c-' + t + ')"></span>' + t + '</label>';
+        }).join('');
+        filters.addEventListener('change', function (ev) {
+          var t = ev.target.dataset.type;
+          if (!t) return;
+          state.hidden[t] = !ev.target.checked;
+          render();
+        });
+
+        // ---------------------------------------------------------------- boot
+        document.getElementById('stat-line').textContent =
+          GRAPH.stats.modules + ' modules  -  ' + GRAPH.stats.files + ' files  -  '
+          + GRAPH.stats.routes + ' routes  -  ' + GRAPH.stats.docs + ' docs';
+
+        var lastFocus = load('focus');
+        if (lastFocus && nodeById[lastFocus]) {
+          state.focus = lastFocus;
+          try { state.focusPath = JSON.parse(load('focusPath') || '[]') || []; } catch (e) { state.focusPath = []; }
+          document.querySelector('[data-view="focus"]').disabled = false;
+        }
+        var lastView = load('view');
+        var lastBtn = lastView && document.querySelector('[data-view="' + lastView + '"]');
+        var startView = lastBtn && !lastBtn.disabled ? lastView : 'overview';
+        if (startView === 'focus' && !state.focus) startView = 'overview';
+        granLabel();
+        crossLabel();
+        if (hasRoutes) orientLabel();
+        setView(startView);
+      })();
+    </script>
+  </body>
+</html>

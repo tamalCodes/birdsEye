@@ -1,0 +1,14 @@
+{
+  "name": "codemap-marketplace",
+  "owner": {
+    "name": "tamalcodes"
+  },
+  "plugins": [
+    {
+      "source": "./plugins/codemap",
+      "name": "codemap",
+      "description": "One command, one HTML file: the modules, routes and specs of a codebase, mapped."
+    }
+  ],
+  "description": "Tools for understanding a codebase at a glance."
+}

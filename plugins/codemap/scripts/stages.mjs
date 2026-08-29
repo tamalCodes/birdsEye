@@ -1,0 +1,119 @@
+#!/usr/bin/env node
+// Decides which stages actually need to run, and records what each one saw.
+//
+//   node stages.mjs plan   [repoRoot] [--force]
+//   node stages.mjs record [repoRoot] <routes|docs>
+//
+// The two skill stages are the only expensive parts of the pipeline. Skipping
+// them when nothing they read has changed is what turns a two-minute first run
+// into a fifteen-second second run.
+
+import path from 'node:path';
+import { loadConfig } from './lib/config.mjs';
+import { walkFiles } from './lib/walk.mjs';
+import { readCacheJson, readManifest, writeManifest, buildStamps, diffStamps } from './lib/cache.mjs';
+import { IGNORE_FILE } from './lib/const.mjs';
+
+function inventory(root) {
+  const { config } = loadConfig(root);
+  const all = walkFiles(root, { ignore: config.ignore, ignoreFiles: ['.gitignore', IGNORE_FILE] });
+  return { config, all };
+}
+
+/**
+ * Files the routes stage depends on: whatever it reported reading, plus every
+ * sibling of those files. A new navigator dropped next to an existing one has
+ * to invalidate the cache, and watching the directory is how that is noticed.
+ */
+function routeWatchSet(all, routes) {
+  const sources = routes?.sourceFiles ?? [];
+  if (!sources.length) return null;
+  const dirs = new Set(sources.map((f) => path.posix.dirname(f)));
+  const watched = new Set(sources);
+  for (const f of all) if (dirs.has(path.posix.dirname(f))) watched.add(f);
+  return [...watched].sort();
+}
+
+const isDoc = (f) => f.endsWith('.md');
+
+export function plan(root, { force = false } = {}) {
+  const { all } = inventory(root);
+  const manifest = readManifest(root);
+  const routes = readCacheJson(root, 'routes.json');
+  const docs = readCacheJson(root, 'docs.json');
+
+  const out = { imports: 'run', routes: 'run', docs: 'run', reasons: {} };
+  if (force) {
+    out.reasons = { imports: 'forced', routes: 'forced', docs: 'forced' };
+    return out;
+  }
+
+  const watched = routeWatchSet(all, routes);
+  if (!routes) {
+    out.reasons.routes = 'no routes.json yet';
+  } else if (!watched) {
+    out.reasons.routes = 'previous run recorded no source files';
+  } else {
+    const d = diffStamps(buildStamps(root, watched), manifest.stages?.routes?.files);
+    out.routes = d.dirty ? 'run' : 'skip';
+    out.reasons.routes = d.dirty
+      ? `${d.changed.length} changed, ${d.removed.length} removed`
+      : `${watched.length} router files unchanged`;
+  }
+
+  const docFiles = all.filter(isDoc);
+  if (!docs) {
+    out.reasons.docs = 'no docs.json yet';
+  } else {
+    const d = diffStamps(buildStamps(root, docFiles), manifest.stages?.docs?.files);
+    out.docs = d.dirty ? 'run' : 'skip';
+    out.reasons.docs = d.dirty
+      ? `${d.changed.length} changed, ${d.removed.length} removed`
+      : `${docFiles.length} docs unchanged`;
+  }
+
+  // imports.mjs does its own per-file caching and is cheap enough to always run.
+  out.reasons.imports = 'always runs, caches per file';
+  return out;
+}
+
+export function record(root, stage) {
+  const { all } = inventory(root);
+  const manifest = readManifest(root);
+  manifest.stages = manifest.stages ?? {};
+  if (stage === 'routes') {
+    const watched = routeWatchSet(all, readCacheJson(root, 'routes.json')) ?? [];
+    manifest.stages.routes = { files: buildStamps(root, watched) };
+    writeManifest(root, manifest);
+    return watched.length;
+  }
+  if (stage === 'docs') {
+    const docFiles = all.filter(isDoc);
+    manifest.stages.docs = { files: buildStamps(root, docFiles) };
+    writeManifest(root, manifest);
+    return docFiles.length;
+  }
+  throw new Error(`unknown stage: ${stage}`);
+}
+
+const isMain =
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
+if (isMain) {
+  const args = process.argv.slice(2);
+  const cmd = args[0];
+  let positional = args.slice(1).filter((a) => !a.startsWith('--'));
+  // `record routes` and `record <root> routes` are both accepted.
+  const stageFirst = positional[0] === 'routes' || positional[0] === 'docs';
+  const root = path.resolve(stageFirst ? process.cwd() : positional[0] ?? process.cwd());
+  if (!stageFirst) positional = positional.slice(1);
+  if (cmd === 'plan') {
+    console.log(JSON.stringify(plan(root, { force: args.includes('--force') }), null, 2));
+  } else if (cmd === 'record') {
+    const stage = positional[0];
+    const n = record(root, stage);
+    console.log(`recorded ${n} files for stage ${stage}`);
+  } else {
+    console.error('usage: stages.mjs plan|record [repoRoot] [stage] [--force]');
+    process.exit(2);
+  }
+}
