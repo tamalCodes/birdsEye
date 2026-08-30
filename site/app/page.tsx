@@ -15,6 +15,7 @@ import {
   ISSUES_URL,
   MARKETPLACE_ADD,
   PLUGIN_INSTALL,
+  MARKETPLACE_UPDATE,
   MAP_COMMAND,
 } from "@/lib/links";
 
@@ -415,14 +416,13 @@ function Install() {
               </div>
             </div>
           ))}
-          <p className="rounded-xl border border-hair bg-raised/60 p-5 text-[0.95rem] leading-relaxed text-muted">
-            <span className="text-ink">Updating.</span> Auto-update is off for third-party
-            marketplaces. Pull a new version with{" "}
-            <code className="font-mono text-clay">
-              /plugin marketplace update birdseye-marketplace
-            </code>{" "}
-            then install again.
-          </p>
+          <div className="space-y-4 rounded-xl border border-hair bg-raised/60 p-5">
+            <p className="text-[0.95rem] leading-relaxed text-muted">
+              <span className="text-ink">Updating.</span> Auto-update is off for third-party
+              marketplaces. Pull a new version with this, then run step 02 again.
+            </p>
+            <CopyCommand command={MARKETPLACE_UPDATE} />
+          </div>
         </Reveal>
       </div>
     </section>
