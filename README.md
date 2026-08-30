@@ -89,6 +89,9 @@ A map you can trust is a map that admits what it cannot see.
 
 ## Install
 
+Two commands, once per machine.
+The first registers this repo as a plugin marketplace, the second installs the plugin from it.
+
 ```
 /plugin marketplace add tamalCodes/birdsEye
 ```
@@ -97,15 +100,25 @@ A map you can trust is a map that admits what it cannot see.
 /plugin install birdseye@birdseye-marketplace
 ```
 
-Then, in any repo:
+Then, in any repo you want a map of:
 
 ```
 /birdseye:map
 ```
 
 Everything runs inside Claude Code.
-The first run asks two questions - whether to write `birdseye.config.json` and whether to gitignore the output - then takes a minute or two.
+There is nothing to download by hand and no npm package.
+The first run in a repo asks two questions - whether to write `birdseye.config.json` and whether to gitignore the output - then takes a minute or two.
 Every run after that is seconds.
+
+### If adding the marketplace fails
+
+Claude Code refuses the first command with `its network source differs from the one declared for it in settings` when the name `birdseye-marketplace` is already registered on your machine from a different source, usually a local clone of this repo.
+Marketplace names are global, so drop the old registration first, then add it again:
+
+```
+/plugin marketplace remove birdseye-marketplace
+```
 
 ## Updating
 

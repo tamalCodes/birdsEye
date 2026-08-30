@@ -15,6 +15,7 @@ import {
   ISSUES_URL,
   MARKETPLACE_ADD,
   PLUGIN_INSTALL,
+  MARKETPLACE_REMOVE,
   MARKETPLACE_UPDATE,
   MAP_COMMAND,
 } from "@/lib/links";
@@ -376,9 +377,9 @@ function HowItWorks() {
 /* ------------------------------------------------------------------ install */
 
 const STEPS = [
-  { n: "01", label: "Add the marketplace", cmd: MARKETPLACE_ADD },
-  { n: "02", label: "Install the plugin", cmd: PLUGIN_INSTALL },
-  { n: "03", label: "Run it in any repo", cmd: MAP_COMMAND },
+  { n: "01", label: "Add the marketplace - once per machine", cmd: MARKETPLACE_ADD },
+  { n: "02", label: "Install the plugin - once per machine", cmd: PLUGIN_INSTALL },
+  { n: "03", label: "Run it, in every repo you want a map of", cmd: MAP_COMMAND },
 ];
 
 function Install() {
@@ -399,9 +400,10 @@ function Install() {
             Three commands, then any repo
           </h2>
           <p className="mt-5 leading-relaxed text-muted">
-            Everything runs inside Claude Code. The first run asks two questions - whether to
-            write birdseye.config.json and whether to gitignore the output - then takes a
-            minute or two. Every run after that is seconds.
+            Everything runs inside Claude Code. Nothing to download by hand, no npm package.
+            The first run in a repo asks two questions - whether to write birdseye.config.json
+            and whether to gitignore the output - then takes a minute or two. Every run after
+            that is seconds.
             </p>
           </Reveal>
         </div>
@@ -422,6 +424,16 @@ function Install() {
               marketplaces. Pull a new version with this, then run step 02 again.
             </p>
             <CopyCommand command={MARKETPLACE_UPDATE} />
+          </div>
+
+          <div className="space-y-4 rounded-xl border border-hair bg-raised/60 p-5">
+            <p className="text-[0.95rem] leading-relaxed text-muted">
+              <span className="text-ink">If step 01 fails.</span> Marketplace names are global,
+              so adding is refused when birdseye-marketplace is already registered on your
+              machine from another source, usually a local clone. Drop the old registration,
+              then run step 01 again.
+            </p>
+            <CopyCommand command={MARKETPLACE_REMOVE} />
           </div>
         </Reveal>
       </div>
