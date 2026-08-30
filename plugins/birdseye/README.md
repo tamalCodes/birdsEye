@@ -4,7 +4,7 @@
 
 <h1 align="center">birdsEye</h1>
 
-<p align="center"><em>See a whole codebase at one glance.</em></p>
+<p align="center"><em>Find out where your agent will get lost.</em></p>
 
 > [!WARNING]
 > **Very early stage - work in progress.**

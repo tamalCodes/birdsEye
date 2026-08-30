@@ -7,8 +7,8 @@
     {
       "source": "./plugins/birdseye",
       "name": "birdseye",
-      "description": "One command, one HTML file: the modules, routes and specs of a codebase, mapped."
+      "description": "One command, one HTML file: an agent-readiness audit of any repo - stale guardrails, uncovered modules, and the specs to read first."
     }
   ],
-  "description": "birdsEye - see a whole codebase at one glance."
+  "description": "birdsEye - find out where your agent will get lost."
 }

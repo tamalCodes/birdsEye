@@ -22,7 +22,7 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://birdseye.tamal.me";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   title: {
-    default: "birdsEye - see a whole codebase at one glance",
+    default: "birdsEye - find out where your agent will get lost",
     template: "%s - birdsEye",
   },
   description:
@@ -43,13 +43,13 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE,
     siteName: "birdsEye",
-    title: "birdsEye - see a whole codebase at one glance",
+    title: "birdsEye - find out where your agent will get lost",
     description:
       "One command tells you where an agent will get lost: stale guardrails, uncovered modules, the specs to read first. One HTML file. Runs on your own Claude account. No server, no build step, no network.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "birdsEye - see a whole codebase at one glance",
+    title: "birdsEye - find out where your agent will get lost",
     description:
       "One command tells you where an agent will get lost: stale guardrails, uncovered modules, the specs to read first.",
   },

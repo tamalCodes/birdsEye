@@ -529,8 +529,9 @@ function Footer() {
               birdsEye
             </div>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
-              See a whole codebase at one glance. A Claude Code plugin that turns any
-              repository into one interactive HTML file.
+              Find out where your agent will get lost. A Claude Code plugin that audits
+              any repo for stale guardrails, uncovered modules, and the specs to read
+              first.
             </p>
             <div className="mt-6 max-w-xs">
               <CopyCommand command={MAP_COMMAND} />
