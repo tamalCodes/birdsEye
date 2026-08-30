@@ -1,0 +1,317 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ tokens
+   birdsEye reads as an AI product, so the site is warm in both themes: cream
+   in the light, warm-charcoal in the dark, with the same clay accent and the
+   five node hues the map itself paints with (clay / olive / ochre / plum /
+   rose). The light theme is the same paper the map viewer uses (#faf9f5), so
+   the two never read as two different products.
+
+   Light lives on bare :root and is the default. Dark is redefined under the
+   system-preference media query (guarded so a manual light choice still wins)
+   and again under [data-theme="dark"] so the toggle wins in both directions.
+   An inline script in the <head> sets data-theme before first paint. */
+:root {
+  color-scheme: light;
+
+  --canvas: #faf9f5;
+  --panel: #f1ede0;
+  --raised: #e7e1d1;
+  --hair: #e1dbcb;
+  --hair-soft: #ebe6da;
+
+  --ink: #211e18;
+  --muted: #665f51;
+  --faint: #7a7160;
+
+  --clay: #b04e29;
+  --clay-bright: #98411f;
+  --olive: #5f741f;
+  --ochre: #97640f;
+  --plum: #7a4fb5;
+  --rose: #bd3a5a;
+  --teal: #2c7a69;
+
+  --dot: #ebe6d9;
+  --line-strong: #b3a892;
+  /* Ink for a label sitting on a filled route/screen box. It flips opposite
+     the page: the box hues are dark on cream, so their text is near-white. */
+  --box-ink: #faf9f5;
+
+  --shadow-map: 0 30px 70px -30px rgba(90, 70, 45, 0.28);
+  --shadow-card: 0 20px 45px -18px rgba(90, 70, 45, 0.24);
+
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-outfit), ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Code", Consolas, monospace;
+}
+
+/* The warm-charcoal dark palette - the map viewer's own dark theme. Kept in
+   two selectors that must stay in sync: the media query (no-JS / first paint)
+   and the explicit attribute (the toggle). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --canvas: #171512;
+    --panel: #1e1b17;
+    --raised: #26221d;
+    --hair: #35302a;
+    --hair-soft: #2a2620;
+
+    --ink: #ece7dc;
+    --muted: #a49b8c;
+    --faint: #776f62;
+
+    --clay: #d97757;
+    --clay-bright: #e79075;
+    --olive: #a9b764;
+    --ochre: #e3a857;
+    --plum: #b58bd4;
+    --rose: #e0708a;
+    --teal: #6fb6a4;
+
+    --dot: #221f1a;
+    --line-strong: #6b6355;
+    --box-ink: #23200f;
+
+    --shadow-map: 0 40px 120px -40px rgba(0, 0, 0, 0.7);
+    --shadow-card: 0 24px 60px -20px rgba(0, 0, 0, 0.55);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --canvas: #171512;
+  --panel: #1e1b17;
+  --raised: #26221d;
+  --hair: #35302a;
+  --hair-soft: #2a2620;
+
+  --ink: #ece7dc;
+  --muted: #a49b8c;
+  --faint: #776f62;
+
+  --clay: #d97757;
+  --clay-bright: #e79075;
+  --olive: #a9b764;
+  --ochre: #e3a857;
+  --plum: #b58bd4;
+  --rose: #e0708a;
+  --teal: #6fb6a4;
+
+  --dot: #221f1a;
+  --line-strong: #6b6355;
+  --box-ink: #23200f;
+
+  --shadow-map: 0 40px 120px -40px rgba(0, 0, 0, 0.7);
+  --shadow-card: 0 24px 60px -20px rgba(0, 0, 0, 0.55);
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-hair: var(--hair);
+  --color-hair-soft: var(--hair-soft);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-clay: var(--clay);
+  --color-clay-bright: var(--clay-bright);
+  --color-olive: var(--olive);
+  --color-ochre: var(--ochre);
+  --color-plum: var(--plum);
+  --color-rose: var(--rose);
+  --color-teal: var(--teal);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+}
+
+* {
+  box-sizing: border-box;
+  border-color: var(--hair);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* Lenis (components/SmoothScroll.tsx) eases the page scroll itself, so native
+   smooth scrolling has to yield to it while it is running - the two fight over
+   the same anchor jump otherwise. These rules only bite once Lenis has put its
+   classes on <html>, which leaves the native fallback above intact when it is
+   off (reduced motion, or no JS). */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  font-feature-settings: "ss01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--clay) 32%, transparent);
+  color: var(--ink);
+}
+
+/* Fraunces has genuine optical sizing plus a SOFT axis - let the browser
+   drive opsz by size, and dial in a little softness so headings read warm
+   rather than sharp. */
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 40, "WONK" 0;
+  letter-spacing: -0.018em;
+  line-height: 1.05;
+}
+
+.t-hero {
+  font-size: clamp(2.9rem, 6.2vw, 5.25rem);
+}
+
+.t-section {
+  font-size: clamp(2rem, 3.8vw, 3rem);
+}
+
+.font-display-italic {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 60, "WONK" 1;
+}
+
+/* ------------------------------------------------------------------ helpers */
+
+.dot-grid {
+  background-image: radial-gradient(circle, var(--dot) 1px, transparent 1px);
+  background-size: 26px 26px;
+  background-position: center;
+}
+
+.glass {
+  background: color-mix(in oklab, var(--panel) 68%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+}
+
+.shell {
+  width: 100%;
+  max-width: 74rem;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .shell { padding-inline: 2.5rem; }
+}
+
+/* A thin clay hairline under a kicker label, like a section tab. */
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--clay);
+}
+
+.kicker::before {
+  content: "";
+  width: 1.5rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  transition: background-size 0.25s ease;
+}
+
+.link-underline:hover {
+  background-size: 100% 1px;
+}
+
+/* Theme toggle: show the sun in dark mode (it offers light), the moon in
+   light mode. Driven by the data-theme attribute the inline script always
+   sets, so the right glyph is correct on first paint with no hydration wait. */
+.theme-ico { display: none; }
+:root[data-theme="dark"] .theme-ico--sun { display: block; }
+:root[data-theme="light"] .theme-ico--moon { display: block; }
+/* No attribute yet (JS disabled): fall back to the system preference. */
+:root:not([data-theme]) .theme-ico--moon { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-ico--moon { display: none; }
+  :root:not([data-theme]) .theme-ico--sun { display: block; }
+}
+.theme-toggle svg { transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.theme-toggle:active svg { transform: rotate(-35deg) scale(0.9); }
+
+/* Draw-in for the hero map, once, gently. */
+@keyframes be-draw {
+  from { stroke-dashoffset: var(--dash, 400); }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes be-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes be-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.reveal {
+  animation: be-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
