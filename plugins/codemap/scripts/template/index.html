@@ -13,6 +13,13 @@
         --c-screen: #bb9af7;
         --c-doc: #f7768e;
 
+        /* Semantic, not tied to a node type - named for what they mean where
+           they're used (risk level, doc staleness), even though the hex
+           values are shared with the node-color legend above. */
+        --good: var(--c-file);
+        --warn: var(--c-route);
+        --bad: var(--c-doc);
+
         --bg: #0f1117;
         --bg-panel: #161a24;
         --bg-raised: #1d2230;
@@ -126,7 +133,11 @@
       }
       a.path:hover, .node-link:hover { text-decoration: underline; }
       .muted { color: var(--text-dim); }
-      .guard { border-left: 2px solid var(--c-doc); padding-left: 8px; margin: 4px 0; color: var(--text); }
+      .guard-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+      .guard {
+        border-left: 3px solid var(--c-doc); background: var(--bg-raised); border-radius: 0 5px 5px 0;
+        padding: 7px 10px; color: var(--text); font-size: 12.5px; line-height: 1.55;
+      }
       .panel-actions { display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: wrap; }
       .close { float: right; }
       .stats { display: flex; gap: 12px; color: var(--text-dim); font-size: 12px; }
@@ -153,7 +164,45 @@
       .detail h4.grp .grow { flex: 1; min-width: 0; }
       .detail h4.grp .muted { font-weight: 400; font-size: 11.5px; white-space: nowrap; }
 
-      /* ---- full-page module/area detail ---- */
+      /* ---- glance chips: the 3-second answer, before any section is opened ---- */
+      .chips { display: flex; gap: 7px; margin: 10px 0 4px; flex-wrap: wrap; }
+      .chip {
+        display: flex; align-items: baseline; gap: 5px;
+        background: var(--bg-raised); border: 1px solid var(--line); border-radius: 7px;
+        padding: 6px 9px; font-size: 11.5px; color: var(--text-dim);
+      }
+      .chip .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--text-dim); }
+      .chip b { color: var(--text); font-weight: 600; }
+      .chip.good .dot { background: var(--good); }
+      .chip.warn .dot { background: var(--warn); }
+      .chip.bad .dot { background: var(--bad); }
+
+      /* ---- collapsible section rows: same content the old full page always
+         showed expanded, now closed until asked for, one per concern. ---- */
+      .detail details.row { border-top: 1px solid var(--line); }
+      .detail details.row:first-of-type { border-top: 0; }
+      .detail details.row > summary {
+        list-style: none; cursor: pointer; user-select: none;
+        display: flex; align-items: flex-start; gap: 8px; padding: 12px 2px;
+      }
+      .detail details.row > summary::-webkit-details-marker { display: none; }
+      .detail details.row .chev {
+        width: 13px; height: 13px; flex: none; margin-top: 2px; color: var(--text-dim);
+        transition: transform .15s ease;
+      }
+      .detail details.row[open] > summary .chev { transform: rotate(90deg); }
+      .detail details.row .row-main { flex: 1; min-width: 0; }
+      .detail details.row .row-title {
+        font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
+        color: var(--text-dim); font-weight: 600;
+      }
+      .detail details.row .row-title .muted { text-transform: none; letter-spacing: 0; }
+      .detail details.row .row-teaser { color: var(--text); font-size: 12.5px; margin-top: 3px; }
+      .detail details.row .row-teaser.flag { color: var(--bad); }
+      .detail details.row .row-body { padding: 0 0 14px 21px; }
+      @media (prefers-reduced-motion: reduce) { .detail details.row .chev { transition: none; } }
+
+      /* ---- full-page doc detail (modules/areas use the drawer above now) ---- */
       /* Same trick #empty/#hint already use: an absolutely positioned layer
          over main's relative box, independent of the panel-open grid columns. */
       #detailPage {
@@ -197,6 +246,38 @@
       }
       .tag.area { font-family: var(--mono); color: var(--accent); }
       .tag.loc { font-family: var(--mono); }
+
+      /* ---- AI flowchart CTA ---- */
+      .ai-cta {
+        background: var(--bg-raised); border: 1px solid var(--line); border-radius: 8px;
+        padding: 14px 16px; margin: 4px 0 20px;
+      }
+      .ai-cta h3 { margin: 0 0 6px; color: var(--text); }
+      .ai-cta .lead { margin: 0; }
+      .prompt-box {
+        background: var(--bg); border: 1px solid var(--line-soft); border-radius: 6px;
+        padding: 10px 12px; margin: 10px 0 0; font: 11.5px/1.55 var(--mono); color: var(--text);
+        white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow-y: auto;
+      }
+      .copy-prompt.copied { color: var(--c-file); border-color: var(--c-file); }
+
+      /* ---- generated flowchart ---- */
+      .flowchart-wrap { overflow-x: auto; margin: 10px 0 4px; }
+      .flowchart-svg { display: block; }
+      .flowchart-svg text { font: 11px/1.3 var(--font); fill: var(--text); pointer-events: none; }
+      .flow-node { cursor: pointer; }
+      .flow-node rect, .flow-node polygon { fill: var(--bg-raised); stroke: var(--line); stroke-width: 1.5; }
+      .flow-node:hover rect, .flow-node:hover polygon { stroke: var(--accent); }
+      .flow-start rect, .flow-start polygon { stroke: var(--c-file); }
+      .flow-end rect, .flow-end polygon { stroke: var(--accent); }
+      .flow-decision polygon { stroke: var(--c-doc); }
+      .flow-edge { fill: none; stroke: var(--line); stroke-width: 1.5; }
+      .flow-arrow-head { fill: var(--line); }
+      .flow-edge-label { font-size: 10px; fill: var(--text-dim); }
+      li.flash { animation: flow-flash .9s ease; }
+      @keyframes flow-flash { 0% { background: var(--bg-raised); } 100% { background: transparent; } }
+      .flow-sources { margin-top: 10px; }
+      .flow-sources .path { font-family: var(--mono); }
     </style>
   </head>
   <body>
@@ -484,8 +565,9 @@
             { selector: 'edge[type="documents"]', style: { 'line-color': '#f7768e', 'target-arrow-color': '#f7768e', opacity: 0.35, width: 1 } },
             { selector: 'edge[type="links"]', style: { 'line-color': '#8a6577', 'target-arrow-color': '#8a6577', 'line-style': 'dotted', opacity: 0.3, width: 1 } },
             { selector: 'edge[type="renders"]', style: { 'line-color': '#bb9af7', 'target-arrow-color': '#bb9af7', 'line-style': 'dashed' } },
-            // Cross-cluster doc edges are noise until you ask about one node.
-            { selector: 'edge.faint', style: { opacity: 0.06 } },
+            // Cross-cluster doc edges are noise until you ask about one node -
+            // fully hidden by default, back at full opacity via edge.hot on select.
+            { selector: 'edge.faint', style: { opacity: 0 } },
             // Dimmed nodes still have to read as a map. At 0.12 the canvas went
             // black and the only thing left on it was a highlighted edge running
             // off the side, which looks like a bug rather than an answer.
@@ -781,29 +863,70 @@
         }
 
         /**
-         * Docs: labelled cluster cards, one per feature or directory, docs in a
-         * grid inside. Cell size is chosen to fit the label, which is the whole
-         * trick - rings spaced tighter than their own text were the old bug.
+         * Docs: labelled cluster cards, one per feature or directory. A
+         * cluster with a module hub gets a spoke layout - the module at the
+         * centre, its docs spaced evenly on a ring around it - so every
+         * "documents" edge is a straight line from rim to centre and none of
+         * them cross, or run over an unrelated doc, the way a packed grid did.
+         * Hub-less clusters (stray docs bucketed by directory, or the
+         * "referenced modules" cluster) fall back to a small grid: there is
+         * nothing at their centre to point spokes at.
          */
         function docsLayout(els) {
+          var RING_STEP = 170, MIN_RADIUS = 80, RING_MARGIN = 110;
           var CELL_W = 178, CELL_H = 58, PAD = 16, PAD_TOP = 34, GAP = 100;
-          var members = {}, order = [];
+
+          var clusters = {}, order = [];
           els.forEach(function (e) {
             var d = e.data;
             if (d.source != null) return;
-            if (d.cluster) { order.push(d.id); return; }
-            if (d.parent) (members[d.parent] || (members[d.parent] = [])).push(d.id);
-          });
-          order.sort(function (a, b) {
-            return (members[b] || []).length - (members[a] || []).length || (a < b ? -1 : 1);
+            if (d.cluster) { clusters[d.id] = { hub: null, docs: [] }; order.push(d.id); return; }
+            if (!d.parent) return;
+            var c = clusters[d.parent];
+            if (!c) return;
+            if (d.hub) c.hub = d.id; else c.docs.push(d.id);
           });
 
-          var dims = {};
+          function docKindOf(id) {
+            var n = nodeById[id];
+            return (n && n.meta && n.meta.docKind) || '';
+          }
+
+          var dims = {}, localPos = {};
           order.forEach(function (id) {
-            var n = (members[id] || []).length || 1;
-            var cols = Math.max(1, Math.min(n, Math.round(Math.sqrt(n * 2.6))));
-            var rows = Math.ceil(n / cols);
-            dims[id] = { cols: cols, w: cols * CELL_W + PAD * 2, h: rows * CELL_H + PAD_TOP + PAD };
+            var c = clusters[id];
+            var docs = c.docs.sort(function (a, b) {
+              var ka = docKindOf(a), kb = docKindOf(b);
+              return ka === kb ? (a < b ? -1 : 1) : (ka < kb ? -1 : 1);
+            });
+            var pos = {};
+            if (c.hub && docs.length) {
+              var n = docs.length;
+              var radius = Math.max(MIN_RADIUS, n * RING_STEP / (2 * Math.PI));
+              pos[c.hub] = { x: 0, y: 0 };
+              docs.forEach(function (docId, i) {
+                var angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
+                pos[docId] = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+              });
+              var half = radius + RING_MARGIN;
+              dims[id] = { w: half * 2, h: half * 2, offX: half, offY: half };
+            } else {
+              var all = (c.hub ? [c.hub] : []).concat(docs);
+              var cols = Math.max(1, Math.min(all.length, Math.round(Math.sqrt(all.length * 2.6))));
+              var rows = Math.ceil(all.length / cols);
+              all.forEach(function (m, i) {
+                pos[m] = {
+                  x: (i % cols) * CELL_W + CELL_W / 2,
+                  y: Math.floor(i / cols) * CELL_H + CELL_H / 2,
+                };
+              });
+              dims[id] = { w: cols * CELL_W + PAD * 2, h: rows * CELL_H + PAD_TOP + PAD, offX: PAD, offY: PAD_TOP };
+            }
+            localPos[id] = pos;
+          });
+
+          order.sort(function (a, b) {
+            return dims[b].w * dims[b].h - dims[a].w * dims[a].h || (a < b ? -1 : 1);
           });
 
           var total = 0;
@@ -815,12 +938,9 @@
           order.forEach(function (id) {
             var dm = dims[id];
             if (x > 0 && x + dm.w > targetW) { x = 0; y += rowH + GAP; rowH = 0; }
-            var left = x + PAD, top = y + PAD_TOP;
-            (members[id] || []).sort().forEach(function (m, i) {
-              pos[m] = {
-                x: left + (i % dm.cols) * CELL_W + CELL_W / 2,
-                y: top + Math.floor(i / dm.cols) * CELL_H + CELL_H / 2,
-              };
+            var baseX = x + dm.offX, baseY = y + dm.offY;
+            Object.keys(localPos[id]).forEach(function (m) {
+              pos[m] = { x: baseX + localPos[id][m].x, y: baseY + localPos[id][m].y };
             });
             x += dm.w + GAP;
             rowH = Math.max(rowH, dm.h);
@@ -955,7 +1075,7 @@
           clusterOrder.forEach(function (key) {
             var c = clusters[key];
             if (c.ref && typeAllowed('module')) {
-              els.push(toEl(nodeById[c.ref], { parent: c.id, size: 20 }));
+              els.push(toEl(nodeById[c.ref], { parent: c.id, size: 20, hub: 1 }));
               present[c.ref] = true;
               clusterOf[c.ref] = c.id;
             }
@@ -1502,6 +1622,62 @@
           };
         }
 
+        /** One collapsed row per concern - title, a count, a one-line teaser
+         * that's true without opening it, and the full content underneath.
+         * Closed by default; the reader decides what's worth digging into. */
+        function collapsible(title, count, teaserHtml, bodyHtml, opts) {
+          opts = opts || {};
+          return '<details class="row"><summary>'
+            + '<svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3l5 5-5 5"/></svg>'
+            + '<div class="row-main"><div class="row-title">' + title
+            + (count != null ? ' <span class="muted">' + count + '</span>' : '') + '</div>'
+            + (teaserHtml ? '<div class="row-teaser' + (opts.flag ? ' flag' : '') + '">' + teaserHtml + '</div>' : '')
+            + '</div></summary><div class="row-body">' + bodyHtml + '</div></details>';
+        }
+
+        /** How many of a doc list are stale - one function so the glance chip
+         * and the Docs section prose can never disagree about the count. */
+        function docStats(docs) {
+          var stale = 0;
+          docs.forEach(function (d) { if (d.meta && d.meta.stale) stale++; });
+          return { total: docs.length, stale: stale };
+        }
+
+        /** Same fan-in number changeSentence() below turns into a sentence -
+         * three plain tiers rather than a raw import count. */
+        function riskTier(fanInCount) {
+          if (!fanInCount) return { label: 'None', cls: 'good' };
+          if (fanInCount <= 5) return { label: 'Low', cls: 'good' };
+          if (fanInCount <= 15) return { label: 'Medium', cls: 'warn' };
+          return { label: 'High', cls: 'bad' };
+        }
+
+        /** The 3-second answer, before any section below is opened: how big,
+         * how risky to touch, how documented. */
+        function chipsHtml(scope) {
+          var tier = riskTier(scope.fanIn.length);
+          var docs = docStats(scope.docs);
+          var chips = [];
+          chips.push('<div class="chip"><span class="dot"></span><span class="muted">Size</span> <b>'
+            + pluralize(scope.files.length, 'file') + '</b>'
+            + (scope.screens.length ? ' <span class="muted">&middot; ' + pluralize(scope.screens.length, 'screen') + '</span>' : '')
+            + '</div>');
+          chips.push('<div class="chip ' + tier.cls + '"><span class="dot"></span><span class="muted">Risk</span> <b>'
+            + tier.label + '</b>'
+            + (scope.fanIn.length
+              ? ' <span class="muted">&middot; ' + pluralize(scope.fanIn.length, 'module')
+                + ' depend' + (scope.fanIn.length === 1 ? 's' : '') + ' on this</span>'
+              : '')
+            + '</div>');
+          if (docs.total) {
+            chips.push('<div class="chip' + (docs.stale ? ' bad' : '') + '"><span class="dot"></span><span class="muted">Docs</span> <b>'
+              + docs.total + '</b>'
+              + (docs.stale ? ' <span class="muted">&middot; ' + pluralize(docs.stale, 'doc') + ' stale</span>' : '')
+              + '</div>');
+          }
+          return '<div class="chips">' + chips.join('') + '</div>';
+        }
+
         function detailHtml(scope) {
           var slug = scope.slug, isArea = !!scope.areaKey;
           var boundary = isArea ? esc(scope.areaKey) + '/' : 'this module';
@@ -1588,18 +1764,18 @@
           // The folders on disk already name the sub-journeys inside a module.
           // Say them out loud rather than flattening everything into one bag.
           if (scope.areas.length) {
-            html += '<section><h3>Areas <span class="muted">' + scope.areas.length + '</span></h3>'
-              + '<p class="lead">This module is split into ' + pluralize(scope.areas.length, 'area')
+            var areaBody = '<p class="lead">This module is split into ' + pluralize(scope.areas.length, 'area')
               + ' that sit side by side on disk. Each is its own little module, with its own'
               + ' components, pages and services:</p>';
-            html += rowList(scope.areas.map(function (a) {
+            areaBody += rowList(scope.areas.map(function (a) {
               var aScreens = scope.screens.filter(function (x) { return areaOf(slug, x.path) === a; });
               var bits = [pluralize(a.files.length, 'file')];
               if (aScreens.length) bits.push(pluralize(aScreens.length, 'screen'));
               return row('<button class="node-link" data-area="' + esc(slug) + '/' + esc(a.key)
                 + '"><span class="folder">' + esc(a.key) + '/</span></button>', andList(bits));
             }));
-            html += '</section>';
+            html += collapsible('Areas', scope.areas.length,
+              andList(scope.areas.map(function (a) { return a.key + '/'; })), areaBody);
           }
 
           // What the user sees comes before how the code is filed: screens and
@@ -1615,8 +1791,7 @@
           }
 
           if (scope.screens.length) {
-            html += '<section><h3>Screens <span class="muted">' + scope.screens.length + '</span></h3>'
-              + '<p class="lead">' + (isArea ? 'This area owns ' : 'This module owns ') + screenShape(all)
+            var screensBody = '<p class="lead">' + (isArea ? 'This area owns ' : 'This module owns ') + screenShape(all)
               + (screenGroups.length > 1 ? ', split across ' + pluralize(screenGroups.length, 'area') : '')
               + '.</p>';
             screenGroups.forEach(function (g) {
@@ -1624,30 +1799,30 @@
               if (g.label) {
                 // Plain screen counts here, so the areas visibly add up to the
                 // number in the heading; the shape is described above.
-                html += groupHead('<span class="folder">' + esc(g.label) + '</span>',
+                screensBody += groupHead('<span class="folder">' + esc(g.label) + '</span>',
                   pluralize(g.screens.length, 'screen'));
               }
               b.flowKeys.forEach(function (parent) {
                 var parentNode = nodeById['screen:' + parent] || nodeById['route:' + parent];
-                html += '<div class="lead">' + (parentNode ? nodeLink(parentNode) : esc(parent))
+                screensBody += '<div class="lead">' + (parentNode ? nodeLink(parentNode) : esc(parent))
                   + ' walks the user through these steps, in order:</div><ol class="steps">'
                   + flowOrder(b.flows[parent]).map(function (s) { return itemWithSummary(s); }).join('')
                   + '</ol>';
               });
               if (b.plain.length) {
-                html += '<ul class="entries">' + b.plain.map(function (s) {
+                screensBody += '<ul class="entries">' + b.plain.map(function (s) {
                   return itemWithSummary(s, s.meta && s.meta.navigatorType);
                 }).join('') + '</ul>';
               }
             });
-            html += '</section>';
+            html += collapsible('Screens', scope.screens.length, screenShape(all), screensBody);
           }
 
           if (scope.docs.length) {
-            var guardTotal = 0, staleCount = 0;
+            var guardTotal = 0;
+            var staleCount = docStats(scope.docs).stale;
             scope.docs.forEach(function (d) {
               guardTotal += ((d.meta && d.meta.guardrails) || []).length;
-              if (d.meta && d.meta.stale) staleCount++;
             });
             var docLead = 'What is written down about ' + (isArea ? 'this area' : 'this module') + '.';
             if (guardTotal) {
@@ -1658,15 +1833,16 @@
               docLead += ' ' + pluralize(staleCount, 'doc') + ' still name'
                 + (staleCount === 1 ? 's' : '') + ' files git has since removed.';
             }
-            html += '<section><h3>Docs and specs <span class="muted">' + scope.docs.length + '</span></h3>'
-              + '<p class="lead">' + docLead + '</p>';
-
+            var docsBody = '<p class="lead">' + docLead + '</p>';
             docGroupsFor(slug, scope.docs, isArea).forEach(function (g) {
-              if (g.label) html += groupHead(g.label, pluralize(g.docs.length, 'doc'));
-              html += '<ul class="entries">'
+              if (g.label) docsBody += groupHead(g.label, pluralize(g.docs.length, 'doc'));
+              docsBody += '<ul class="entries">'
                 + g.docs.map(function (d) { return docItem(d, g, slug, scope.modPath); }).join('') + '</ul>';
             });
-            html += '</section>';
+            var docsTeaser = staleCount
+              ? pluralize(staleCount, 'doc') + ' still name' + (staleCount === 1 ? 's' : '') + ' files git has since removed'
+              : pluralize(scope.docs.length, 'doc') + ' on file';
+            html += collapsible('Docs and specs', scope.docs.length, docsTeaser, docsBody, { flag: !!staleCount });
           }
 
           // Three different questions - who feels a change, what can break this,
@@ -1681,26 +1857,25 @@
               return row(nodeLink(r.node, '', relIn(scope.modPath, r.node)), pluralize(r.weight || 1, 'import'));
             }));
           }
-          html += '<section><h3>If you change ' + boundary + '</h3>';
-          html += groupHead('Modules that would feel it',
+          var changeBody = groupHead('Modules that would feel it',
             scope.fanIn.length ? pluralize(scope.fanIn.length, 'module') : '');
-          html += '<p class="lead">' + changeSentence() + '</p>';
-          if (scope.fanIn.length) html += importRows(scope.fanIn);
+          changeBody += '<p class="lead">' + changeSentence() + '</p>';
+          if (scope.fanIn.length) changeBody += importRows(scope.fanIn);
           if (isArea && scope.inModuleIn.length) {
-            html += groupHead('Files elsewhere in the module that lean on this', pluralize(scope.inModuleIn.length, 'file'))
+            changeBody += groupHead('Files elsewhere in the module that lean on this', pluralize(scope.inModuleIn.length, 'file'))
               + fileRows(scope.inModuleIn);
           }
           if (scope.fanOut.length) {
-            html += groupHead('What ' + boundary + ' leans on', pluralize(scope.fanOut.length, 'module'))
+            changeBody += groupHead('What ' + boundary + ' leans on', pluralize(scope.fanOut.length, 'module'))
               + '<p class="lead">A change over there can break things here:</p>'
               + importRows(scope.fanOut);
           }
           if (isArea && scope.inModuleOut.length) {
-            html += groupHead('Files elsewhere in the module it leans on', pluralize(scope.inModuleOut.length, 'file'))
+            changeBody += groupHead('Files elsewhere in the module it leans on', pluralize(scope.inModuleOut.length, 'file'))
               + fileRows(scope.inModuleOut);
           }
           if (risky.length) {
-            html += groupHead('Riskiest files inside', pluralize(risky.length, 'file'))
+            changeBody += groupHead('Riskiest files inside', pluralize(risky.length, 'file'))
               + '<p class="lead">The most leaned-on files - touch these with extra care:</p>'
               + rowList(risky.map(function (f) {
                   // Bare filenames repeat (three index.ts tell you nothing);
@@ -1708,7 +1883,8 @@
                   return row(nodeLink(f, '', relIn(scope.basePath, f)), 'used by ' + pluralize(f.meta.fanIn, 'file'));
                 }));
           }
-          html += '</section>';
+          var changeTeaser = changeSentence() + (risky.length ? ' Riskiest: ' + nodeLink(risky[0]) + '.' : '');
+          html += collapsible('If you change ' + boundary, null, changeTeaser, changeBody);
 
           if (scope.files.length) {
             var filesLead = 'The files that make up ' + (isArea ? 'this area' : 'this module')
@@ -1725,19 +1901,23 @@
                   + pluralize(biggest.total, 'file') + ').';
               }
             }
-            html += '<section><h3>Inside, folder by folder <span class="muted">' + scope.files.length + '</span></h3>'
-              + '<p class="lead">' + filesLead + '</p>';
+            var filesBody = '<p class="lead">' + filesLead + '</p>';
+            var folderTeaserBits = [];
             tree.groups.forEach(function (g) {
               var gBase = scope.basePath + '/' + g.label;
               var inner = g.subs.map(function (s) {
                 return folderDetails(s.label + '/', s.files.length, fileList(s.files, gBase + '/' + s.label));
               }).join('') + (g.files.length ? fileList(g.files, gBase) : '');
-              html += folderDetails(g.label + '/', g.total, inner, tree.groups.length <= 2);
+              filesBody += folderDetails(g.label + '/', g.total, inner, tree.groups.length <= 2);
+              folderTeaserBits.push(esc(g.label) + '/ ' + g.total);
             });
             if (tree.rootFiles.length) {
-              html += folderDetails('module root', tree.rootFiles.length, fileList(tree.rootFiles, scope.basePath));
+              filesBody += folderDetails('module root', tree.rootFiles.length, fileList(tree.rootFiles, scope.basePath));
+              folderTeaserBits.push('module root ' + tree.rootFiles.length);
             }
-            html += '</section>';
+            var folderTeaser = folderTeaserBits.slice(0, 4).join(' &middot; ')
+              + (folderTeaserBits.length > 4 ? ' &middot; +' + (folderTeaserBits.length - 4) + ' more' : '');
+            html += collapsible('Inside, folder by folder', scope.files.length, folderTeaser, filesBody);
           }
           return html;
         }
@@ -1762,10 +1942,225 @@
           if (d.summary) out += '<div class="sub">' + esc(d.summary) + '</div>';
           if (guards.length) {
             out += '<details><summary class="muted">' + pluralize(guards.length, 'guardrail') + '</summary>'
-              + guards.map(function (g) { return '<div class="guard">' + esc(g) + '</div>'; }).join('')
+              + '<div class="guard-list">' + guards.map(function (g) { return '<div class="guard">' + esc(g) + '</div>'; }).join('') + '</div>'
               + '</details>';
           }
           return out + '</li>';
+        }
+
+        /** Rule/memory files (AGENTS docKind) for a doc's own module, other than
+         * the doc itself - context worth an agent's attention even though they
+         * are not the thing being read. */
+        function memoryDocsFor(n) {
+          if (!n.module || !nodeById['module:' + n.module]) return [];
+          return moduleDocs(nodeById['module:' + n.module]).filter(function (d) {
+            return d.meta && d.meta.docKind === 'AGENTS' && d.id !== n.id;
+          });
+        }
+
+        /** The whole point of the Docs view: a copy-pasteable prompt that sends
+         * an AI agent to read this documentation, gather whatever else it needs
+         * from the code, and hand back an interactive flowchart. AGENTS-kind
+         * docs are framed as background rules rather than reading material -
+         * they tell the agent how this codebase expects work to be done. */
+        function agentPrompt(label, docs) {
+          var memory = [], rest = [];
+          docs.forEach(function (d) { (d.meta && d.meta.docKind === 'AGENTS' ? memory : rest).push(d); });
+          var lines = [
+            'Read through the documentation below for ' + label + ' in this codebase, follow it into whatever '
+              + 'source files it points at for extra context, and then produce an interactive flowchart (a Mermaid '
+              + 'diagram works well) that walks a non-technical reader through how ' + label + ' actually works end '
+              + 'to end - the steps, decisions and hand-offs, not the code.',
+            '',
+          ];
+          if (rest.length) {
+            lines.push('Docs to read:');
+            rest.forEach(function (d) { lines.push('- ' + d.path); });
+            lines.push('');
+          }
+          if (memory.length) {
+            lines.push('Also check these rule files for how this codebase expects work to be done:');
+            memory.forEach(function (d) { lines.push('- ' + d.path); });
+            lines.push('');
+          }
+          lines.push('Ask me for anything else you need before you start.');
+          return lines.join('\n');
+        }
+
+        function aiCta(label, docs) {
+          var prompt = agentPrompt(label, docs);
+          return '<div class="ai-cta"><h3>Turn this into a flowchart</h3>'
+            + '<p class="lead">A wall of markdown is slow to read. Hand this prompt to an AI coding agent - it will '
+            + 'work through ' + (docs.length === 1 ? 'this doc' : 'these docs') + ', gather whatever else it needs '
+            + 'from the code, and hand you back an interactive flowchart of how ' + esc(label) + ' works.</p>'
+            + '<div class="panel-actions"><button class="ghost copy-prompt" data-copy="ai-prompt-box">'
+            + 'Copy prompt for an AI agent</button></div>'
+            + '<pre class="prompt-box" id="ai-prompt-box">' + esc(prompt) + '</pre>'
+            + '</div>';
+        }
+
+        /**
+         * The whole point of this feature: the flowchart already exists by the
+         * time anyone opens the map, built during extraction by an agent that
+         * read the module's docs, not synthesised live in the browser. This is
+         * just deterministic layout + SVG for whatever steps/edges it wrote.
+         */
+        var FLOW_NODE_W = 176, FLOW_NODE_H = 56, FLOW_GAP_X = 26, FLOW_GAP_Y = 64;
+
+        /** Longest-path-from-source layering - a plain top-to-bottom Sugiyama
+         * layer assignment. Cycle-guarded even though a well-formed flow has
+         * none, since this reads untrusted-shaped JSON from a cache file. */
+        function flowLayers(flow) {
+          var steps = flow.steps || [];
+          var byId = Object.create(null);
+          steps.forEach(function (s) { byId[s.id] = s; });
+          var incoming = Object.create(null);
+          (flow.edges || []).forEach(function (e) {
+            if (!byId[e.from] || !byId[e.to]) return;
+            (incoming[e.to] || (incoming[e.to] = [])).push(e.from);
+          });
+          var level = Object.create(null);
+          function levelOf(id, seen) {
+            if (level[id] != null) return level[id];
+            if (seen[id]) { level[id] = 0; return 0; }
+            seen[id] = 1;
+            var m = 0;
+            (incoming[id] || []).forEach(function (p) { m = Math.max(m, levelOf(p, seen) + 1); });
+            level[id] = m;
+            seen[id] = 0;
+            return m;
+          }
+          steps.forEach(function (s) { levelOf(s.id, Object.create(null)); });
+          var rows = [];
+          steps.forEach(function (s) {
+            var lv = level[s.id] || 0;
+            (rows[lv] || (rows[lv] = [])).push(s);
+          });
+          var out = [];
+          rows.forEach(function (r) { if (r) out.push(r); });
+          return out;
+        }
+
+        function flowPositions(rows) {
+          var pos = {}, maxCols = 0;
+          rows.forEach(function (row) { maxCols = Math.max(maxCols, row.length); });
+          var totalW = maxCols * FLOW_NODE_W + (maxCols - 1) * FLOW_GAP_X;
+          rows.forEach(function (row, rowIndex) {
+            var rowW = row.length * FLOW_NODE_W + (row.length - 1) * FLOW_GAP_X;
+            var startX = (totalW - rowW) / 2;
+            row.forEach(function (s, i) {
+              pos[s.id] = { x: startX + i * (FLOW_NODE_W + FLOW_GAP_X), y: rowIndex * (FLOW_NODE_H + FLOW_GAP_Y) };
+            });
+          });
+          return { pos: pos, width: Math.max(totalW, FLOW_NODE_W), height: rows.length * FLOW_NODE_H + Math.max(0, rows.length - 1) * FLOW_GAP_Y };
+        }
+
+        /** Break a label onto at most two lines at word boundaries - SVG text
+         * does not wrap on its own. */
+        function wrapLabel(text, maxChars, maxLines) {
+          var words = (text || '').split(/\s+/).filter(Boolean);
+          var lines = [], cur = '';
+          words.forEach(function (w) {
+            var candidate = cur ? cur + ' ' + w : w;
+            if (candidate.length > maxChars && cur) { lines.push(cur); cur = w; } else { cur = candidate; }
+          });
+          if (cur) lines.push(cur);
+          if (lines.length > maxLines) {
+            lines = lines.slice(0, maxLines);
+            var last = lines[maxLines - 1];
+            lines[maxLines - 1] = last.length > maxChars - 1 ? last.slice(0, maxChars - 1) + '…' : last + '…';
+          }
+          return lines;
+        }
+
+        function flowNodeShape(s, x, y) {
+          var cx = x + FLOW_NODE_W / 2, cy = y + FLOW_NODE_H / 2;
+          var cls = 'flow-node flow-' + (s.kind || 'step');
+          var lines = wrapLabel(s.label || '', 22, 2);
+          var lineH = 14;
+          var startY = cy - ((lines.length - 1) * lineH) / 2;
+          var tspans = lines.map(function (ln, i) {
+            return '<tspan x="' + cx + '" y="' + (startY + i * lineH) + '">' + esc(ln) + '</tspan>';
+          }).join('');
+          var text = '<text text-anchor="middle" dominant-baseline="middle">' + tspans + '</text>';
+          var shape;
+          if (s.kind === 'decision') {
+            var pts = [cx + ',' + y, (x + FLOW_NODE_W) + ',' + cy, cx + ',' + (y + FLOW_NODE_H), x + ',' + cy].join(' ');
+            shape = '<polygon points="' + pts + '"></polygon>';
+          } else {
+            var rx = (s.kind === 'start' || s.kind === 'end') ? FLOW_NODE_H / 2 : 8;
+            shape = '<rect x="' + x + '" y="' + y + '" width="' + FLOW_NODE_W + '" height="' + FLOW_NODE_H + '" rx="' + rx + '"></rect>';
+          }
+          return '<g class="' + cls + '" data-flow-node="' + esc(s.id) + '">' + shape + text + '</g>';
+        }
+
+        function flowEdgePath(a, b) {
+          var x1 = a.x + FLOW_NODE_W / 2, y1 = a.y + FLOW_NODE_H;
+          var x2 = b.x + FLOW_NODE_W / 2, y2 = b.y;
+          if (Math.abs(y2 - y1) < 1) {
+            y1 = a.y + FLOW_NODE_H / 2; y2 = b.y + FLOW_NODE_H / 2;
+            x1 = a.x > b.x ? a.x : a.x + FLOW_NODE_W;
+            x2 = a.x > b.x ? b.x + FLOW_NODE_W : b.x;
+          }
+          var midY = (y1 + y2) / 2;
+          return 'M' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + midY + ' ' + x2 + ' ' + midY + ' ' + x2 + ' ' + y2;
+        }
+
+        function flowchartSvg(flow) {
+          var rows = flowLayers(flow);
+          if (!rows.length) return '';
+          var layout = flowPositions(rows);
+          var pad = 20;
+          var w = layout.width + pad * 2, h = layout.height + pad * 2;
+
+          var defs = '<defs><marker id="flowArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" '
+            + 'markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="flow-arrow-head">'
+            + '</path></marker></defs>';
+
+          var edgesHtml = (flow.edges || []).map(function (e) {
+            var a = layout.pos[e.from], b = layout.pos[e.to];
+            if (!a || !b) return '';
+            var d = flowEdgePath(a, b);
+            var lbl = e.label
+              ? '<text class="flow-edge-label" x="' + ((a.x + b.x) / 2 + FLOW_NODE_W / 2)
+                + '" y="' + ((a.y + b.y) / 2 + FLOW_NODE_H / 2) + '" text-anchor="middle">' + esc(e.label) + '</text>'
+              : '';
+            return '<path class="flow-edge" d="' + d + '" marker-end="url(#flowArrow)"></path>' + lbl;
+          }).join('');
+
+          var nodesHtml = (flow.steps || []).map(function (s) {
+            var p = layout.pos[s.id];
+            return p ? flowNodeShape(s, p.x, p.y) : '';
+          }).join('');
+
+          return '<svg class="flowchart-svg" viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '">'
+            + defs + '<g transform="translate(' + pad + ',' + pad + ')">' + edgesHtml + nodesHtml + '</g></svg>';
+        }
+
+        /** The diagram stays compact - full detail per step lives here, in the
+         * same ol.steps list the code-derived step screens already use, so a
+         * click on a diagram node has somewhere obvious to land. */
+        function flowWalkthroughHtml(flow) {
+          var items = (flow.steps || []).map(function (s) {
+            var kindTag = s.kind && s.kind !== 'step' ? tag(s.kind) : '';
+            return '<li id="flow-step-' + esc(s.id) + '"><div class="entry-head"><b>' + esc(s.label) + '</b>' + kindTag + '</div>'
+              + (s.detail ? '<div class="sub">' + esc(s.detail) + '</div>' : '') + '</li>';
+          }).join('');
+          return '<ol class="steps">' + items + '</ol>';
+        }
+
+        function flowchartSection(mod) {
+          var flow = mod.meta && mod.meta.flowchart;
+          if (!flow || !flow.steps || !flow.steps.length) return null;
+          var html = '<div class="ai-cta flowchart-card"><h3>' + esc(flow.title || ('How ' + mod.label + ' works')) + '</h3>';
+          if (flow.summary) html += '<p class="lead">' + esc(flow.summary) + '</p>';
+          html += '<div class="flowchart-wrap">' + flowchartSvg(flow) + '</div>';
+          html += flowWalkthroughHtml(flow);
+          if (flow.sources && flow.sources.length) {
+            html += '<p class="sub flow-sources">Built from '
+              + flow.sources.map(function (p) { return '<span class="path">' + esc(p) + '</span>'; }).join(', ') + '.</p>';
+          }
+          return html + '</div>';
         }
 
         function openFolderPanel(gid) {
@@ -1789,34 +2184,124 @@
 
         function closeDetailPage() { detailPage.classList.remove('on'); }
 
-        /** A module's full story fills the window - the side drawer only has
-         * room for its summary, not its areas, screens, docs and folder tree. */
-        function openModulePage(n, headerHtml) {
-          detailPage.innerHTML = '<div class="detail-inner">'
-            + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
-            + headerHtml + detailHtml(moduleDetailScope(n))
-            + '</div>';
-          detailPage.classList.add('on');
-          stage.classList.remove('panel-open', 'panel-wide');
-        }
-
-        /** Same full-page treatment, scoped to one area inside a module - a KYC
-         * box on the Routes graph should not dump the whole onboarding module. */
-        function openAreaPage(slug, areaKey) {
+        /** Same drawer treatment as any other node, scoped to one area inside a
+         * module - a KYC box on the Routes graph should not dump the whole
+         * onboarding module. */
+        function openAreaPanel(slug, areaKey) {
           var mod = nodeById['module:' + slug];
           if (!mod) return;
           var areas = subAreas(slug);
           var area = null;
           for (var i = 0; i < areas.length; i++) { if (areas[i].key === areaKey) { area = areas[i]; break; } }
           if (!area) { openPanel('module:' + slug); return; }
-          var header = '<p class="crumb">' + nodeLink(mod) + ' / ' + esc(area.key) + '/</p>'
+          closeDetailPage();
+          var areaScope = areaDetailScope(mod, area);
+          var header = '<button class="ghost close" data-close="1">Close</button>'
+            + '<p class="crumb">' + nodeLink(mod) + ' / ' + esc(area.key) + '/</p>'
             + '<div class="kind">area of ' + esc(slug) + '</div>'
             + '<h2>' + esc(area.key) + '/</h2>'
             + '<div class="path muted">' + esc(area.prefix.slice(0, -1)) + '</div>';
+          panel.innerHTML = header + chipsHtml(areaScope) + detailHtml(areaScope);
+          stage.classList.add('panel-open', 'panel-wide');
+        }
+
+        /** A doc's full story fills the window too - a spec with guardrails and
+         * broken references does not fit in the small drawer any better than a
+         * module does, and it is the doc page that carries the AI-agent CTA. */
+        function openDocPage(n, headerHtml) {
+          var guardrails = (n.meta && n.meta.guardrails) || [];
+          var html = headerHtml;
+
+          if (n.module && nodeById['module:' + n.module]) {
+            var ownerMod = nodeById['module:' + n.module];
+            var ownerArea = areaOf(n.module, n.path);
+            html += '<p class="lead module-context">Lives in the ' + nodeLink(ownerMod) + ' module'
+              + (ownerArea ? ', in the ' + esc(ownerArea.key) + ' area' : '') + '.'
+              + (ownerMod.summary ? ' ' + esc(ownerMod.summary) : '') + '</p>';
+          }
+
+          // If the doc's own module already has a generated flowchart, point
+          // there instead of duplicating a manual CTA - the flowchart already
+          // covers this doc alongside its siblings.
+          var ownerModForFlow = n.module ? nodeById['module:' + n.module] : null;
+          var ownerFlow = ownerModForFlow && ownerModForFlow.meta && ownerModForFlow.meta.flowchart;
+          if (ownerFlow && ownerFlow.steps && ownerFlow.steps.length) {
+            html += '<div class="ai-cta"><h3>There is already a flowchart for this</h3>'
+              + '<p class="lead">' + esc(ownerModForFlow.label) + ' has a generated walkthrough that covers this doc '
+              + 'and its siblings.</p><div class="panel-actions"><button class="ghost" data-goto-cluster="'
+              + esc(ownerModForFlow.module) + '">Open the ' + esc(ownerModForFlow.label) + ' flowchart</button></div></div>';
+          } else {
+            html += aiCta(n.label, [n].concat(memoryDocsFor(n)));
+          }
+
+          if (guardrails.length) {
+            html += '<section><h3>Guardrails</h3>'
+              + '<div class="guard-list">' + guardrails.map(function (g) { return '<div class="guard">' + esc(g) + '</div>'; }).join('') + '</div>'
+              + '</section>';
+          }
+          html += listSection('Describes', related(n.id, 'documents', 'out').map(function (r) { return nodeLink(r.node); }));
+          html += listSection('Links to', related(n.id, 'links', 'out').map(function (r) { return nodeLink(r.node); }));
+          html += listSection('Linked from', related(n.id, 'links', 'in').map(function (r) { return nodeLink(r.node); }));
+          html += brokenRefsHtml(n);
+
           detailPage.innerHTML = '<div class="detail-inner">'
             + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
-            + header + detailHtml(areaDetailScope(mod, area))
-            + '</div>';
+            + html + '</div>';
+          detailPage.classList.add('on');
+          stage.classList.remove('panel-open', 'panel-wide');
+        }
+
+        /** A doc cluster box (a feature section in the Docs view, e.g. "Portfolio"
+         * or "MySIP") used to do nothing when tapped - it is a compound node, so
+         * the generic isParent() guard swallowed the click. This gives it the
+         * same full-page treatment a module gets, fronted by the flowchart that
+         * was already generated for it during extraction - that is the whole
+         * point of grouping docs by feature in the first place. `info` is a
+         * plain {id, label, ref} object rather than a cytoscape element so this
+         * can be called from a graph tap or from a plain button elsewhere. */
+        function openDocClusterPage(info) {
+          var key = info.id.slice('dcl:'.length);
+          var label = info.label;
+          var ref = info.ref;
+          var mod = ref ? nodeById[ref] : null;
+          var docs = GRAPH.nodes.filter(function (n) {
+            return n.type === 'doc' && typeAllowed('doc') && docClusterOf(n).key === key;
+          }).sort(function (a, b) { return a.label < b.label ? -1 : a.label > b.label ? 1 : (a.id < b.id ? -1 : 1); });
+          if (!docs.length) return;
+
+          var guardTotal = 0, staleCount = 0;
+          docs.forEach(function (d) {
+            guardTotal += ((d.meta && d.meta.guardrails) || []).length;
+            if (d.meta && d.meta.stale) staleCount++;
+          });
+
+          var header = '<div class="kind">documentation' + (mod ? ' &middot; module' : '') + '</div>'
+            + '<h2>' + esc(label) + '</h2>'
+            + (mod ? '<p class="lead module-context">Docs about the ' + nodeLink(mod) + ' module'
+                + (mod.summary ? '. ' + esc(mod.summary) : '.') + '</p>' : '');
+
+          var lead = 'What is written down here.';
+          if (guardTotal) {
+            lead += ' ' + pluralize(guardTotal, 'rule') + ' to respect ' + (guardTotal === 1 ? 'is' : 'are')
+              + ' spelled out below.';
+          }
+          if (staleCount) {
+            lead += ' ' + pluralize(staleCount, 'doc') + ' still name' + (staleCount === 1 ? 's' : '')
+              + ' files git has since removed.';
+          }
+
+          var flowHtml = mod ? flowchartSection(mod) : null;
+          var body = (flowHtml || aiCta(label, docs))
+            + '<section><h3>Docs in this section <span class="muted">' + docs.length + '</span></h3>'
+            + '<p class="lead">' + lead + '</p>'
+            + '<ul class="entries">' + docs.map(function (d) {
+                return docItem(d, {}, mod ? mod.module : null, mod ? mod.path : '');
+              }).join('') + '</ul>'
+            + '</section>';
+
+          detailPage.innerHTML = '<div class="detail-inner">'
+            + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
+            + header + body + '</div>';
           detailPage.classList.add('on');
           stage.classList.remove('panel-open', 'panel-wide');
         }
@@ -1844,10 +2329,19 @@
           if (n.meta && n.meta.routePath) html += '<div class="path muted">' + esc(n.meta.routePath) + '</div>';
           if (n.summary) html += '<p class="summary">' + esc(n.summary) + '</p>';
 
-          // A module gets the full story on its own page; everything else stays
-          // in the small drawer.
+          // A module gets the same drawer as everything else, just wider and
+          // with its own chips and collapsible sections - the map stays
+          // visible instead of being replaced by a full page.
           if (n.type === 'module') {
-            openModulePage(n, html);
+            var modScope = moduleDetailScope(n);
+            panel.innerHTML = '<button class="ghost close" data-close="1">Close</button>'
+              + html + chipsHtml(modScope) + detailHtml(modScope);
+            stage.classList.add('panel-open', 'panel-wide');
+            return;
+          }
+
+          if (n.type === 'doc') {
+            openDocPage(n, html);
             return;
           }
 
@@ -1890,7 +2384,7 @@
           }
           if (guardrails.length) {
             html += '<section><h3>Guardrails</h3>'
-              + guardrails.map(function (g) { return '<div class="guard">' + esc(g) + '</div>'; }).join('')
+              + '<div class="guard-list">' + guardrails.map(function (g) { return '<div class="guard">' + esc(g) + '</div>'; }).join('') + '</div>'
               + '</section>';
           }
           html += listSection('Describes', related(n.id, 'documents', 'out').map(function (r) { return nodeLink(r.node); }));
@@ -1914,9 +2408,64 @@
           stage.classList.add('panel-open');
         }
 
+        /** Copies via the Clipboard API where it works; index.html is opened
+         * straight from disk, and file:// is not always a secure context, so a
+         * hidden-textarea + execCommand fallback covers the browsers that
+         * refuse the modern API there. */
+        function legacyCopy(text, mark) {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          var ok = false;
+          try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+          document.body.removeChild(ta);
+          mark(ok);
+        }
+        function copyPrompt(btn) {
+          var box = document.getElementById(btn.getAttribute('data-copy'));
+          if (!box) return;
+          var text = box.textContent;
+          var mark = function (ok) {
+            btn.textContent = ok ? 'Copied' : 'Press ⌘/Ctrl+C to copy';
+            btn.classList.toggle('copied', ok);
+            setTimeout(function () {
+              btn.textContent = 'Copy prompt for an AI agent';
+              btn.classList.remove('copied');
+            }, 1600);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { mark(true); }, function () { legacyCopy(text, mark); });
+          } else {
+            legacyCopy(text, mark);
+          }
+        }
+
         stage.addEventListener('click', function (ev) {
           if (ev.target.closest('[data-close]')) { stage.classList.remove('panel-open'); return; }
           if (ev.target.closest('[data-close-page]')) { closeDetailPage(); return; }
+          var copyBtn = ev.target.closest('[data-copy]');
+          if (copyBtn) { copyPrompt(copyBtn); return; }
+          var clusterBtn = ev.target.closest('[data-goto-cluster]');
+          if (clusterBtn) {
+            var slug = clusterBtn.getAttribute('data-goto-cluster');
+            var m = nodeById['module:' + slug];
+            if (m) openDocClusterPage({ id: 'dcl:module:' + slug, label: m.label, ref: 'module:' + slug });
+            return;
+          }
+          var flowNode = ev.target.closest('[data-flow-node]');
+          if (flowNode) {
+            var li = document.getElementById('flow-step-' + flowNode.getAttribute('data-flow-node'));
+            if (li) {
+              li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              li.classList.add('flash');
+              setTimeout(function () { li.classList.remove('flash'); }, 900);
+            }
+            return;
+          }
           var focusBtn = ev.target.closest('[data-focus]');
           if (focusBtn) { enterFocus(focusBtn.getAttribute('data-focus')); return; }
           var drillBtn = ev.target.closest('[data-drill]');
@@ -1925,7 +2474,7 @@
           if (areaBtn) {
             var val = areaBtn.getAttribute('data-area');
             var slash = val.indexOf('/');
-            openAreaPage(val.slice(0, slash), val.slice(slash + 1));
+            openAreaPanel(val.slice(0, slash), val.slice(slash + 1));
             return;
           }
           var link = ev.target.closest('[data-goto]');
@@ -2018,13 +2567,13 @@
           var n = nodeById[id];
           if (!n) return;
           if (n.type === 'file') { enterFocus(id); return; }
-          // A module's full page (just opened above by openPanel) already tells
-          // its whole story regardless of which view it was opened from - there
-          // is nothing left to frame, and setView would only close the page we
-          // just opened to go looking for a graph element that doesn't matter.
-          if (n.type === 'module') return;
-          var target = n.type === 'doc' ? 'docs'
-            : n.type === 'route' || n.type === 'screen' ? 'routes' : 'overview';
+          // A doc's full page (just opened above by openPanel) replaces the
+          // whole screen, so there is nothing left to frame there. A module now
+          // opens in the docked drawer instead - the map stays visible, so it
+          // still deserves to be switched to a view where the module exists and
+          // framed, same as any other node.
+          if (n.type === 'doc') return;
+          var target = n.type === 'route' || n.type === 'screen' ? 'routes' : 'overview';
           setView(target);
           var el2 = cy.getElementById(id);
           if (el2.nonempty()) { applyDim(); frame(el2); }
@@ -2037,7 +2586,7 @@
         }
 
         /**
-         * A section box opens its module or area's full page in place, without
+         * A section box opens its module or area's drawer in place, without
          * leaving the view it was tapped in - unlike a plain node, a module has
          * no element of its own here to jump to, so the old path bounced the
          * user out to Overview just to show something.
@@ -2049,8 +2598,8 @@
           state.selected = el.id();
           applyDim();
           frame(el);
-          if (area) openAreaPage(ref.slice('module:'.length), area);
-          else openModulePage(nodeById[ref]);
+          if (area) openAreaPanel(ref.slice('module:'.length), area);
+          else openPanel(ref);
         }
 
         cy.on('tap', 'node', function (ev) {
@@ -2062,6 +2611,10 @@
             return;
           }
           if (ev.target.data('section')) { selectSection(ev.target); return; }
+          if (ev.target.data('cluster')) {
+            openDocClusterPage({ id: ev.target.data('id'), label: ev.target.data('label'), ref: ev.target.data('ref') });
+            return;
+          }
           if (ev.target.isParent()) return;
           select(id, false);
         });

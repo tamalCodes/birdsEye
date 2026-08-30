@@ -55,6 +55,7 @@ written into it.
 | `imports.mjs` | plain Node - tsconfig aliases, barrels, comment-stripped parsing | milliseconds, no model |
 | `extract-routes` | a skill - reads the router and describes it | ~25 files, once |
 | `extract-docs` | a skill - attaches docs to the code they describe | once |
+| `extract-flowcharts` | a skill - turns each module's docs into a step-by-step flow | once, after docs |
 | `merge.mjs` | plain Node - one canonical `graph.json` | milliseconds |
 | `render.mjs` | plain Node - inlines vendored Cytoscape | milliseconds |
 
@@ -85,6 +86,9 @@ listed as exactly that. A warning nobody can verify is worse than no warning.
   bearings. This is the view that answers the bug-fixing question.
 - **Routes** - the navigation tree, laid out hierarchically.
 - **Docs** - doc nodes over the module map, with the `documents` edges drawn.
+  Click a feature section and, if its docs describe an end-to-end flow, the
+  page opens straight to a generated flowchart - already built during
+  extraction, not something you wait on or generate yourself.
 
 A repo with no router or no docs gets those tabs disabled with a line saying
 why, rather than an empty canvas.

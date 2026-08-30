@@ -1,6 +1,6 @@
 ---
 description: Build or refresh the interactive code map for this repo
-argument-hint: "[--force] [--only=imports|routes|docs]"
+argument-hint: "[--force] [--only=imports|routes|docs|flowcharts]"
 allowed-tools: Bash, Read, Glob, Grep, Write, Skill
 ---
 
@@ -13,7 +13,7 @@ read before touching any of it.
 Arguments: `$ARGUMENTS`
 
 - `--force` - ignore every cache and rebuild from scratch
-- `--only=imports|routes|docs` - run one stage, for debugging
+- `--only=imports|routes|docs|flowcharts` - run one stage, for debugging
 
 `${CLAUDE_PLUGIN_ROOT}/scripts` holds the scripts. Refer to it through that
 variable, never a relative path - the plugin is copied to a cache directory on
@@ -75,22 +75,43 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/stages.mjs" record docs
 
 Record only for the stages that actually ran.
 
-## 5. Merge and render
+## 5. Flowcharts - built from what docs.json says
+
+If the plan says `run` for flowcharts, invoke the `extract-flowcharts` skill.
+It reads `codemap/.cache/docs.json`, so it must run after the docs stage
+above completes, never before or in parallel with it - if docs just ran,
+its cache file is brand new and flowcharts has to read that version, not
+whatever was there before. This is the stage that makes a module's Docs page
+show a finished flowchart the moment the user opens it, instead of asking
+them to generate one themselves - do not skip it when the plan says `run`
+just because it takes longer than the other stages.
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/stages.mjs" record flowcharts
+```
+
+Record only if it actually ran.
+
+## 6. Merge and render
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/merge.mjs"
 node "${CLAUDE_PLUGIN_ROOT}/scripts/render.mjs"
 ```
 
-`merge.mjs` tolerates missing `routes.json` or `docs.json` - a repo with neither
-still produces a valid map with those views switched off.
+`merge.mjs` tolerates missing `routes.json`, `docs.json`, or `flowcharts.json`
+- a repo with none of them still produces a valid map with those parts
+switched off.
 
-## 6. Report
+## 7. Report
 
 Print the absolute path of the generated HTML, then one short paragraph:
 
 - module count, route count, doc count, and how many modules have at least one
   doc attached
+- how many of those modules got a generated flowchart, using `merge.mjs`'s own
+  count - and if any doc-bearing modules did not, that they still get the
+  manual "ask an agent" prompt in the viewer instead
 - how many docs still name a file git has removed, as a single number with a
   pointer to the side panel. Use `merge.mjs`'s own `doc refs:` line for this and
   quote nothing else from it - the paths that were never in the repo are not

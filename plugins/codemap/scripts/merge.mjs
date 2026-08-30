@@ -22,6 +22,7 @@ export function mergeGraph(root) {
   const imports = readCacheJson(root, 'imports.json') ?? { files: [], modules: [], unresolved: [] };
   const routes = readCacheJson(root, 'routes.json') ?? { routes: [], edges: [] };
   const docs = readCacheJson(root, 'docs.json') ?? { docs: [] };
+  const flowcharts = readCacheJson(root, 'flowcharts.json') ?? { flowcharts: [] };
 
   const nodes = new Map();
   const edges = new Map();
@@ -197,6 +198,36 @@ export function mergeGraph(root) {
     }
   }
 
+  // ---- flowcharts ---------------------------------------------------------
+  // Generated once during extraction, not synthesised in the browser - the
+  // viewer just lays this out. A module the extractor skipped (nothing here
+  // described an end-to-end flow) simply has no meta.flowchart, and the
+  // viewer falls back to its manual "ask an agent" prompt.
+  let flowchartCount = 0;
+  for (const fc of flowcharts.flowcharts ?? []) {
+    const node = nodes.get(moduleId(fc.module));
+    if (!node) continue;
+    const steps = (fc.steps ?? []).map((s) => ({
+      id: s.id,
+      kind: s.kind ?? 'step',
+      label: clamp(s.label, 60),
+      detail: clamp(s.detail, 220),
+    }));
+    const stepIds = new Set(steps.map((s) => s.id));
+    const flowEdges = (fc.edges ?? [])
+      .filter((e) => stepIds.has(e.from) && stepIds.has(e.to))
+      .map((e) => ({ from: e.from, to: e.to, label: clamp(e.label, 24) }));
+    if (!steps.length) continue;
+    node.meta.flowchart = {
+      title: fc.title ?? null,
+      summary: clamp(fc.summary, 200),
+      steps,
+      edges: flowEdges,
+      sources: (fc.sources ?? []).slice().sort(byString),
+    };
+    flowchartCount++;
+  }
+
   // ---- degree ------------------------------------------------------------
   for (const e of edges.values()) {
     if (e.type !== 'imports') continue;
@@ -219,6 +250,7 @@ export function mergeGraph(root) {
       modules: count('module'),
       routes: count('route') + count('screen'),
       docs: count('doc'),
+      flowcharts: flowchartCount,
       unresolved: (imports.unresolved ?? []).length,
       stale: nodeList.filter((n) => n.meta?.stale).length,
       refs: refCounts,
@@ -238,7 +270,7 @@ if (isMain) {
   const s = graph.stats;
   console.log(
     `graph.json: ${s.modules} modules, ${s.files} files, ${s.routes} routes, ${s.docs} docs, ` +
-      `${graph.edges.length} edges`,
+      `${s.flowcharts} flowcharts, ${graph.edges.length} edges`,
   );
   const r = s.refs;
   console.log(

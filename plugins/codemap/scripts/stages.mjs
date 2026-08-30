@@ -12,7 +12,7 @@ import path from 'node:path';
 import { loadConfig } from './lib/config.mjs';
 import { walkFiles } from './lib/walk.mjs';
 import { readCacheJson, readManifest, writeManifest, buildStamps, diffStamps } from './lib/cache.mjs';
-import { IGNORE_FILE } from './lib/const.mjs';
+import { IGNORE_FILE, CACHE_DIR } from './lib/const.mjs';
 
 function inventory(root) {
   const { config } = loadConfig(root);
@@ -41,10 +41,11 @@ export function plan(root, { force = false } = {}) {
   const manifest = readManifest(root);
   const routes = readCacheJson(root, 'routes.json');
   const docs = readCacheJson(root, 'docs.json');
+  const flowcharts = readCacheJson(root, 'flowcharts.json');
 
-  const out = { imports: 'run', routes: 'run', docs: 'run', reasons: {} };
+  const out = { imports: 'run', routes: 'run', docs: 'run', flowcharts: 'run', reasons: {} };
   if (force) {
-    out.reasons = { imports: 'forced', routes: 'forced', docs: 'forced' };
+    out.reasons = { imports: 'forced', routes: 'forced', docs: 'forced', flowcharts: 'forced' };
     return out;
   }
 
@@ -72,6 +73,24 @@ export function plan(root, { force = false } = {}) {
       : `${docFiles.length} docs unchanged`;
   }
 
+  // Flowcharts are built from docs.json, not from source files, so their
+  // dirty check watches that one file instead of the doc files themselves.
+  // If docs is about to run this pass, docs.json is stale by definition and
+  // flowcharts must run right after it regardless of what the old stamp says.
+  const willHaveDocs = (docs?.docs ?? []).length > 0 || out.docs === 'run';
+  if (!willHaveDocs) {
+    out.flowcharts = 'skip';
+    out.reasons.flowcharts = 'no docs to build a flowchart from';
+  } else if (out.docs === 'run') {
+    out.reasons.flowcharts = 'docs are being refreshed first';
+  } else if (!flowcharts) {
+    out.reasons.flowcharts = 'no flowcharts.json yet';
+  } else {
+    const d = diffStamps(buildStamps(root, [`${CACHE_DIR}/docs.json`]), manifest.stages?.flowcharts?.files);
+    out.flowcharts = d.dirty ? 'run' : 'skip';
+    out.reasons.flowcharts = d.dirty ? 'docs changed since the last flowchart pass' : 'docs unchanged';
+  }
+
   // imports.mjs does its own per-file caching and is cheap enough to always run.
   out.reasons.imports = 'always runs, caches per file';
   return out;
@@ -93,6 +112,11 @@ export function record(root, stage) {
     writeManifest(root, manifest);
     return docFiles.length;
   }
+  if (stage === 'flowcharts') {
+    manifest.stages.flowcharts = { files: buildStamps(root, [`${CACHE_DIR}/docs.json`]) };
+    writeManifest(root, manifest);
+    return 1;
+  }
   throw new Error(`unknown stage: ${stage}`);
 }
 
@@ -103,7 +127,7 @@ if (isMain) {
   const cmd = args[0];
   let positional = args.slice(1).filter((a) => !a.startsWith('--'));
   // `record routes` and `record <root> routes` are both accepted.
-  const stageFirst = positional[0] === 'routes' || positional[0] === 'docs';
+  const stageFirst = positional[0] === 'routes' || positional[0] === 'docs' || positional[0] === 'flowcharts';
   const root = path.resolve(stageFirst ? process.cwd() : positional[0] ?? process.cwd());
   if (!stageFirst) positional = positional.slice(1);
   if (cmd === 'plan') {

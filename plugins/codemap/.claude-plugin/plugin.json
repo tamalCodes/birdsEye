@@ -18,6 +18,7 @@
   ],
   "skills": [
     "./skills/extract-routes",
-    "./skills/extract-docs"
+    "./skills/extract-docs",
+    "./skills/extract-flowcharts"
   ]
 }

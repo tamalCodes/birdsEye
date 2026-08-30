@@ -44,6 +44,7 @@ plugins/codemap/                   the plugin
 ├── commands/map.md                /codemap:map
 ├── skills/extract-routes/         router detection
 ├── skills/extract-docs/           doc attachment
+├── skills/extract-flowcharts/     doc -> step-by-step flow
 ├── scripts/                       deterministic pipeline + vendored libs
 └── README.md                      everything else
 ```
