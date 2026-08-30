@@ -30,9 +30,26 @@
         --text: #ccd2e0;
         --text-dim: #7c8497;
         --accent: #7aa2f7;
-        --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Display", "Segoe UI Variable Text",
-          "Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, sans-serif;
-        --mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Code", Menlo, Consolas, monospace;
+
+        /* The agent-context map is a whiteboard, not a graph view - one warm
+           card colour against a neutral surface, the same in both themes so
+           the diagram keeps its identity when the lights go on or off. Card
+           text is always near-black because the card is always yellow. */
+        --dia-card: #f2ce3f;
+        --dia-card-hi: #ffe073;
+        --dia-ink: #23200f;
+        --dia-surface: #191d28;
+        /* No font files are embedded - this file opens straight from disk with
+           no network access - so the stack has to be fonts a machine already
+           has. "Anthropic Sans" is picked up when it happens to be installed;
+           everything after it is a system face that is genuinely present, so
+           what you actually see is a real UI font at a real size rather than
+           a silent fallback to something cramped. Deliberately not listing
+           "Opus": that name belongs to a music-notation font on many Macs,
+           and text set in it renders as note heads. */
+        --font: "Anthropic Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Helvetica Neue", "Segoe UI Variable Text", "Segoe UI", Roboto, Arial, sans-serif;
+        --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Code", Consolas, monospace;
       }
 
       /* Same five hues as the dark theme, same roles - just re-tuned to hold
@@ -57,6 +74,7 @@
         --text: #16181d;
         --text-dim: #6b7280;
         --accent: #3762d6;
+        --dia-surface: #f0f1f4;
       }
 
       * { box-sizing: border-box; }
@@ -64,7 +82,7 @@
       body {
         background: var(--bg);
         color: var(--text);
-        font: 13px/1.5 var(--font);
+        font: 15px/1.6 var(--font);
         display: grid;
         grid-template-rows: auto 1fr;
         overflow: hidden;
@@ -84,7 +102,7 @@
       /* One notch down from the brand name, not level with it - the stat
          line is context, not a second headline competing for the same
          glance. */
-      .brand span { display: block; color: var(--text-dim); font-weight: 400; font-size: 11px; margin-top: 1px; }
+      .brand span { display: block; color: var(--text-dim); font-weight: 400; font-size: 12.5px; margin-top: 1px; }
 
       .divider { width: 1px; align-self: stretch; margin: 4px 0; background: var(--line); flex: none; }
 
@@ -136,7 +154,7 @@
       }
       .menu-panel[hidden] { display: none; }
       .menu-label {
-        font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+        font-size: 12px; text-transform: uppercase; letter-spacing: .07em;
         color: var(--text-dim); font-weight: 600; margin-bottom: 8px;
       }
       .menu-section .filters { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -146,7 +164,7 @@
       /* ---- stage ---- */
       main {
         position: relative; display: grid; grid-template-columns: 1fr 0;
-        transition: grid-template-columns .15s; min-height: 0;
+        min-height: 0;
       }
       main.panel-open { grid-template-columns: 1fr 340px; }
       /* A flat canvas has no sense of scale or position - the dot grid gives
@@ -164,7 +182,7 @@
       }
       #empty.on { display: grid; }
       #empty b { display: block; color: var(--text); margin-bottom: 6px; font-weight: 600; }
-      #hint { position: absolute; left: 14px; bottom: 12px; color: var(--text-dim); font-size: 12px; pointer-events: none; }
+      #hint { position: absolute; left: 14px; bottom: 12px; color: var(--text-dim); font-size: 13.5px; pointer-events: none; }
 
       /* ---- side panel ---- */
       aside {
@@ -173,10 +191,10 @@
       }
       main.panel-open aside { display: block; }
       /* ---- detail content (shared by the small side panel and the full page) ---- */
-      .detail h2 { margin: 0 0 2px; font-size: 15px; word-break: break-word; }
-      .kind { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
+      .detail h2 { margin: 0 0 3px; font-size: 21px; line-height: 1.25; word-break: break-word; }
+      .kind { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: .07em; }
       .badge {
-        display: inline-block; font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
+        display: inline-block; font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase;
         border: 1px solid var(--c-doc); color: var(--c-doc); border-radius: 4px; padding: 1px 5px; margin-left: 6px;
       }
       /* Every section is a visibly separate block: a rule above it, its title
@@ -184,14 +202,16 @@
       .detail section { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
       .detail h3 {
         display: flex; align-items: baseline; gap: 8px;
-        margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
+        margin: 0 0 6px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .07em;
         color: var(--text-dim); font-weight: 600;
       }
-      .detail h3 .muted { margin-left: auto; font-size: 11px; }
+      .detail h3 .muted { margin-left: auto; font-size: 12.5px; }
       .detail ul { list-style: none; margin: 0; padding: 0; }
-      .detail li { padding: 2px 0; }
+      /* Doc filenames run long and the side panel is only 340px - let them
+         wrap rather than getting clipped by the panel's overflow-x. */
+      .detail li { padding: 2px 0; overflow-wrap: anywhere; }
       .detail .summary { color: var(--text); margin: 8px 0 18px; }
-      .path { font-family: var(--mono); font-size: 11.5px; word-break: break-all; }
+      .path { font-family: var(--mono); font-size: 13px; word-break: break-all; }
       a.path, .node-link {
         color: var(--accent); text-decoration: none; cursor: pointer; background: none; border: 0;
         font: inherit; padding: 0; text-align: left;
@@ -201,11 +221,11 @@
       .guard-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
       .guard {
         border-left: 3px solid var(--c-doc); background: var(--bg-raised); border-radius: 0 5px 5px 0;
-        padding: 7px 10px; color: var(--text); font-size: 12.5px; line-height: 1.55;
+        padding: 8px 11px; color: var(--text); font-size: 14.5px; line-height: 1.6;
       }
       .panel-actions { display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: wrap; }
       .close { float: right; }
-      .stats { display: flex; gap: 12px; color: var(--text-dim); font-size: 12px; }
+      .stats { display: flex; gap: 12px; color: var(--text-dim); font-size: 13.5px; }
       .stats b { color: var(--text); font-weight: 600; }
 
       /* ---- module detail ---- */
@@ -215,25 +235,25 @@
       .detail details details { margin-left: 14px; }
       .detail summary { cursor: pointer; user-select: none; }
       .detail summary:hover .folder { text-decoration: underline; }
-      .folder { font-family: var(--mono); font-size: 11.5px; }
+      .folder { font-family: var(--mono); font-size: 13px; }
       ol.steps { margin: 4px 0 10px; padding-left: 22px; }
       ol.steps li { padding: 2px 0; }
       /* Sub-heading inside a section: sub-areas, doc groups, blast-radius lists. */
       .detail h4.grp {
         display: flex; align-items: baseline; gap: 8px;
         margin: 16px 0 4px; padding-top: 12px; border-top: 1px solid var(--line-soft);
-        font-size: 12px; font-weight: 600; color: var(--text);
+        font-size: 14px; font-weight: 600; color: var(--text);
       }
       .detail h4.grp:first-of-type { border-top: 0; padding-top: 0; margin-top: 8px; }
       .detail h4.grp .grow { flex: 1; min-width: 0; }
-      .detail h4.grp .muted { font-weight: 400; font-size: 11.5px; white-space: nowrap; }
+      .detail h4.grp .muted { font-weight: 400; font-size: 13px; white-space: nowrap; }
 
       /* ---- glance chips: the 3-second answer, before any section is opened ---- */
       .chips { display: flex; gap: 7px; margin: 12px 0 16px; flex-wrap: wrap; }
       .chip {
         display: flex; align-items: baseline; gap: 5px;
         background: var(--bg-raised); border: 1px solid var(--line); border-radius: 7px;
-        padding: 6px 9px; font-size: 11.5px; color: var(--text-dim);
+        padding: 7px 11px; font-size: 13.5px; color: var(--text-dim);
       }
       .chip .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--text-dim); }
       .chip b { color: var(--text); font-weight: 600; }
@@ -258,24 +278,24 @@
         padding: 18px 20px; width: 420px; max-width: calc(100% - 32px); max-height: calc(100% - 64px);
         overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
       }
-      #aiModal h3 { margin: 0 0 4px; font-size: 14px; }
+      #aiModal h3 { margin: 0 0 4px; font-size: 17px; }
       #aiModal .modal-close {
         position: absolute; top: 10px; right: 10px; background: none; border: 0; color: var(--text-dim);
-        cursor: pointer; font-size: 18px; line-height: 1; padding: 4px;
+        cursor: pointer; font-size: 20px; line-height: 1; padding: 4px;
       }
       #aiModal .modal-close:hover { color: var(--text); }
       #aiModal .key-input {
         width: 100%; box-sizing: border-box; margin: 6px 0 4px; padding: 7px 9px;
         background: var(--bg-raised); border: 1px solid var(--line); border-radius: 6px;
-        color: var(--text); font: inherit; font-size: 12.5px;
+        color: var(--text); font: inherit; font-size: 14.5px;
       }
-      #aiModal .key-note { font-size: 11px; color: var(--text-dim); margin: 0 0 8px; }
+      #aiModal .key-note { font-size: 12.5px; color: var(--text-dim); margin: 0 0 8px; }
       #aiModal .ai-output {
         margin-top: 10px; padding: 9px 11px; background: var(--bg-raised); border-radius: 6px;
-        border-left: 3px solid var(--accent); font-size: 12.5px; line-height: 1.55; white-space: pre-wrap;
+        border-left: 3px solid var(--accent); font-size: 14.5px; line-height: 1.6; white-space: pre-wrap;
       }
-      #aiModal .ai-error { color: var(--bad); font-size: 12px; margin-top: 8px; }
-      #aiModal .change-key { font-size: 11px; margin-top: 8px; display: inline-block; }
+      #aiModal .ai-error { color: var(--bad); font-size: 13.5px; margin-top: 8px; }
+      #aiModal .change-key { font-size: 12.5px; margin-top: 8px; display: inline-block; }
       .spinner {
         display: inline-block; width: 11px; height: 11px; border: 2px solid var(--line);
         border-top-color: var(--accent); border-radius: 50%; vertical-align: -1.5px;
@@ -284,30 +304,29 @@
       @keyframes spin { to { transform: rotate(360deg); } }
       @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 
-      /* ---- collapsible section rows: same content the old full page always
-         showed expanded, now closed until asked for, one per concern. ---- */
-      .detail details.row { border-top: 1px solid var(--line); }
-      .detail details.row:first-of-type { border-top: 0; }
-      .detail details.row > summary {
-        list-style: none; cursor: pointer; user-select: none;
-        display: flex; align-items: flex-start; gap: 8px; padding: 16px 2px;
+      /* ---- tabs: one question at a time ----
+         Five stacked accordions made the reader open and close rows to compare
+         screens against shared code. A tab bar puts the questions side by side
+         and gives the answer the full width of the page. */
+      .tabs { margin-top: 8px; }
+      .tab-bar {
+        display: flex; gap: 4px; flex-wrap: wrap;
+        border-bottom: 1px solid var(--line); margin-bottom: 4px;
       }
-      .detail details.row > summary::-webkit-details-marker { display: none; }
-      .detail details.row .chev {
-        width: 13px; height: 13px; flex: none; margin-top: 2px; color: var(--text-dim);
-        transition: transform .15s ease;
+      .tab-bar .tab {
+        appearance: none; background: transparent; border: 0; border-bottom: 2px solid transparent;
+        color: var(--text-dim); font: inherit; font-weight: 600; font-size: 14px;
+        padding: 9px 12px; margin-bottom: -1px; cursor: pointer; white-space: nowrap;
       }
-      .detail details.row[open] > summary .chev { transform: rotate(90deg); }
-      .detail details.row .row-main { flex: 1; min-width: 0; }
-      .detail details.row .row-title {
-        font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
-        color: var(--text-dim); font-weight: 600;
-      }
-      .detail details.row .row-title .muted { text-transform: none; letter-spacing: 0; }
-      .detail details.row .row-teaser { color: var(--text); font-size: 12.5px; margin-top: 4px; }
-      .detail details.row .row-teaser.flag { color: var(--bad); }
-      .detail details.row .row-body { padding: 0 0 20px 21px; }
-      @media (prefers-reduced-motion: reduce) { .detail details.row .chev { transition: none; } }
+      .tab-bar .tab:hover { color: var(--text); }
+      .tab-bar .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+      .tab-bar .tab .muted { font-weight: 400; margin-left: 2px; }
+      .tab-bar .tab[aria-selected="true"] .muted { color: var(--text-dim); }
+      /* The tab bar is already the divider - the first block under it does not
+         need a second rule two pixels below the first. */
+      .tab-pane > section:first-child { margin-top: 12px; padding-top: 0; border-top: 0; }
+      .tab-pane > .ai-cta:first-child { margin-top: 16px; }
+      .tab-pane > .lead:first-child { margin-top: 16px; }
 
       /* ---- full-page detail: docs, and modules/areas ---- */
       /* Same trick #empty/#hint already use: an absolutely positioned layer
@@ -322,7 +341,7 @@
          wants more width than a doc's prose column. */
       #detailPage .detail-inner.wide { max-width: 1080px; }
       .page-back { margin-bottom: 14px; }
-      .crumb { color: var(--text-dim); font-size: 12px; margin: 0 0 6px; }
+      .crumb { color: var(--text-dim); font-size: 13.5px; margin: 0 0 6px; }
       .crumb .node-link { font-size: inherit; }
 
       /* Name left, number right - a list of counts should read as a column. */
@@ -333,7 +352,7 @@
       ul.rows > li:first-child { border-top: 0; }
       ul.rows .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
       ul.rows .count {
-        color: var(--text-dim); font-size: 11.5px; white-space: nowrap;
+        color: var(--text-dim); font-size: 13px; white-space: nowrap;
         font-variant-numeric: tabular-nums;
       }
 
@@ -344,51 +363,70 @@
       .entry-head { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
       .entry-head .node-link { font-weight: 600; }
       .entry-head .badge { margin-left: 0; }
-      .sub { color: var(--text-dim); font-size: 12px; margin: 3px 0 0; }
+      .sub { color: var(--text-dim); font-size: 13.5px; line-height: 1.55; margin: 4px 0 0; }
       ul.entries details { margin-top: 4px; }
       ol.steps > li .entry-head .node-link { font-weight: 400; }
 
       /* Metadata as a chip, so it stops competing with the title next to it. */
       .tag {
-        display: inline-block; font-size: 10px; line-height: 16px; letter-spacing: .04em;
+        display: inline-block; font-size: 11.5px; line-height: 18px; letter-spacing: .04em;
         color: var(--text-dim); background: var(--bg-raised); border-radius: 3px;
         padding: 0 5px; white-space: nowrap;
       }
       .tag.area { font-family: var(--mono); color: var(--accent); }
       .tag.loc { font-family: var(--mono); }
 
-      /* ---- AI flowchart CTA ---- */
+      /* ---- AI agent CTA ---- */
       .ai-cta {
         background: var(--bg-raised); border: 1px solid var(--line); border-radius: 8px;
         padding: 14px 16px; margin: 4px 0 20px;
       }
       .ai-cta h3 { margin: 0 0 6px; color: var(--text); }
       .ai-cta .lead { margin: 0; }
-      .ai-cta.flowchart-card { padding: 22px 26px 26px; margin: 16px 0 26px; }
+      .agent-map { margin: 16px 0 26px; }
+      .agent-map .lead { margin: 0 0 2px; }
       .prompt-box {
         background: var(--bg); border: 1px solid var(--line-soft); border-radius: 6px;
-        padding: 10px 12px; margin: 10px 0 0; font: 11.5px/1.55 var(--mono); color: var(--text);
+        padding: 11px 13px; margin: 10px 0 0; font: 13px/1.6 var(--mono); color: var(--text);
         white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow-y: auto;
       }
       .copy-prompt.copied { color: var(--c-file); border-color: var(--c-file); }
 
-      /* ---- generated flowchart ---- */
-      .flowchart-wrap { overflow-x: auto; margin: 16px 0 20px; }
-      .flowchart-svg { display: block; }
-      .flowchart-svg text { font: 11px/1.3 var(--font); fill: var(--text); pointer-events: none; }
-      .flow-node { cursor: pointer; }
-      .flow-node rect, .flow-node polygon { fill: var(--bg-raised); stroke: var(--line); stroke-width: 1.5; }
-      .flow-node:hover rect, .flow-node:hover polygon { stroke: var(--accent); }
-      .flow-start rect, .flow-start polygon { stroke: var(--c-file); }
-      .flow-end rect, .flow-end polygon { stroke: var(--accent); }
-      .flow-decision polygon { stroke: var(--c-doc); }
-      .flow-edge { fill: none; stroke: var(--line); stroke-width: 1.5; }
-      .flow-arrow-head { fill: var(--line); }
-      .flow-edge-label { font-size: 10px; fill: var(--text-dim); }
-      li.flash { animation: flow-flash .9s ease; }
-      @keyframes flow-flash { 0% { background: var(--bg-raised); } 100% { background: transparent; } }
-      .flow-sources { margin-top: 10px; }
-      .flow-sources .path { font-family: var(--mono); }
+      /* ---- agent context map ----
+         An interactive canvas, not a picture: cytoscape drives the same
+         pan/zoom surface the main graph uses, so a module with thirty docs is
+         explorable instead of squeezed into a fixed viewBox. Everything here
+         only sizes and frames it - the nodes themselves are painted on canvas
+         from the palette in PAL. */
+      .amap {
+        position: relative; margin: 14px 0 6px;
+        background: var(--dia-surface); border: 1px solid var(--line-soft);
+        border-radius: 12px; overflow: hidden;
+      }
+      .amap-bar {
+        display: flex; align-items: center; gap: 6px;
+        padding: 8px 10px; border-bottom: 1px solid var(--line-soft);
+      }
+      .amap-bar .amap-spacer { flex: 1; }
+      .amap-bar .ghost { font-size: 12px; padding: 4px 10px; }
+      .amap-icon {
+        width: 28px; padding: 4px 0; text-align: center;
+        font-size: 14px; line-height: 1;
+      }
+      .amap-canvas {
+        height: 520px; min-height: 300px; resize: vertical; overflow: hidden;
+        /* Same dot grid the main canvas uses, so the map reads as a surface
+           you are panning across rather than a static image. */
+        background-image: radial-gradient(var(--line-soft) 1px, transparent 1px);
+        background-size: 22px 22px;
+      }
+      .amap-tip {
+        position: absolute; left: 10px; right: 10px; bottom: 10px;
+        padding: 7px 11px; border-radius: 7px; pointer-events: none;
+        background: var(--bg-raised); border: 1px solid var(--line);
+        color: var(--text-dim); font-size: 12px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
     </style>
   </head>
   <body>
@@ -396,10 +434,12 @@
       <div class="brand">__TITLE__<span id="stat-line"></span></div>
       <span class="divider"></span>
       <div class="views" role="tablist">
-        <button data-view="overview" role="tab" aria-selected="true">Overview</button>
+        <!-- Restructure: only Routes ships for now. Uncomment to bring these back.
+        <button data-view="overview" role="tab" aria-selected="false">Overview</button>
         <button data-view="focus" role="tab" aria-selected="false" disabled>Focus</button>
-        <button data-view="routes" role="tab" aria-selected="false">Routes</button>
         <button data-view="docs" role="tab" aria-selected="false">Docs</button>
+        -->
+        <button data-view="routes" role="tab" aria-selected="true">Routes</button>
       </div>
       <input id="search" type="search" placeholder="Search name or path" autocomplete="off" />
       <div class="spacer"></div>
@@ -649,9 +689,9 @@
                 'background-color': function (n) { return COLOR[n.data('type')] || '#888'; },
                 label: 'data(label)',
                 color: function () { return PAL.text; },
-                'font-size': 11,
-                'font-family': '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Display", '
-                  + '"Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, sans-serif',
+                'font-size': 12.5,
+                'font-family': '"Anthropic Sans", "Outfit", -apple-system, BlinkMacSystemFont, "SF Pro Text", '
+                  + '"Segoe UI Variable Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, sans-serif',
                 'text-valign': 'bottom',
                 'text-margin-y': 4,
                 'text-max-width': 150,
@@ -679,12 +719,23 @@
                 'text-margin-y': 0,
                 'text-max-width': 210,
                 color: '#12151d',
-                'font-size': 10.5,
+                'font-size': 12,
                 'font-weight': 600,
                 'text-background-opacity': 0,
               },
             },
             { selector: 'node[group]', style: { shape: 'round-rectangle' } },
+            {
+              // Components/Hooks/Utilities pills inside a Routes section box -
+              // dashed, so they read as "a folder to open", not another screen.
+              selector: 'node[modfolder]',
+              style: {
+                'border-width': 1.5,
+                'border-style': 'dashed',
+                'border-color': function () { return PAL.textDim; },
+                'background-opacity': 0.5,
+              },
+            },
             { selector: 'node[?up]', style: { 'background-opacity': 0.25, 'border-width': 1.5, 'border-style': 'dashed', 'border-color': function () { return PAL.textDim; } } },
             {
               // Feature sections in Routes, doc clusters in Docs.
@@ -700,7 +751,7 @@
                 'text-halign': 'center',
                 'text-margin-y': -3,
                 color: function () { return PAL.textDim; },
-                'font-size': 11,
+                'font-size': 12.5,
                 'font-weight': 600,
                 'text-background-opacity': 0,
                 padding: '12px',
@@ -822,6 +873,47 @@
 
         var SEC_PAD = 14, SEC_PAD_TOP = 30;
 
+        // Components/Hooks/Utilities pills drawn inside a module's Routes
+        // section box, alongside its screens - one per top-level folder that
+        // matches, sized and gridded exactly like a screen node.
+        var FOLDER_KIND_LABEL = { components: 'Components', hooks: 'Hooks', utils: 'Utilities' };
+        var FOLDER_KIND_MATCH = {
+          components: /^components?$/i,
+          hooks: /^hooks?$/i,
+          utils: /^(utils?|utilities|helpers?)$/i,
+        };
+        function moduleFolderPills(mod, secId) {
+          var modNode = nodeById['module:' + mod];
+          var files = moduleFiles[mod];
+          if (!modNode || !files || !files.length) return [];
+          var base = modNode.path;
+          var buckets = Object.create(null);
+          files.forEach(function (f) {
+            var rest = f.path.slice(base.length + 1);
+            var slash = rest.indexOf('/');
+            if (slash === -1) return;   // sits at the module root, not in a subfolder
+            var top = rest.slice(0, slash);
+            Object.keys(FOLDER_KIND_MATCH).forEach(function (kind) {
+              if (!FOLDER_KIND_MATCH[kind].test(top)) return;
+              var b = buckets[kind] || (buckets[kind] = { dir: top, count: 0 });
+              b.count++;
+            });
+          });
+          var pills = [];
+          Object.keys(FOLDER_KIND_LABEL).forEach(function (kind) {
+            var b = buckets[kind];
+            if (!b) return;
+            var label = FOLDER_KIND_LABEL[kind] + ' · ' + b.count;
+            pills.push({
+              data: {
+                id: secId + '::' + kind, label: label, type: 'screen', modfolder: kind,
+                module: mod, folderDir: b.dir, w: routeBoxWidth(label),
+              },
+            });
+          });
+          return pills;
+        }
+
         /**
          * Group a wide flat run of sibling leaves into labelled feature
          * sections. A navigator that registers 38 screens flat is telling the
@@ -925,6 +1017,16 @@
                   var names = missing.slice(0, 3).map(function (n) { return n.label; });
                   if (missing.length > 3) names.push('+' + (missing.length - 3) + ' more');
                   label += ' · elsewhere: ' + names.join(', ');
+                }
+                // Component/hook/util pills ride alongside the screens in the
+                // module's own box - not the sub-area boxes nested inside it.
+                if (g.ref) {
+                  var secId = 'sec:' + p + '/' + key;
+                  moduleFolderPills(g.mod, secId).forEach(function (pill) {
+                    nodes.push(pill);
+                    byId[pill.data.id] = pill;
+                    members.push(pill.data.id);
+                  });
                 }
               }
               makeSection(p, key, label, g.ref, g.area, members);
@@ -1832,17 +1934,57 @@
           };
         }
 
-        /** One collapsed row per concern - title, a count, a one-line teaser
-         * that's true without opening it, and the full content underneath.
-         * Closed by default; the reader decides what's worth digging into. */
-        function collapsible(title, count, teaserHtml, bodyHtml, opts) {
-          opts = opts || {};
-          return '<details class="row"><summary>'
-            + '<svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3l5 5-5 5"/></svg>'
-            + '<div class="row-main"><div class="row-title">' + title
-            + (count != null ? ' <span class="muted">' + count + '</span>' : '') + '</div>'
-            + (teaserHtml ? '<div class="row-teaser' + (opts.flag ? ' flag' : '') + '">' + teaserHtml + '</div>' : '')
-            + '</div></summary><div class="row-body">' + bodyHtml + '</div></details>';
+        /** One concern per tab instead of a stack of collapsed rows: the reader
+         * picks a question at the top and the full width below answers it. The
+         * first tab is the one that is open on arrival. Tabs with no body are
+         * dropped, so a module with no screens never shows an empty Screens. */
+        function tabsHtml(tabs) {
+          var live = tabs.filter(function (t) { return t && t.body; });
+          if (!live.length) return '';
+          var bar = live.map(function (t, i) {
+            return '<button type="button" class="tab" role="tab" data-tab="' + esc(t.id) + '"'
+              + ' aria-selected="' + (i === 0 ? 'true' : 'false') + '">' + t.label
+              + (t.count != null ? ' <span class="muted">' + t.count + '</span>' : '') + '</button>';
+          }).join('');
+          var panes = live.map(function (t, i) {
+            return '<div class="tab-pane" role="tabpanel" data-tab-pane="' + esc(t.id) + '"'
+              + (i === 0 ? '' : ' hidden') + '>' + t.body + '</div>';
+          }).join('');
+          return '<div class="tabs"><div class="tab-bar" role="tablist">' + bar + '</div>' + panes + '</div>';
+        }
+
+        /** A titled block inside a tab - what a collapsible row looked like
+         * once it was open, minus the opening. */
+        function paneSection(title, count, bodyHtml) {
+          return '<section><h3>' + title
+            + (count != null ? ' <span class="muted">' + count + '</span>' : '') + '</h3>'
+            + bodyHtml + '</section>';
+        }
+
+        /** Open a module's full page with a named tab already showing - what
+         * a cross-link from elsewhere in the map wants, rather than dropping
+         * the reader on Overview to hunt for the tab themselves. */
+        function openModuleTab(slug, tabId) {
+          if (!nodeById['module:' + slug]) return;
+          openPanel('module:' + slug);
+          var btn = detailPage.querySelector('.tab-bar [data-tab="' + tabId + '"]');
+          if (btn) selectTab(btn);
+          detailPage.scrollTop = 0;
+        }
+
+        function selectTab(btn) {
+          var wrap = btn.closest('.tabs');
+          if (!wrap) return;
+          var id = btn.getAttribute('data-tab');
+          var i, btns = wrap.querySelectorAll('.tab-bar > .tab');
+          for (i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-selected', btns[i] === btn ? 'true' : 'false');
+          }
+          var panes = wrap.querySelectorAll('[data-tab-pane]');
+          for (i = 0; i < panes.length; i++) {
+            panes[i].hidden = panes[i].getAttribute('data-tab-pane') !== id;
+          }
+          mountAgentMaps(wrap);
         }
 
         /** How many of a doc list are stale - one function so the glance chip
@@ -2002,7 +2144,13 @@
               + pluralize(risky[0].meta.fanIn, 'file') + '.');
           }
           var html = '<p class="summary">' + story.join(' ') + '</p>';
-          html += moduleAiCta(isArea ? scope.areaKey + '/ area of ' + slug : slug, scope);
+
+          var mod = nodeById['module:' + slug];
+          var tabs = [];
+
+          // ---- Overview: the framing that is true no matter which tab you
+          // came for - what the module is split into, and who feels a change.
+          var overview = moduleAiCta(isArea ? scope.areaKey + '/ area of ' + slug : slug, scope);
 
           // The folders on disk already name the sub-journeys inside a module.
           // Say them out loud rather than flattening everything into one bag.
@@ -2017,83 +2165,11 @@
               return row('<button class="node-link" data-area="' + esc(slug) + '/' + esc(a.key)
                 + '"><span class="folder">' + esc(a.key) + '/</span></button>', andList(bits));
             }));
-            html += collapsible('Areas', scope.areas.length,
-              andList(scope.areas.map(function (a) { return a.key + '/'; })), areaBody);
-          }
-
-          // What the user sees comes before how the code is filed: screens and
-          // flows first, docs next, blast radius, and the file inventory last.
-          function screenShape(b) {
-            var parts = [];
-            if (b.flowKeys.length === 1) parts.push('a guided flow of ' + pluralize(b.stepTotal, 'step'));
-            if (b.flowKeys.length > 1) {
-              parts.push(b.flowKeys.length + ' guided flows totalling ' + pluralize(b.stepTotal, 'step'));
-            }
-            if (b.plain.length) parts.push(pluralize(b.plain.length, 'standalone page'));
-            return parts.join(', plus ');
-          }
-
-          if (scope.screens.length) {
-            var screensBody = '<p class="lead">' + (isArea ? 'This area owns ' : 'This module owns ') + screenShape(all)
-              + (screenGroups.length > 1 ? ', split across ' + pluralize(screenGroups.length, 'area') : '')
-              + '.</p>';
-            screenGroups.forEach(function (g) {
-              var b = bucketScreens(g.screens);
-              if (g.label) {
-                // Plain screen counts here, so the areas visibly add up to the
-                // number in the heading; the shape is described above.
-                screensBody += groupHead('<span class="folder">' + esc(g.label) + '</span>',
-                  pluralize(g.screens.length, 'screen'));
-              }
-              b.flowKeys.forEach(function (parent) {
-                var parentNode = nodeById['screen:' + parent] || nodeById['route:' + parent];
-                screensBody += '<div class="lead">' + (parentNode ? nodeLink(parentNode) : esc(parent))
-                  + ' walks the user through these steps, in order:</div><ol class="steps">'
-                  + flowOrder(b.flows[parent]).map(function (s) { return itemWithSummary(s); }).join('')
-                  + '</ol>';
-              });
-              if (b.plain.length) {
-                screensBody += '<ul class="entries">' + b.plain.map(function (s) {
-                  return itemWithSummary(s, s.meta && s.meta.navigatorType);
-                }).join('') + '</ul>';
-              }
-            });
-            html += collapsible('Screens', scope.screens.length, screenShape(all), screensBody);
-          }
-
-          // What this module borrows from the rest of the codebase, one file
-          // at a time - not just "10 other modules", but which components and
-          // hooks specifically, since that's what you'd go read next.
-          var sharedRows = areaEdges({ files: scope.files }, 'out');
-          if (sharedRows.length) {
-            var sharedGroups = groupSharedFiles(sharedRows);
-            var compCount = 0, hookCount = 0;
-            sharedRows.forEach(function (r) {
-              var k = sharedFileKind(r.node);
-              if (k === 'component') compCount++; else if (k === 'hook') hookCount++;
-            });
-            var sharedBits = [];
-            if (compCount) sharedBits.push(pluralize(compCount, 'component'));
-            if (hookCount) sharedBits.push(pluralize(hookCount, 'hook'));
-            var sharedLead = 'What ' + (isArea ? 'this area' : 'this module') + ' pulls in from elsewhere: '
-              + pluralize(sharedRows.length, 'file') + ' across ' + pluralize(sharedGroups.length, 'other module')
-              + (sharedBits.length ? ', including ' + andList(sharedBits) : '') + '.';
-            var sharedBody = '<p class="lead">' + sharedLead + '</p>';
-            sharedGroups.forEach(function (g) {
-              sharedBody += groupHead(g.node ? nodeLink(g.node) : esc(g.mod), pluralize(g.files.length, 'file'));
-              sharedBody += rowList(g.files.map(function (r) {
-                var k = sharedFileKind(r.node);
-                return row(nodeLink(r.node) + tag(k), pluralize(r.weight || 1, 'import'));
-              }));
-            });
-            var sharedTeaser = pluralize(sharedRows.length, 'file') + ' from ' + pluralize(sharedGroups.length, 'other module')
-              + (sharedBits.length ? ' &middot; ' + andList(sharedBits) : '');
-            html += collapsible('Shared components & hooks used', sharedRows.length, sharedTeaser, sharedBody);
+            overview += paneSection('Areas', scope.areas.length, areaBody);
           }
 
           // Three different questions - who feels a change, what can break this,
           // what is fragile inside - so three headed blocks, not one long run.
-          // Real, but not the reason this page got opened - it goes last.
           function importRows(list) {
             return rowList(list.map(function (r) {
               return row(nodeLink(r.node), pluralize(r.weight || 1, 'import'));
@@ -2130,12 +2206,110 @@
                   return row(nodeLink(f, '', relIn(scope.basePath, f)), 'used by ' + pluralize(f.meta.fanIn, 'file'));
                 }));
           }
-          var changeTeaser = changeSentence() + (risky.length ? ' Riskiest: ' + nodeLink(risky[0]) + '.' : '');
-          html += collapsible('If you change ' + boundary, null, changeTeaser, changeBody);
+          overview += paneSection('If you change ' + boundary, null, changeBody);
+          tabs.push({ id: 'overview', label: 'Overview', body: overview });
 
-          // The raw file inventory - real, but a reader opens this page to
-          // learn what a module does, not to browse a folder listing. It can
-          // run into the hundreds of entries, so it goes dead last.
+          // ---- Screens: the part of the module a person can actually see, so
+          // it is the first tab after the framing. Name, then what it is for.
+          function screenShape(b) {
+            var parts = [];
+            if (b.flowKeys.length === 1) parts.push('a guided flow of ' + pluralize(b.stepTotal, 'step'));
+            if (b.flowKeys.length > 1) {
+              parts.push(b.flowKeys.length + ' guided flows totalling ' + pluralize(b.stepTotal, 'step'));
+            }
+            if (b.plain.length) parts.push(pluralize(b.plain.length, 'standalone page'));
+            return parts.join(', plus ');
+          }
+
+          if (scope.screens.length) {
+            var screensBody = '<p class="lead">These are the ' + pluralize(scope.screens.length, 'screen')
+              + ' ' + (isArea ? 'this area' : 'this module') + ' puts in front of a person - '
+              + screenShape(all)
+              + (screenGroups.length > 1 ? ', split across ' + pluralize(screenGroups.length, 'area') : '')
+              + '. Open any of them to see what it is wired to.</p>';
+            screenGroups.forEach(function (g) {
+              var b = bucketScreens(g.screens);
+              if (g.label) {
+                // Plain screen counts here, so the areas visibly add up to the
+                // number in the heading; the shape is described above.
+                screensBody += groupHead('<span class="folder">' + esc(g.label) + '</span>',
+                  pluralize(g.screens.length, 'screen'));
+              }
+              b.flowKeys.forEach(function (parent) {
+                var parentNode = nodeById['screen:' + parent] || nodeById['route:' + parent];
+                screensBody += '<div class="lead">' + (parentNode ? nodeLink(parentNode) : esc(parent))
+                  + ' walks the user through these steps, in order:</div><ol class="steps">'
+                  + flowOrder(b.flows[parent]).map(function (s) { return itemWithSummary(s); }).join('')
+                  + '</ol>';
+              });
+              if (b.plain.length) {
+                screensBody += '<ul class="entries">' + b.plain.map(function (s) {
+                  return itemWithSummary(s, s.meta && s.meta.navigatorType);
+                }).join('') + '</ul>';
+              }
+            });
+            tabs.push({ id: 'screens', label: 'Screens', count: scope.screens.length, body: screensBody });
+          }
+
+          // ---- Shared components & hooks: what this module borrows from the
+          // rest of the codebase, one file at a time - not just "10 other
+          // modules", but which components and hooks specifically, since that
+          // is what a reader would go and open next.
+          var sharedRows = areaEdges({ files: scope.files }, 'out');
+          if (sharedRows.length) {
+            var sharedGroups = groupSharedFiles(sharedRows);
+            var compCount = 0, hookCount = 0;
+            sharedRows.forEach(function (r) {
+              var k = sharedFileKind(r.node);
+              if (k === 'component') compCount++; else if (k === 'hook') hookCount++;
+            });
+            var sharedBits = [];
+            if (compCount) sharedBits.push(pluralize(compCount, 'component'));
+            if (hookCount) sharedBits.push(pluralize(hookCount, 'hook'));
+            var sharedLead = 'What ' + (isArea ? 'this area' : 'this module') + ' pulls in from elsewhere: '
+              + pluralize(sharedRows.length, 'file') + ' across ' + pluralize(sharedGroups.length, 'other module')
+              + (sharedBits.length ? ', including ' + andList(sharedBits) : '') + '.';
+            var sharedBody = '<p class="lead">' + sharedLead + '</p>';
+            sharedGroups.forEach(function (g) {
+              sharedBody += groupHead(g.node ? nodeLink(g.node) : esc(g.mod), pluralize(g.files.length, 'file'));
+              sharedBody += rowList(g.files.map(function (r) {
+                var k = sharedFileKind(r.node);
+                return row(nodeLink(r.node) + tag(k), pluralize(r.weight || 1, 'import'));
+              }));
+            });
+            tabs.push({
+              id: 'shared', label: 'Shared components & hooks',
+              count: sharedRows.length, body: sharedBody,
+            });
+          }
+
+          // ---- Docs: the same page a doc cluster has always shown - the
+          // the agent-context map first - what an agent reads before it edits
+          // anything here - then every doc with its guardrails and dead refs.
+          if (scope.docs.length) {
+            var dStats = docStats(scope.docs);
+            var guardTotal = 0;
+            scope.docs.forEach(function (d) { guardTotal += ((d.meta && d.meta.guardrails) || []).length; });
+            var docsLead = 'What is written down about ' + (isArea ? 'this area' : 'this module') + '.';
+            if (guardTotal) {
+              docsLead += ' ' + pluralize(guardTotal, 'rule') + ' to respect '
+                + (guardTotal === 1 ? 'is' : 'are') + ' spelled out below.';
+            }
+            if (dStats.stale) {
+              docsLead += ' ' + pluralize(dStats.stale, 'doc') + ' still name' + (dStats.stale === 1 ? 's' : '')
+                + ' files git has since removed.';
+            }
+            var docLabel = isArea ? scope.areaKey + '/ in ' + slug : slug;
+            var docsBody = (agentContextSection(scope, docLabel) || '') + aiCta(docLabel, scope.docs)
+              + '<p class="lead">' + docsLead + '</p>'
+              + '<ul class="entries">' + scope.docs.map(function (d) {
+                  return docItem(d, slug, scope.modPath);
+                }).join('') + '</ul>';
+            tabs.push({ id: 'docs', label: 'Docs', count: scope.docs.length, body: docsBody });
+          }
+
+          // ---- Files: real, but a reader opens this page to learn what a
+          // module does, not to browse a folder listing. It goes dead last.
           if (scope.files.length) {
             var filesLead = 'The files that make up ' + (isArea ? 'this area' : 'this module')
               + ', grouped as the folders sit on disk.';
@@ -2152,7 +2326,6 @@
               }
             }
             var filesBody = '<p class="lead">' + filesLead + '</p>';
-            var folderTeaserBits = [];
             // components/ and hooks/ are what a reader is asking for by name;
             // put them first, then the rest in the order they sit on disk.
             var pinned = ['components', 'hooks'];
@@ -2170,18 +2343,14 @@
                 return folderDetails(s.label + '/', s.files.length, fileList(s.files, gBase + '/' + s.label));
               }).join('') + (g.files.length ? fileList(g.files, gBase) : '');
               filesBody += folderDetails(g.label + '/', g.total, inner, tree.groups.length <= 2);
-              folderTeaserBits.push(esc(g.label) + '/ ' + g.total);
             });
             if (tree.rootFiles.length) {
               filesBody += folderDetails('module root', tree.rootFiles.length, fileList(tree.rootFiles, scope.basePath));
-              folderTeaserBits.push('module root ' + tree.rootFiles.length);
             }
-            var folderTeaser = folderTeaserBits.slice(0, 4).join(' &middot; ')
-              + (folderTeaserBits.length > 4 ? ' &middot; +' + (folderTeaserBits.length - 4) + ' more' : '');
-            html += collapsible('Components, hooks and other files here', scope.files.length, folderTeaser, filesBody);
+            tabs.push({ id: 'files', label: 'Files', count: scope.files.length, body: filesBody });
           }
 
-          return html;
+          return html + tabsHtml(tabs);
         }
 
         // Where a doc that lives outside the module actually sits. Without it
@@ -2298,79 +2467,44 @@
 
         function moduleAiCta(label, scope) {
           var prompt = moduleAgentPrompt(label, scope);
-          var body = '<p class="lead">This page is generated straight from the code - a starting point, not '
+          return '<div class="ai-cta"><h3>Want to know more?</h3>'
+            + '<p class="lead">This page is generated straight from the code - a starting point, not '
             + 'the full story. Hand this prompt to an AI coding agent and it will read through the docs, '
-            + 'screens and source above and explain ' + esc(label) + ' the way a teammate would.</p>'
+            + 'screens and source behind these tabs and explain ' + esc(label) + ' the way a teammate would.</p>'
             + '<div class="panel-actions"><button class="ghost copy-prompt" data-copy="module-ai-prompt-box">'
             + 'Copy prompt for an AI agent</button></div>'
-            + '<pre class="prompt-box" id="module-ai-prompt-box">' + esc(prompt) + '</pre>';
-          return collapsible('Want to know more?', null, 'Generate a deeper explanation with an AI agent', body);
+            + '<pre class="prompt-box" id="module-ai-prompt-box">' + esc(prompt) + '</pre>'
+            + '</div>';
         }
 
-        /**
-         * The whole point of this feature: the flowchart already exists by the
-         * time anyone opens the map, built during extraction by an agent that
-         * read the module's docs, not synthesised live in the browser. This is
-         * just deterministic layout + SVG for whatever steps/edges it wrote.
-         */
-        var FLOW_NODE_W = 176, FLOW_NODE_H = 56, FLOW_GAP_X = 26, FLOW_GAP_Y = 64;
-
-        /** Longest-path-from-source layering - a plain top-to-bottom Sugiyama
-         * layer assignment. Cycle-guarded even though a well-formed flow has
-         * none, since this reads untrusted-shaped JSON from a cache file. */
-        function flowLayers(flow) {
-          var steps = flow.steps || [];
-          var byId = Object.create(null);
-          steps.forEach(function (s) { byId[s.id] = s; });
-          var incoming = Object.create(null);
-          (flow.edges || []).forEach(function (e) {
-            if (!byId[e.from] || !byId[e.to]) return;
-            (incoming[e.to] || (incoming[e.to] = [])).push(e.from);
-          });
-          var level = Object.create(null);
-          function levelOf(id, seen) {
-            if (level[id] != null) return level[id];
-            if (seen[id]) { level[id] = 0; return 0; }
-            seen[id] = 1;
-            var m = 0;
-            (incoming[id] || []).forEach(function (p) { m = Math.max(m, levelOf(p, seen) + 1); });
-            level[id] = m;
-            seen[id] = 0;
-            return m;
-          }
-          steps.forEach(function (s) { levelOf(s.id, Object.create(null)); });
-          var rows = [];
-          steps.forEach(function (s) {
-            var lv = level[s.id] || 0;
-            (rows[lv] || (rows[lv] = [])).push(s);
-          });
-          var out = [];
-          rows.forEach(function (r) { if (r) out.push(r); });
-          return out;
-        }
-
-        function flowPositions(rows) {
-          var pos = {}, maxCols = 0;
-          rows.forEach(function (row) { maxCols = Math.max(maxCols, row.length); });
-          var totalW = maxCols * FLOW_NODE_W + (maxCols - 1) * FLOW_GAP_X;
-          rows.forEach(function (row, rowIndex) {
-            var rowW = row.length * FLOW_NODE_W + (row.length - 1) * FLOW_GAP_X;
-            var startX = (totalW - rowW) / 2;
-            row.forEach(function (s, i) {
-              pos[s.id] = { x: startX + i * (FLOW_NODE_W + FLOW_GAP_X), y: rowIndex * (FLOW_NODE_H + FLOW_GAP_Y) };
+        /** Break a label onto at most maxLines at word boundaries - SVG text
+         * does not wrap on its own. Doc filenames are frequently one long
+         * unbroken word, so an over-long word is split rather than allowed to
+         * run out of its card. */
+        function wrapLabel(text, maxChars, maxLines) {
+          // Break opportunities, in order of preference: spaces, then after an
+          // underscore, then a hard chop. Doc filenames are usually one long
+          // SCREAMING_SNAKE token, and chopping those mid-word reads badly.
+          var tokens = [];
+          (text || '').split(/\s+/).filter(Boolean).forEach(function (w, wi) {
+            var chunk = '', raw = [];
+            for (var i = 0; i < w.length; i++) {
+              chunk += w[i];
+              if (w[i] === '_') { raw.push(chunk); chunk = ''; }
+            }
+            if (chunk) raw.push(chunk);
+            raw.forEach(function (piece, pi) {
+              while (piece.length > maxChars) {
+                tokens.push({ text: piece.slice(0, maxChars), space: wi > 0 && pi === 0 && !tokens.length });
+                piece = piece.slice(maxChars);
+              }
+              if (piece) tokens.push({ text: piece, space: wi > 0 && pi === 0 });
             });
           });
-          return { pos: pos, width: Math.max(totalW, FLOW_NODE_W), height: rows.length * FLOW_NODE_H + Math.max(0, rows.length - 1) * FLOW_GAP_Y };
-        }
-
-        /** Break a label onto at most two lines at word boundaries - SVG text
-         * does not wrap on its own. */
-        function wrapLabel(text, maxChars, maxLines) {
-          var words = (text || '').split(/\s+/).filter(Boolean);
           var lines = [], cur = '';
-          words.forEach(function (w) {
-            var candidate = cur ? cur + ' ' + w : w;
-            if (candidate.length > maxChars && cur) { lines.push(cur); cur = w; } else { cur = candidate; }
+          tokens.forEach(function (t) {
+            var candidate = cur ? cur + (t.space ? ' ' : '') + t.text : t.text;
+            if (candidate.length > maxChars && cur) { lines.push(cur); cur = t.text; } else { cur = candidate; }
           });
           if (cur) lines.push(cur);
           if (lines.length > maxLines) {
@@ -2381,94 +2515,446 @@
           return lines;
         }
 
-        function flowNodeShape(s, x, y) {
-          var cx = x + FLOW_NODE_W / 2, cy = y + FLOW_NODE_H / 2;
-          var cls = 'flow-node flow-' + (s.kind || 'step');
-          var lines = wrapLabel(s.label || '', 22, 2);
-          var lineH = 14;
-          var startY = cy - ((lines.length - 1) * lineH) / 2;
-          var tspans = lines.map(function (ln, i) {
-            return '<tspan x="' + cx + '" y="' + (startY + i * lineH) + '">' + esc(ln) + '</tspan>';
-          }).join('');
-          var text = '<text text-anchor="middle" dominant-baseline="middle">' + tspans + '</text>';
-          var shape;
-          if (s.kind === 'decision') {
-            var pts = [cx + ',' + y, (x + FLOW_NODE_W) + ',' + cy, cx + ',' + (y + FLOW_NODE_H), x + ',' + cy].join(' ');
-            shape = '<polygon points="' + pts + '"></polygon>';
-          } else {
-            var rx = (s.kind === 'start' || s.kind === 'end') ? FLOW_NODE_H / 2 : 8;
-            shape = '<rect x="' + x + '" y="' + y + '" width="' + FLOW_NODE_W + '" height="' + FLOW_NODE_H + '" rx="' + rx + '"></rect>';
+        /**
+         * The agent context map: what an AI agent actually has in front of it
+         * the moment it is asked to work in this module. Rules that apply to
+         * the whole repo, rules written for this module, the specs it should
+         * read, the code it would edit, and the shared code it will follow
+         * into. Every box is a node the map already resolved - nothing here is
+         * inferred, and nothing is generated at open time.
+         *
+         * Laid out as a whiteboard rather than a graph: reading left to right
+         * is reading the agent's own order of operations.
+         */
+        var AMAP = {
+          cardW: 244, cardPadX: 16, lineH: 15, cardPadY: 20, cardMinH: 46,
+          cardGap: 14, framePad: 18, frameGap: 62,
+          colGap: 168, hubW: 184, hubH: 78,
+          maxItems: 4, titleChars: 26, subChars: 30,
+        };
+
+        /** One card's text block: the name on top, the quiet second line under
+         * it. Cytoscape paints a node label with a single font, so the two are
+         * one wrapped string - the height is measured from the line count so a
+         * two-line name never runs into the box edge. */
+        function amapCardLabel(item) {
+          var lines = wrapLabel(item.label || '', AMAP.titleChars, 2);
+          if (item.sub) lines = lines.concat(wrapLabel(item.sub, AMAP.subChars, 1));
+          return lines;
+        }
+
+        function amapCardNode(id, parent, item, i) {
+          var lines = amapCardLabel(item);
+          var h = Math.max(AMAP.cardMinH, lines.length * AMAP.lineH + AMAP.cardPadY);
+          return {
+            data: {
+              id: id, parent: parent, kind: item.kind || 'card',
+              label: lines.join('\n'), w: AMAP.cardW, h: h,
+              tw: AMAP.cardW - AMAP.cardPadX * 2,
+              goto: item.goto || null,
+              tip: item.tip || ((item.label || '') + (item.sub ? ' - ' + item.sub : '')),
+              more: item.more || null, idx: i,
+            },
+            grabbable: false,
+          };
+        }
+
+        /** The five groups, built only from what the graph already holds. Each
+         * frame keeps its *whole* item list - the canvas decides how many to
+         * show, so "+N more" can actually open. */
+        function agentContextFrames(scope) {
+          var repoRules = GRAPH.nodes.filter(function (n) {
+            return n.type === 'doc' && !n.module && n.meta && n.meta.docKind === 'AGENTS';
+          }).sort(function (a, b) {
+            var da = a.path.split('/').length, db = b.path.split('/').length;
+            return da - db || (a.path < b.path ? -1 : 1);
+          });
+          var isRepoWide = Object.create(null);
+          repoRules.forEach(function (d) { isRepoWide[d.id] = 1; });
+          var modRules = [], modReading = [];
+          scope.docs.forEach(function (d) {
+            if (isRepoWide[d.id]) return;
+            (d.meta && d.meta.docKind === 'AGENTS' ? modRules : modReading).push(d);
+          });
+
+          var tree = buildFolderTree(scope.basePath, scope.files);
+          // Biggest folders first, but screens lead - they are the part of a
+          // module a person can point at.
+          var codeItems = tree.groups.slice().sort(function (a, b) { return b.total - a.total; })
+            .map(function (g) { return { label: g.label + '/', sub: pluralize(g.total, 'file') }; });
+          if (scope.screens.length) {
+            codeItems.unshift({ label: pluralize(scope.screens.length, 'screen'), sub: 'the user can see' });
           }
-          return '<g class="' + cls + '" data-flow-node="' + esc(s.id) + '">' + shape + text + '</g>';
-        }
 
-        function flowEdgePath(a, b) {
-          var x1 = a.x + FLOW_NODE_W / 2, y1 = a.y + FLOW_NODE_H;
-          var x2 = b.x + FLOW_NODE_W / 2, y2 = b.y;
-          if (Math.abs(y2 - y1) < 1) {
-            y1 = a.y + FLOW_NODE_H / 2; y2 = b.y + FLOW_NODE_H / 2;
-            x1 = a.x > b.x ? a.x : a.x + FLOW_NODE_W;
-            x2 = a.x > b.x ? b.x + FLOW_NODE_W : b.x;
+          function docItems(list) {
+            return list.map(function (d) {
+              return { label: d.label, sub: diaDocWhere(d), goto: d.id };
+            });
           }
-          var midY = (y1 + y2) / 2;
-          return 'M' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + midY + ' ' + x2 + ' ' + midY + ' ' + x2 + ' ' + y2;
-        }
 
-        function flowchartSvg(flow) {
-          var rows = flowLayers(flow);
-          if (!rows.length) return '';
-          var layout = flowPositions(rows);
-          var pad = 20;
-          var w = layout.width + pad * 2, h = layout.height + pad * 2;
-
-          var defs = '<defs><marker id="flowArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" '
-            + 'markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="flow-arrow-head">'
-            + '</path></marker></defs>';
-
-          var edgesHtml = (flow.edges || []).map(function (e) {
-            var a = layout.pos[e.from], b = layout.pos[e.to];
-            if (!a || !b) return '';
-            var d = flowEdgePath(a, b);
-            var lbl = e.label
-              ? '<text class="flow-edge-label" x="' + ((a.x + b.x) / 2 + FLOW_NODE_W / 2)
-                + '" y="' + ((a.y + b.y) / 2 + FLOW_NODE_H / 2) + '" text-anchor="middle">' + esc(e.label) + '</text>'
-              : '';
-            return '<path class="flow-edge" d="' + d + '" marker-end="url(#flowArrow)"></path>' + lbl;
-          }).join('');
-
-          var nodesHtml = (flow.steps || []).map(function (s) {
-            var p = layout.pos[s.id];
-            return p ? flowNodeShape(s, p.x, p.y) : '';
-          }).join('');
-
-          return '<svg class="flowchart-svg" viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '">'
-            + defs + '<g transform="translate(' + pad + ',' + pad + ')">' + edgesHtml + nodesHtml + '</g></svg>';
-        }
-
-        /** The diagram stays compact - full detail per step lives here, in the
-         * same ol.steps list the code-derived step screens already use, so a
-         * click on a diagram node has somewhere obvious to land. */
-        function flowWalkthroughHtml(flow) {
-          var items = (flow.steps || []).map(function (s) {
-            var kindTag = s.kind && s.kind !== 'step' ? tag(s.kind) : '';
-            return '<li id="flow-step-' + esc(s.id) + '"><div class="entry-head"><b>' + esc(s.label) + '</b>' + kindTag + '</div>'
-              + (s.detail ? '<div class="sub">' + mdInline(s.detail) + '</div>' : '') + '</li>';
-          }).join('');
-          return '<ol class="steps">' + items + '</ol>';
-        }
-
-        function flowchartSection(mod) {
-          var flow = mod.meta && mod.meta.flowchart;
-          if (!flow || !flow.steps || !flow.steps.length) return null;
-          var html = '<div class="ai-cta flowchart-card"><h3>' + esc(flow.title || ('How ' + mod.label + ' works')) + '</h3>';
-          if (flow.summary) html += '<p class="lead">' + esc(flow.summary) + '</p>';
-          html += '<div class="flowchart-wrap">' + flowchartSvg(flow) + '</div>';
-          html += flowWalkthroughHtml(flow);
-          if (flow.sources && flow.sources.length) {
-            html += '<p class="sub flow-sources">Built from '
-              + flow.sources.map(function (p) { return '<span class="path">' + esc(p) + '</span>'; }).join(', ') + '.</p>';
+          var left = [], right = [];
+          if (repoRules.length) {
+            left.push({
+              key: 'repo', title: 'Rules for the whole repo', edge: 'always in context',
+              items: docItems(repoRules),
+            });
           }
-          return html + '</div>';
+          if (modRules.length) {
+            left.push({
+              key: 'modrules', title: 'Rules written for this module', edge: 'read first',
+              items: docItems(modRules),
+            });
+          }
+          if (modReading.length) {
+            left.push({
+              key: 'specs', title: 'Specs and notes it reads', edge: 'read for context',
+              items: modReading.map(function (d) {
+                return { label: d.label, sub: (d.meta && d.meta.docKind || 'doc').toLowerCase(), goto: d.id };
+              }),
+            });
+          }
+          if (codeItems.length) {
+            right.push({ key: 'edits', title: 'Code it changes', edge: 'edits', items: codeItems });
+          }
+          if (scope.fanOut.length) {
+            right.push({
+              key: 'shared', title: 'Shared code it calls into', edge: 'depends on',
+              items: scope.fanOut.map(function (r) {
+                return { label: r.node.label, sub: pluralize(r.weight || 1, 'import'), goto: r.node.id };
+              }),
+            });
+          }
+          return { left: left, right: right };
+        }
+
+        function diaDocWhere(d) {
+          var i = d.path.lastIndexOf('/');
+          return i === -1 ? 'repo root' : d.path.slice(0, i) + '/';
+        }
+
+        /** Turns the frames into cytoscape elements at fixed positions: two
+         * columns of framed groups either side of the module, laid out by hand
+         * because the reading order (what comes in, the module, what it
+         * touches) is the whole point - no force layout would preserve it. */
+        function amapElements(frames, hubLabel, hubSub, open) {
+          var els = [];
+          var cols = [
+            { frames: frames.left, side: 'left' },
+            { frames: frames.right, side: 'right' },
+          ];
+
+          function frameCards(f) {
+            var shown = open[f.key] ? f.items.slice() : f.items.slice(0, AMAP.maxItems);
+            var hidden = f.items.length - shown.length;
+            if (hidden > 0) {
+              shown.push({ label: 'Show ' + hidden + ' more', sub: 'of ' + f.items.length + ' in all',
+                kind: 'more', more: f.key, tip: 'Open the rest of this group' });
+            } else if (open[f.key] && f.items.length > AMAP.maxItems) {
+              shown.push({ label: 'Show fewer', sub: '', kind: 'more', more: f.key,
+                tip: 'Collapse back to the first ' + AMAP.maxItems });
+            }
+            return shown;
+          }
+
+          function frameH(cards) {
+            var h = 0;
+            cards.forEach(function (c) {
+              var lines = amapCardLabel(c);
+              h += Math.max(AMAP.cardMinH, lines.length * AMAP.lineH + AMAP.cardPadY);
+            });
+            return h + (cards.length - 1) * AMAP.cardGap + AMAP.framePad * 2;
+          }
+
+          var plan = cols.map(function (col) {
+            var fs = col.frames.map(function (f) {
+              var cards = frameCards(f);
+              return { f: f, cards: cards, h: frameH(cards) };
+            });
+            var total = 0;
+            fs.forEach(function (x, i) { total += x.h + (i ? AMAP.frameGap : 0); });
+            return { side: col.side, frames: fs, total: total };
+          });
+
+          var hubCx = AMAP.cardW + AMAP.colGap + AMAP.hubW / 2;
+          var colCx = { left: AMAP.cardW / 2, right: hubCx + AMAP.hubW / 2 + AMAP.colGap + AMAP.cardW / 2 };
+
+          plan.forEach(function (col) {
+            var y = -col.total / 2;
+            col.frames.forEach(function (entry, fi) {
+              var f = entry.f;
+              var pid = 'frame:' + f.key;
+              els.push({
+                data: { id: pid, kind: 'frame', side: col.side,
+                  label: f.title + '  (' + f.items.length + ')' },
+                selectable: false, grabbable: false,
+              });
+              var cy0 = y + AMAP.framePad;
+              entry.cards.forEach(function (item, i) {
+                var lines = amapCardLabel(item);
+                var h = Math.max(AMAP.cardMinH, lines.length * AMAP.lineH + AMAP.cardPadY);
+                var node = amapCardNode(pid + ':' + i, pid, item, i);
+                node.position = { x: colCx[col.side], y: cy0 + h / 2 };
+                els.push(node);
+                cy0 += h + AMAP.cardGap;
+              });
+              // Stagger where each connector turns so two parallel links never
+              // share a pixel column on the way to the module.
+              var turn = Math.round((28 + 16 * fi) % 62) + 18;
+              els.push({
+                data: {
+                  id: 'e:' + f.key,
+                  source: col.side === 'left' ? pid : 'hub',
+                  target: col.side === 'left' ? 'hub' : pid,
+                  label: f.edge, turn: (col.side === 'left' ? turn : 100 - turn) + '%',
+                },
+                selectable: false,
+              });
+              y += entry.h + AMAP.frameGap;
+            });
+          });
+
+          var hubLines = wrapLabel(hubLabel, 18, 2).concat([hubSub]);
+          els.push({
+            data: { id: 'hub', kind: 'hub', label: hubLines.join('\n'),
+              w: AMAP.hubW, h: AMAP.hubH, tw: AMAP.hubW - 26, tip: hubLabel + ' - ' + hubSub },
+            position: { x: hubCx, y: 0 },
+            selectable: false, grabbable: false,
+          });
+          return els;
+        }
+
+        function amapStyle() {
+          function pal(k) { return function () { return PAL[k]; }; }
+          return [
+            {
+              selector: 'node[kind="card"], node[kind="more"]',
+              style: {
+                shape: 'round-rectangle',
+                width: 'data(w)', height: 'data(h)',
+                label: 'data(label)', 'text-wrap': 'wrap', 'text-max-width': 'data(tw)',
+                'text-valign': 'center', 'text-halign': 'center',
+                'font-size': 11.5, 'font-weight': 600, 'line-height': 1.34,
+                'font-family': AMAP.font,
+                'border-width': 0, 'background-color': function () { return PAL.diaCard; },
+                color: function () { return PAL.diaInk; },
+                'transition-property': 'background-color', 'transition-duration': '120ms',
+              },
+            },
+            {
+              selector: 'node[kind="more"]',
+              style: {
+                'background-color': function () { return PAL.diaSurface; },
+                'border-width': 1.4, 'border-style': 'dashed',
+                'border-color': function () { return PAL.lineStrong; },
+                color: function () { return PAL.textDim; }, 'font-weight': 500,
+              },
+            },
+            { selector: 'node[goto]', style: { 'z-index': 5 } },
+            {
+              selector: 'node.amap-hot',
+              style: {
+                'background-color': function () { return PAL.diaCardHi; },
+                'border-width': 2, 'border-color': function () { return PAL.hl; }, 'border-style': 'solid',
+              },
+            },
+            {
+              selector: 'node[kind="hub"]',
+              style: {
+                shape: 'round-rectangle', width: 'data(w)', height: 'data(h)',
+                'background-color': pal('hl'), 'border-width': 0,
+                label: 'data(label)', 'text-wrap': 'wrap', 'text-max-width': 'data(tw)',
+                'text-valign': 'center', 'text-halign': 'center',
+                'font-size': 13, 'font-weight': 700, 'line-height': 1.4,
+                'font-family': AMAP.font, color: pal('bg'), 'z-index': 6,
+              },
+            },
+            {
+              selector: ':parent',
+              style: {
+                shape: 'round-rectangle', padding: AMAP.framePad,
+                'background-opacity': 0, 'background-color': pal('bg'),
+                'border-width': 1.3, 'border-color': pal('lineStrong'),
+                label: 'data(label)', 'text-valign': 'top', 'text-halign': 'center',
+                'text-margin-y': -9, 'font-size': 10.5, 'font-weight': 700,
+                'font-family': AMAP.font, 'text-transform': 'uppercase',
+                color: pal('textDim'),
+                'text-background-color': function () { return PAL.diaSurface; },
+                'text-background-opacity': 1, 'text-background-padding': 5,
+                'text-background-shape': 'roundrectangle',
+              },
+            },
+            {
+              selector: 'edge',
+              style: {
+                'curve-style': 'taxi', 'taxi-direction': 'horizontal',
+                'taxi-turn': 'data(turn)', 'taxi-turn-min-distance': 14,
+                width: 1.4, 'line-color': pal('lineStrong'),
+                'target-arrow-color': pal('lineStrong'), 'target-arrow-shape': 'triangle',
+                'arrow-scale': 0.85,
+                label: 'data(label)', 'font-size': 10, 'font-weight': 600,
+                'font-family': AMAP.font, color: pal('textDim'), 'text-rotation': 'none',
+                'text-background-color': function () { return PAL.diaSurface; },
+                'text-background-opacity': 1, 'text-background-padding': 4,
+                'text-background-shape': 'roundrectangle',
+              },
+            },
+          ];
+        }
+
+        AMAP.font = '"Anthropic Sans", "Outfit", -apple-system, BlinkMacSystemFont, "SF Pro Text", '
+          + '"Segoe UI Variable Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, sans-serif';
+
+        // Cytoscape never sees CSS, so the diagram's own colours join the
+        // palette the theme toggle already refreshes.
+        (function extendPalette() {
+          var base = refreshPalette;
+          refreshPalette = function () {
+            base();
+            var cs = getComputedStyle(document.documentElement);
+            PAL.diaCard = cs.getPropertyValue('--dia-card').trim();
+            PAL.diaCardHi = cs.getPropertyValue('--dia-card-hi').trim();
+            PAL.diaInk = cs.getPropertyValue('--dia-ink').trim();
+            PAL.diaSurface = cs.getPropertyValue('--dia-surface').trim();
+          };
+          refreshPalette();
+        })();
+
+        // Every live canvas on the page, so a theme switch can repaint them
+        // and a page teardown can dispose them instead of leaking.
+        var amapLive = [];
+        var amapSpecs = Object.create(null);
+        var amapSeq = 0;
+
+        function amapDisposeAll() {
+          amapLive.forEach(function (c) { try { c.destroy(); } catch (e) {} });
+          amapLive = [];
+        }
+        function amapRestyleAll() {
+          amapLive.forEach(function (c) { c.style().update(); });
+        }
+
+        /** Mounts every agent-context canvas inside `root` that is visible and
+         * not already mounted. Panes are hidden with the `hidden` attribute, so
+         * a canvas in a background tab has no box to measure - it stays
+         * unmounted until its tab is opened and this runs again. */
+        function mountAgentMaps(root) {
+          var hosts = (root || document).querySelectorAll('.amap-canvas[data-amap]');
+          for (var i = 0; i < hosts.length; i++) mountAgentMap(hosts[i]);
+        }
+
+        function mountAgentMap(host) {
+          if (host.getAttribute('data-mounted') === '1') return;
+          if (!host.clientWidth || !host.clientHeight) return;
+          var spec = amapSpecs[host.getAttribute('data-amap')];
+          if (!spec) return;
+          host.setAttribute('data-mounted', '1');
+
+          var open = Object.create(null);
+          var wrap = host.closest('.amap');
+          var tip = wrap.querySelector('.amap-tip');
+
+          var c = cytoscape({
+            container: host,
+            pixelRatio: Math.max(2, window.devicePixelRatio || 1),
+            wheelSensitivity: 0.22,
+            minZoom: 0.08, maxZoom: 2.4,
+            boxSelectionEnabled: false,
+            autoungrabify: true,
+            style: amapStyle(),
+            elements: amapElements(spec.frames, spec.hubLabel, spec.hubSub, open),
+            layout: { name: 'preset' },
+          });
+          amapLive.push(c);
+
+          // Fit, but never blow a small map up past life size - two frames
+          // and a hub stretched to fill 520px reads as a mistake.
+          function fit() {
+            c.fit(undefined, 34);
+            if (c.zoom() > 1) c.zoom(1);
+            c.center();
+          }
+          fit();
+
+          if (window.ResizeObserver) {
+            new ResizeObserver(function () { c.resize(); }).observe(host);
+          }
+
+          function rebuild() {
+            var z = c.zoom(), p = c.pan();
+            c.batch(function () {
+              c.elements().remove();
+              c.add(amapElements(spec.frames, spec.hubLabel, spec.hubSub, open));
+            });
+            c.zoom(z); c.pan(p);
+          }
+
+          c.on('tap', 'node[kind="more"]', function (e) {
+            var k = e.target.data('more');
+            if (open[k]) delete open[k]; else open[k] = 1;
+            rebuild();
+          });
+          c.on('tap', 'node[goto]', function (e) {
+            var id = e.target.data('goto');
+            if (id) select(id, true);
+          });
+          c.on('mouseover', 'node[kind="card"], node[kind="more"], node[kind="hub"]', function (e) {
+            var n = e.target;
+            n.addClass('amap-hot');
+            host.style.cursor = (n.data('goto') || n.data('more')) ? 'pointer' : 'default';
+            tip.textContent = n.data('tip') || '';
+            tip.hidden = !tip.textContent;
+          });
+          c.on('mouseout', 'node', function (e) {
+            e.target.removeClass('amap-hot');
+            host.style.cursor = '';
+            tip.hidden = true;
+          });
+
+          wrap.addEventListener('click', function (ev) {
+            var b = ev.target.closest('[data-amap-act]');
+            if (!b) return;
+            var act = b.getAttribute('data-amap-act');
+            if (act === 'in') c.zoom({ level: c.zoom() * 1.25, renderedPosition: { x: host.clientWidth / 2, y: host.clientHeight / 2 } });
+            else if (act === 'out') c.zoom({ level: c.zoom() / 1.25, renderedPosition: { x: host.clientWidth / 2, y: host.clientHeight / 2 } });
+            else if (act === 'fit') fit();
+            else if (act === 'all') {
+              var everything = spec.frames.left.concat(spec.frames.right);
+              var anyClosed = everything.some(function (f) { return !open[f.key] && f.items.length > AMAP.maxItems; });
+              everything.forEach(function (f) { if (anyClosed) open[f.key] = 1; else delete open[f.key]; });
+              b.textContent = anyClosed ? 'Collapse all' : 'Expand all';
+              rebuild();
+              fit();
+            }
+          });
+        }
+
+        /** Fronts the Docs tab: before reading any single doc, this is the
+         * shape of the context an agent works inside. */
+        function agentContextSection(scope, label) {
+          var frames = agentContextFrames(scope);
+          if (!frames.left.length && !frames.right.length) return null;
+          var id = 'am' + (++amapSeq);
+          amapSpecs[id] = {
+            frames: frames, hubLabel: label, hubSub: pluralize(scope.files.length, 'file'),
+          };
+          var expandable = frames.left.concat(frames.right).some(function (f) {
+            return f.items.length > AMAP.maxItems;
+          });
+          return '<section class="agent-map"><h3>How an AI agent sees ' + esc(label) + '</h3>'
+            + '<p class="lead">Everything an agent has in front of it when it is asked to work here - the rules '
+            + 'it carries in from the repo, the rules and specs written for this module, and the code it would '
+            + 'end up touching. Drag to pan, scroll to zoom, click any card to open it.</p>'
+            + '<div class="amap">'
+            + '<div class="amap-bar">'
+            + (expandable ? '<button type="button" class="ghost" data-amap-act="all">Expand all</button>' : '')
+            + '<span class="amap-spacer"></span>'
+            + '<button type="button" class="ghost amap-icon" data-amap-act="out" title="Zoom out" aria-label="Zoom out">&minus;</button>'
+            + '<button type="button" class="ghost amap-icon" data-amap-act="in" title="Zoom in" aria-label="Zoom in">+</button>'
+            + '<button type="button" class="ghost" data-amap-act="fit">Fit</button>'
+            + '</div>'
+            + '<div class="amap-canvas" data-amap="' + id + '"></div>'
+            + '<div class="amap-tip" hidden></div>'
+            + '</div></section>';
         }
 
         function openFolderPanel(gid) {
@@ -2490,7 +2976,10 @@
           stage.classList.add('panel-open');
         }
 
-        function closeDetailPage() { detailPage.classList.remove('on'); }
+        function closeDetailPage() {
+          amapDisposeAll();
+          detailPage.classList.remove('on');
+        }
 
         /** Same full-page treatment a module gets, scoped to one area inside
          * it - a KYC box on the Routes graph should not dump the whole
@@ -2507,10 +2996,12 @@
             + '<div class="kind">area of ' + esc(slug) + '</div>'
             + '<h2>' + esc(area.key) + '/</h2>'
             + '<div class="path muted">' + esc(area.prefix.slice(0, -1)) + '</div>';
+          amapDisposeAll();
           detailPage.innerHTML = '<div class="detail-inner wide">'
             + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
             + header + chipsHtml(areaScope) + detailHtml(areaScope) + '</div>';
           detailPage.classList.add('on');
+          mountAgentMaps(detailPage);
           stage.classList.remove('panel-open');
         }
 
@@ -2529,19 +3020,19 @@
               + (ownerMod.summary ? ' ' + esc(ownerMod.summary) : '') + '</p>';
           }
 
-          // If the doc's own module already has a generated flowchart, point
-          // there instead of duplicating a manual CTA - the flowchart already
-          // covers this doc alongside its siblings.
-          var ownerModForFlow = n.module ? nodeById['module:' + n.module] : null;
-          var ownerFlow = ownerModForFlow && ownerModForFlow.meta && ownerModForFlow.meta.flowchart;
-          if (ownerFlow && ownerFlow.steps && ownerFlow.steps.length) {
-            html += '<div class="ai-cta"><h3>There is already a flowchart for this</h3>'
-              + '<p class="lead">' + esc(ownerModForFlow.label) + ' has a generated walkthrough that covers this doc '
-              + 'and its siblings.</p><div class="panel-actions"><button class="ghost" data-goto-cluster="'
-              + esc(ownerModForFlow.module) + '">Open the ' + esc(ownerModForFlow.label) + ' flowchart</button></div></div>';
-          } else {
-            html += aiCta(n.label, [n].concat(memoryDocsFor(n)));
+          // A doc is one card on its module's context map - offer the map as
+          // the way back out to everything else an agent would read alongside
+          // it, then the prompt for going deeper on this doc itself.
+          var ownerModForMap = n.module ? nodeById['module:' + n.module] : null;
+          if (ownerModForMap) {
+            html += '<div class="ai-cta"><h3>See this doc in context</h3>'
+              + '<p class="lead">This is one of the things an agent reads before it touches '
+              + esc(ownerModForMap.label) + '. The module\'s Docs tab maps the rest.</p>'
+              + '<div class="panel-actions"><button class="ghost" data-module-tab="'
+              + esc(ownerModForMap.module) + '/docs">Open the ' + esc(ownerModForMap.label)
+              + ' context map</button></div></div>';
           }
+          html += aiCta(n.label, [n].concat(memoryDocsFor(n)));
 
           if (guardrails.length) {
             html += '<section><h3>Guardrails</h3>'
@@ -2553,19 +3044,21 @@
           html += listSection('Linked from', related(n.id, 'links', 'in').map(function (r) { return nodeLink(r.node); }));
           html += brokenRefsHtml(n);
 
+          amapDisposeAll();
           detailPage.innerHTML = '<div class="detail-inner">'
             + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
             + html + '</div>';
           detailPage.classList.add('on');
+          mountAgentMaps(detailPage);
           stage.classList.remove('panel-open');
         }
 
         /** A doc cluster box (a feature section in the Docs view, e.g. "Portfolio"
          * or "MySIP") used to do nothing when tapped - it is a compound node, so
          * the generic isParent() guard swallowed the click. This gives it the
-         * same full-page treatment a module gets, fronted by the flowchart that
-         * was already generated for it during extraction - that is the whole
-         * point of grouping docs by feature in the first place. `info` is a
+         * same full-page treatment a module gets, fronted by the same agent
+         * context map its module page shows - that is the whole point of
+         * grouping docs by feature in the first place. `info` is a
          * plain {id, label, ref} object rather than a cytoscape element so this
          * can be called from a graph tap or from a plain button elsewhere. */
         function openDocClusterPage(info) {
@@ -2599,8 +3092,8 @@
               + ' files git has since removed.';
           }
 
-          var flowHtml = mod ? flowchartSection(mod) : null;
-          var body = (flowHtml || aiCta(label, docs))
+          var clusterMap = mod ? agentContextSection(moduleDetailScope(mod), label) : null;
+          var body = (clusterMap || '') + aiCta(label, docs)
             + '<section><h3>Docs in this section <span class="muted">' + docs.length + '</span></h3>'
             + '<p class="lead">' + lead + '</p>'
             + '<ul class="entries">' + docs.map(function (d) {
@@ -2608,10 +3101,12 @@
               }).join('') + '</ul>'
             + '</section>';
 
+          amapDisposeAll();
           detailPage.innerHTML = '<div class="detail-inner wide">'
             + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
             + header + body + '</div>';
           detailPage.classList.add('on');
+          mountAgentMaps(detailPage);
           stage.classList.remove('panel-open');
         }
 
@@ -2642,10 +3137,12 @@
           // page gives it room, same as a doc gets.
           if (n.type === 'module') {
             var modScope = moduleDetailScope(n);
+            amapDisposeAll();
             detailPage.innerHTML = '<div class="detail-inner wide">'
               + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
               + html + chipsHtml(modScope) + detailHtml(modScope) + '</div>';
             detailPage.classList.add('on');
+            mountAgentMaps(detailPage);
             stage.classList.remove('panel-open');
             return;
           }
@@ -2885,6 +3382,15 @@
           if (changeKeyLink) { ev.preventDefault(); changeAiKey(); return; }
           if (ev.target.closest('[data-close]')) { stage.classList.remove('panel-open'); return; }
           if (ev.target.closest('[data-close-page]')) { closeDetailPage(); return; }
+          var tabBtn = ev.target.closest('[data-tab]');
+          if (tabBtn) { selectTab(tabBtn); return; }
+          var modTabBtn = ev.target.closest('[data-module-tab]');
+          if (modTabBtn) {
+            var mt = modTabBtn.getAttribute('data-module-tab');
+            var cut = mt.lastIndexOf('/');
+            openModuleTab(mt.slice(0, cut), mt.slice(cut + 1));
+            return;
+          }
           var copyBtn = ev.target.closest('[data-copy]');
           if (copyBtn) { copyPrompt(copyBtn); return; }
           var clusterBtn = ev.target.closest('[data-goto-cluster]');
@@ -2892,16 +3398,6 @@
             var slug = clusterBtn.getAttribute('data-goto-cluster');
             var m = nodeById['module:' + slug];
             if (m) openDocClusterPage({ id: 'dcl:module:' + slug, label: m.label, ref: 'module:' + slug });
-            return;
-          }
-          var flowNode = ev.target.closest('[data-flow-node]');
-          if (flowNode) {
-            var li = document.getElementById('flow-step-' + flowNode.getAttribute('data-flow-node'));
-            if (li) {
-              li.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              li.classList.add('flash');
-              setTimeout(function () { li.classList.remove('flash'); }, 900);
-            }
             return;
           }
           var focusBtn = ev.target.closest('[data-focus]');
@@ -2962,9 +3458,24 @@
           state.focusPath = n.type === 'file' ? focusPathForFile(n) : [];
           resetFocusCaches();
           saveFocusState();
-          document.querySelector('[data-view="focus"]').disabled = false;
+          // Focus tab button is commented out for now - guard against it being gone.
+          var focusBtn = document.querySelector('[data-view="focus"]');
+          if (focusBtn) focusBtn.disabled = false;
           setView('focus');
           select(id, false);
+        }
+
+        /** Jump straight into one module's Components/Hooks/Utilities folder -
+         * the entry point for the folder pills drawn inside a Routes section
+         * box, reusing the Focus file explorer rather than a new canvas mode. */
+        function enterModuleFolder(mod, dir) {
+          var moduleId = 'module:' + mod;
+          if (!nodeById[moduleId]) return;
+          state.focus = moduleId;
+          state.focusPath = dir ? [dir] : [];
+          resetFocusCaches();
+          saveFocusState();
+          setView('focus');
         }
 
         function drillTo(rel) {
@@ -3048,6 +3559,10 @@
         cy.on('tap', 'node', function (ev) {
           var id = ev.target.id();
           if (id.indexOf('up:') === 0) { drillUp(); return; }
+          if (ev.target.data('modfolder')) {
+            enterModuleFolder(ev.target.data('module'), ev.target.data('folderDir'));
+            return;
+          }
           if (id.indexOf('group:') === 0) {
             var rest = id.slice('group:'.length);
             drillTo(rest.slice(rest.indexOf('/') + 1));
@@ -3101,9 +3616,10 @@
           b.addEventListener('click', function () { if (!b.disabled) setView(b.dataset.view); });
         });
         document.querySelector('[data-view="routes"]').disabled = !hasRoutes;
-        document.querySelector('[data-view="docs"]').disabled = !hasDocs;
         if (!hasRoutes) document.querySelector('[data-view="routes"]').title = 'No routes detected in this repo';
-        if (!hasDocs) document.querySelector('[data-view="docs"]').title = 'No docs matched in this repo';
+        // Docs tab is commented out for now (see the .views tablist above).
+        // document.querySelector('[data-view="docs"]').disabled = !hasDocs;
+        // if (!hasDocs) document.querySelector('[data-view="docs"]').title = 'No docs matched in this repo';
 
         document.getElementById('fit').addEventListener('click', function () { cy.fit(undefined, 50); });
 
@@ -3140,6 +3656,7 @@
           themeLabel();
           refreshPalette();
           cy.style().update();
+          amapRestyleAll();
         });
         document.getElementById('relayout').addEventListener('click', function () {
           userMoved[state.view] = Object.create(null);
@@ -3215,20 +3732,23 @@
           GRAPH.stats.modules + ' modules  -  ' + GRAPH.stats.files + ' files  -  '
           + GRAPH.stats.routes + ' routes  -  ' + GRAPH.stats.docs + ' docs';
 
-        var lastFocus = load('focus');
-        if (lastFocus && nodeById[lastFocus]) {
-          state.focus = lastFocus;
-          try { state.focusPath = JSON.parse(load('focusPath') || '[]') || []; } catch (e) { state.focusPath = []; }
-          document.querySelector('[data-view="focus"]').disabled = false;
-        }
-        var lastView = load('view');
-        var lastBtn = lastView && document.querySelector('[data-view="' + lastView + '"]');
-        var startView = lastBtn && !lastBtn.disabled ? lastView : 'overview';
-        if (startView === 'focus' && !state.focus) startView = 'overview';
+        // Restructure: Routes is the only reachable tab for now, so the old
+        // last-view restore (Overview/Focus/Docs) stays commented out rather
+        // than deleted.
+        // var lastFocus = load('focus');
+        // if (lastFocus && nodeById[lastFocus]) {
+        //   state.focus = lastFocus;
+        //   try { state.focusPath = JSON.parse(load('focusPath') || '[]') || []; } catch (e) { state.focusPath = []; }
+        //   document.querySelector('[data-view="focus"]').disabled = false;
+        // }
+        // var lastView = load('view');
+        // var lastBtn = lastView && document.querySelector('[data-view="' + lastView + '"]');
+        // var startView = lastBtn && !lastBtn.disabled ? lastView : 'overview';
+        // if (startView === 'focus' && !state.focus) startView = 'overview';
         granLabel();
         crossLabel();
         if (hasRoutes) orientLabel();
-        setView(startView);
+        setView('routes');
       })();
     </script>
   </body>
