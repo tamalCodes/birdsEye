@@ -17,6 +17,33 @@ import { GRAPH_VERSION, OUT_DIR } from './lib/const.mjs';
 const byString = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const clamp = (s, n) => (typeof s === 'string' && s.length > n ? `${s.slice(0, n - 3)}...` : s ?? null);
 
+const normalise = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * A summary that just restates the doc's own H1 (or its filename) tells a reader
+ * nothing the title bar didn't - drop it so the viewer shows no line rather than
+ * an echo. Only kicks in when the extractor was lazy; a real one-clause summary
+ * that happens to share a word survives.
+ */
+function usefulSummary(root, docPath, summary) {
+  if (!summary) return null;
+  const sum = normalise(summary);
+  if (!sum) return null;
+  const stem = normalise(path.posix.basename(docPath).replace(/\.md$/i, ''));
+  let h1 = '';
+  try {
+    const head = fs.readFileSync(path.join(root, docPath), 'utf8').slice(0, 2000);
+    h1 = normalise((head.match(/^#\s+(.+)$/m) ?? [])[1] ?? '');
+  } catch {
+    /* doc unreadable - fall back to the filename check alone */
+  }
+  // H1: drop when the summary is the title, a truncation of it, or the title
+  // plus a few trailing words. Filename stem: exact match only - a generic stem
+  // like "implementation-plan" legitimately opens a real summary.
+  const echoesH1 = h1 && (h1 === sum || h1.startsWith(`${sum} `) || sum.startsWith(`${h1} `));
+  return echoesH1 || stem === sum ? null : summary;
+}
+
 export function mergeGraph(root) {
   const { config } = loadConfig(root);
   const imports = readCacheJson(root, 'imports.json') ?? { files: [], modules: [], unresolved: [] };
@@ -134,7 +161,7 @@ export function mergeGraph(root) {
       label: path.posix.basename(d.path),
       path: d.path,
       module: d.module ?? null,
-      summary: clamp(d.summary, 120),
+      summary: usefulSummary(root, d.path, clamp(d.summary, 170)),
       // Filled in below, once every doc node exists and a claimed path can be
       // told apart from a doc it actually points at.
       meta: {

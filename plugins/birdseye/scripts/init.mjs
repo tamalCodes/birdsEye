@@ -2,7 +2,7 @@
 // First-run setup. Nothing here happens without being asked for.
 //
 //   node init.mjs status    [repoRoot]   what exists, and what would be inferred
-//   node init.mjs write     [repoRoot]   write codemap.config.json
+//   node init.mjs write     [repoRoot]   write birdseye.config.json
 //   node init.mjs gitignore [repoRoot]   add the output dir to .gitignore
 
 import fs from 'node:fs';

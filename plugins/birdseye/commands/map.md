@@ -78,7 +78,7 @@ Record only for the stages that actually ran.
 ## 5. Flowcharts - built from what docs.json says
 
 If the plan says `run` for flowcharts, invoke the `extract-flowcharts` skill.
-It reads `codemap/.cache/docs.json`, so it must run after the docs stage
+It reads `birdseye/.cache/docs.json`, so it must run after the docs stage
 above completes, never before or in parallel with it - if docs just ran,
 its cache file is brand new and flowcharts has to read that version, not
 whatever was there before. This is the stage that makes a module's Docs page
@@ -123,8 +123,8 @@ the user opens it rather than reads a description of it.
 
 ## Rules
 
-- Write nothing into the user's source tree except `codemap.config.json` and the
-  `codemap/` directory, and only ever after asking about the former.
+- Write nothing into the user's source tree except `birdseye.config.json` and the
+  `birdseye/` directory, and only ever after asking about the former.
 - If a stage fails, say so plainly and continue with the rest. A map missing its
   routes is still worth having; a run that aborts halfway is not.
 - Never fabricate a node or an edge to fill a gap in the output.

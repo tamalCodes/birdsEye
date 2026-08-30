@@ -6,12 +6,24 @@
     <title>__TITLE__</title>
     <style>
       :root {
-        /* Exactly five node colours, one per node type. */
-        --c-module: #7aa2f7;
-        --c-file: #9ece6a;
-        --c-route: #e0af68;
-        --c-screen: #bb9af7;
-        --c-doc: #f7768e;
+        /* The whole map is set in a warm palette - warm charcoal in the dark,
+           cream in the light - because this is an AI tool and it should feel
+           like one: clay and ochre and olive rather than the cool blue-grey
+           of a dashboard. Surfaces carry most of that warmth; the node hues
+           below are warm-shifted too, but only as far as they can go while
+           still reading as five separate things. */
+        color-scheme: dark;
+
+        /* Exactly five node colours, one per node type. Clay leads because
+           modules are the spine of the map - it doubles as --accent. Module
+           and file are the two circle types, so those two (clay, olive) carry
+           the widest hue gap; routes/screens are boxes and docs are diamonds,
+           where shape already does half the telling-apart. */
+        --c-module: #d97757;
+        --c-file: #a9b764;
+        --c-route: #e3a857;
+        --c-screen: #b58bd4;
+        --c-doc: #e0708a;
 
         /* Semantic, not tied to a node type - named for what they mean where
            they're used (risk level, doc staleness), even though the hex
@@ -19,20 +31,42 @@
         --good: var(--c-file);
         --warn: var(--c-route);
         --bad: var(--c-doc);
+        /* The attention dot's halo. Literal rgba per theme rather than a
+           color-mix on --bad: the ripple has to fade to the same hue at zero
+           alpha, and interpolating to the `transparent` keyword would take it
+           through black on the way out. */
+        --bad-halo: rgba(224, 112, 138, .45);
+        --bad-halo-0: rgba(224, 112, 138, 0);
+        /* Guardrails are protective rules, not failures - a calm sage-teal
+           keeps them from reading as an error the way the doc-red once did,
+           and sits in the warm palette in a way the old cyan did not. */
+        --guard: #6fb6a4;
+        /* Inline code tokens (paths, filenames, foo() calls) inside prose. */
+        --code: #e0a458;
+        --icon-shield: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z'/%3E%3C/svg%3E");
 
-        --bg: #0f1117;
-        --bg-panel: #161a24;
-        --bg-raised: #1d2230;
-        --line: #2a3040;
-        --line-soft: #222735;
-        --line-strong: #5a6480;
+        --bg: #171512;
+        --bg-panel: #201d19;
+        --bg-raised: #2a2621;
+        /* The chrome floats over the canvas rather than sitting in a solid bar
+           above it, so its surfaces are translucent and the graph shows
+           through them. Written as literal rgba, not a color-mix on --bg-panel,
+           because the alpha has to be tuned per theme: the same 62% over black
+           and over white do not read as the same amount of glass. */
+        --glass: rgba(32, 29, 25, .62);
+        --glass-line: rgba(255, 246, 232, .08);
+        --glass-shadow: 0 10px 30px rgba(12, 9, 5, .45);
+        --header-h: 58px;
+        --line: #38332c;
+        --line-soft: #2c2822;
+        --line-strong: #6b6355;
         /* Canvas dot grid only - kept barely above --bg so it reads as a
            faint ruler, never as a field of dots competing for the eye. */
-        --dot: #191d28;
-        --hl: #ffffff;
-        --text: #ccd2e0;
-        --text-dim: #7c8497;
-        --accent: #7aa2f7;
+        --dot: #221f1a;
+        --hl: #faf9f5;
+        --text: #dedacf;
+        --text-dim: #918a7c;
+        --accent: #d97757;
 
         /* The agent-context map is a whiteboard, not a graph view - one warm
            card colour against a neutral surface, the same in both themes so
@@ -41,7 +75,7 @@
         --dia-card: #f2ce3f;
         --dia-card-hi: #ffe073;
         --dia-ink: #23200f;
-        --dia-surface: #191d28;
+        --dia-surface: #221f1a;
         /* No font files are embedded - this file opens straight from disk with
            no network access - so the stack has to be fonts a machine already
            has. "Anthropic Sans" is picked up when it happens to be installed;
@@ -50,35 +84,54 @@
            a silent fallback to something cramped. Deliberately not listing
            "Opus": that name belongs to a music-notation font on many Macs,
            and text set in it renders as note heads. */
-        --font: "Anthropic Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        --font: "Outfit", "Anthropic Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text",
           "Helvetica Neue", "Segoe UI Variable Text", "Segoe UI", Roboto, Arial, sans-serif;
         --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Code", Consolas, monospace;
       }
 
-      /* Same five hues as the dark theme, same roles - just re-tuned to hold
-         contrast on a neutral white surface instead of near-black. A warm
-         sepia palette was tried here before and read as off-brand next to the
-         cool dark theme; a plain gray scale keeps the two feeling like one
-         product with the lights on, not two different apps. */
-      [data-theme="light"] {
-        --c-module: #3762d6;
-        --c-file: #1a8f4c;
-        --c-route: #c17d00;
-        --c-screen: #7c3aed;
-        --c-doc: #e0245e;
+      /* Outfit, embedded as a data URI by render.mjs so the map keeps its
+         typeface offline. One variable file, every weight the UI uses. */
+      @font-face {
+        font-family: "Outfit";
+        src: url(__FONT_OUTFIT__) format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
 
-        --bg: #ffffff;
-        --bg-panel: #f7f8fa;
-        --bg-raised: #eef0f4;
-        --line: #e1e4ea;
-        --line-soft: #ecedf1;
-        --line-strong: #c3c8d1;
-        --dot: #eef0f3;
-        --hl: #0a0b0d;
-        --text: #16181d;
-        --text-dim: #6b7280;
-        --accent: #3762d6;
-        --dia-surface: #f0f1f4;
+      /* Same five hues as the dark theme, same roles - just re-tuned to hold
+         contrast on cream instead of on warm charcoal. Paper here is #faf9f5,
+         not pure white: against the warm charcoal above, a true white light
+         theme reads as a second, colder product rather than the same one with
+         the lights on. Every hue is darkened rather than re-picked, so a node
+         that is clay in the dark is still recognisably clay in the light. */
+      [data-theme="light"] {
+        color-scheme: light;
+
+        --c-module: #bf5b36;
+        --c-file: #5e7524;
+        --c-route: #9a6a12;
+        --c-screen: #7a4fb5;
+        --c-doc: #c13a5c;
+        --guard: #2c7a69;
+        --code: #96650f;
+        --bad-halo: rgba(193, 58, 92, .40);
+        --bad-halo-0: rgba(193, 58, 92, 0);
+
+        --bg: #faf9f5;
+        --bg-panel: #f2f0e8;
+        --bg-raised: #e9e6db;
+        --line: #e0dcd0;
+        --line-soft: #ebe8de;
+        --line-strong: #beb8a8;
+        --dot: #efede4;
+        --glass: rgba(250, 249, 245, .68);
+        --glass-line: rgba(60, 48, 32, .10);
+        --glass-shadow: 0 10px 30px rgba(70, 55, 35, .12);
+        --hl: #171512;
+        --text: #211e19;
+        --text-dim: #706a5e;
+        --accent: #bf5b36;
+        --dia-surface: #efede4;
       }
 
       * { box-sizing: border-box; }
@@ -88,47 +141,34 @@
         color: var(--text);
         font: 15px/1.6 var(--font);
         display: grid;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: 1fr;
         overflow: hidden;
       }
 
-      /* ---- toolbar ---- */
+      /* ---- toolbar ----
+         A pane of glass laid over the map, not a shelf above it: the canvas
+         runs the full height of the window and the dot grid, the nodes and the
+         doc pages all slide under the bar. Everything the bar overlaps
+         compensates with its own top padding, and fitView() offsets the graph
+         so nothing important ever parks beneath it. */
       header {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 40;
         display: flex;
         align-items: center;
-        gap: 16px;
-        padding: 10px 16px;
-        border-bottom: 1px solid var(--line);
-        background: var(--bg-panel);
-        flex-wrap: wrap;
+        gap: 12px;
+        height: var(--header-h);
+        padding: 0 14px;
+        background: var(--glass);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-bottom: 1px solid var(--glass-line);
+        box-shadow: var(--glass-shadow);
       }
-      .brand { font-weight: 600; white-space: nowrap; }
+      .brand { font-weight: 600; white-space: nowrap; line-height: 1.25; min-width: 0; }
       /* One notch down from the brand name, not level with it - the stat
          line is context, not a second headline competing for the same
          glance. */
-      .brand span { display: block; color: var(--text-dim); font-weight: 400; font-size: 12.5px; margin-top: 1px; }
-
-      .divider { width: 1px; align-self: stretch; margin: 4px 0; background: var(--line); flex: none; }
-
-      .views { display: flex; gap: 2px; background: var(--bg-raised); border-radius: 7px; padding: 2px; flex: none; }
-      .views button {
-        appearance: none; border: 0; background: transparent; color: var(--text-dim);
-        font: inherit; padding: 5px 12px; border-radius: 5px; cursor: pointer;
-      }
-      .views button:hover:not(:disabled) { color: var(--text); }
-      .views button[aria-selected="true"] { background: var(--bg); color: var(--text); }
-      .views button:disabled { opacity: .35; cursor: not-allowed; }
-
-      #search {
-        background: var(--bg-raised); border: 1px solid var(--line); color: var(--text);
-        border-radius: 6px; padding: 6px 10px; font: inherit; min-width: 200px;
-      }
-      #search:focus { outline: none; border-color: var(--accent); }
-
-      .filters { display: flex; gap: 10px; align-items: center; color: var(--text-dim); }
-      .filters label { display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
-      .filters input { accent-color: var(--accent); margin: 0; }
-      .swatch { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+      .brand span { display: block; color: var(--text-dim); font-weight: 400; font-size: 12.5px; margin-top: 2px; }
 
       .spacer { flex: 1; }
       .ghost {
@@ -139,31 +179,86 @@
       .ghost[hidden] { display: none; }
       .ghost.on { color: var(--text); border-color: var(--accent); }
 
-      /* ---- overflow menu: everything that isn't "which view" or "search"
-         lives one click away instead of permanently on the bar. A toolbar a
-         vibe coder can read in one glance beats one that lists every knob. */
+      /* ---- overflow menu: the two layout knobs live one click away instead of
+         permanently on the bar. A toolbar you can read in one glance beats one
+         that lists every switch. */
       .menu { position: relative; }
       .icon-btn {
         appearance: none; background: transparent; border: 1px solid var(--line); color: var(--text-dim);
-        border-radius: 6px; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer;
+        border-radius: 8px; width: 32px; height: 32px; display: grid; place-items: center; cursor: pointer;
       }
-      .icon-btn svg { width: 16px; height: 16px; }
+      .icon-btn svg { width: 17px; height: 17px; }
       .icon-btn:hover { color: var(--text); border-color: var(--text-dim); }
       .icon-btn[aria-expanded="true"] { color: var(--text); border-color: var(--accent); }
       .menu-panel {
-        position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; min-width: 230px;
-        background: var(--bg-panel); border: 1px solid var(--line); border-radius: 10px;
-        padding: 14px; display: flex; flex-direction: column; gap: 14px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+        position: absolute; top: calc(100% + 10px); right: 0; z-index: 20; width: 236px;
+        background: var(--glass);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid var(--glass-line); border-radius: 12px;
+        padding: 12px; display: flex; flex-direction: column; gap: 10px;
+        box-shadow: var(--glass-shadow);
       }
       .menu-panel[hidden] { display: none; }
       .menu-label {
-        font-size: 12px; text-transform: uppercase; letter-spacing: .07em;
-        color: var(--text-dim); font-weight: 600; margin-bottom: 8px;
+        font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+        color: var(--text-dim); font-weight: 600;
       }
-      .menu-section .filters { flex-direction: column; align-items: flex-start; gap: 8px; }
-      .menu-row { display: flex; gap: 6px; flex-wrap: wrap; }
-      .menu-row .ghost, .menu-section > .ghost { width: 100%; text-align: left; }
+      .menu-panel .ghost { width: 100%; text-align: center; }
+
+      /* Direction is one choice out of two, so it reads as one control with two
+         halves rather than a button whose label flips to the thing you are not
+         currently looking at. */
+      .seg { display: flex; gap: 2px; background: var(--bg-raised); border-radius: 8px; padding: 2px; }
+      .seg[hidden] { display: none; }
+      .seg button {
+        flex: 1; appearance: none; border: 0; background: transparent; color: var(--text-dim);
+        font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 6px; cursor: pointer;
+        white-space: nowrap;
+      }
+      .seg button:hover { color: var(--text); }
+      .seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); font-weight: 500; }
+
+      /* An on/off setting, drawn as one. */
+      .switch { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-size: 13.5px; }
+      .switch[hidden] { display: none; }
+      .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+      .switch .track {
+        margin-left: auto; flex: none; width: 34px; height: 20px; border-radius: 999px; position: relative;
+        background: var(--bg-raised); border: 1px solid var(--line);
+        transition: background .18s ease, border-color .18s ease;
+      }
+      .switch .track::after {
+        content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+        background: var(--text-dim); transition: transform .18s ease, background .18s ease;
+      }
+      .switch input:checked + .track { background: var(--accent); border-color: var(--accent); }
+      .switch input:checked + .track::after { transform: translateX(14px); background: var(--bg); }
+      .switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+      /* ---- theme toggle ----
+         Icon only: the sun means "there is a light mode behind this button",
+         the moon the reverse, and neither needs a word spelled out next to it.
+         The nudge on press is independent of the circular wipe below, so the
+         button still acknowledges the click on browsers with no view
+         transitions. */
+      #theme-toggle svg { transition: transform .35s cubic-bezier(.34, 1.56, .64, 1); }
+      #theme-toggle:active svg { transform: scale(.85) rotate(-20deg); }
+      #theme-toggle .ico-moon { display: none; }
+      [data-theme="light"] #theme-toggle .ico-sun { display: none; }
+      [data-theme="light"] #theme-toggle .ico-moon { display: block; }
+
+      /* The new theme wipes in as one circle growing from the click, instead of
+         every element re-colouring on its own schedule - which is what makes an
+         unassisted swap look patchy half-way through. Browsers without the API
+         just get the instant swap; nothing else depends on this. */
+      ::view-transition-old(root),
+      ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+      ::view-transition-new(root) { z-index: 1; }
+      ::view-transition-old(root) { z-index: 0; }
+      @media (prefers-reduced-motion: reduce) {
+        #theme-toggle:active svg { transform: none; }
+      }
 
       /* ---- stage ---- */
       main {
@@ -182,7 +277,7 @@
 
       #empty {
         position: absolute; inset: 0; display: none; place-items: center; text-align: center;
-        color: var(--text-dim); pointer-events: none; padding: 40px;
+        color: var(--text-dim); pointer-events: none; padding: calc(var(--header-h) + 40px) 40px 40px;
       }
       #empty.on { display: grid; }
       #empty b { display: block; color: var(--text); margin-bottom: 6px; font-weight: 600; }
@@ -191,7 +286,8 @@
       /* ---- side panel ---- */
       aside {
         border-left: 1px solid var(--line); background: var(--bg-panel);
-        overflow-y: auto; overflow-x: hidden; padding: 16px; display: none;
+        overflow-y: auto; overflow-x: hidden; display: none;
+        padding: calc(var(--header-h) + 16px) 16px 16px;
       }
       main.panel-open aside { display: block; }
       /* ---- detail content (shared by the small side panel and the full page) ---- */
@@ -224,18 +320,47 @@
       }
       a.path:hover, .node-link:hover { text-decoration: underline; }
       .muted { color: var(--text-dim); }
-      .guard-lead { margin: 6px 0 0; }
-      .guard-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+      .guard-lead { margin: 12px 0 0; }
+      .guard-list { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
       .guard {
-        border-left: 3px solid var(--c-doc); background: var(--bg-raised); border-radius: 0 5px 5px 0;
-        padding: 9px 12px; color: var(--text); font-size: 14.5px; line-height: 1.6;
+        display: flex; gap: 10px;
+        border-left: 3px solid var(--guard); background: var(--bg-raised); border-radius: 0 5px 5px 0;
+        padding: 12px 14px; color: var(--text); font-size: 14.5px; line-height: 1.6;
+      }
+      .guard-body { min-width: 0; flex: 1; }
+      /* A small shield so the block reads as "a rule to keep", never as an alert.
+         The box is exactly one line-height tall, so masking the glyph to its
+         centre lands it optically centred on the first line of text - no magic
+         top offset to drift when the font or size changes. */
+      .guard-ico {
+        flex: none; width: 14px; height: 1.6em; align-self: flex-start;
+        background: var(--guard);
+        -webkit-mask: var(--icon-shield) center / 13px 13px no-repeat;
+        mask: var(--icon-shield) center / 13px 13px no-repeat;
       }
       .guard-plain { color: var(--text); }
-      .guard-quote {
-        margin-top: 6px; font-family: var(--mono); font-size: 12px; line-height: 1.5;
-        color: var(--text-dim); word-break: break-word;
+      /* The doc's own words, shown beneath the gloss only when they are a terse
+         condition a mechanical check leans on - long prose rules stand on the
+         gloss alone rather than repeating themselves at full size. */
+      .guard-cond {
+        display: block; margin-top: 6px; font-family: var(--mono); font-size: 12px; line-height: 1.5;
+        color: var(--text-dim); word-break: break-word; white-space: pre-wrap;
       }
-      .guard-quote.solo { margin-top: 0; font-size: 13.5px; color: var(--text); }
+      /* An unglossed rule stands alone - the doc's exact words, kept in mono to
+         signal they are copied verbatim, at a readable size. */
+      .guard-quote.solo {
+        display: block; font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+        color: var(--text); word-break: break-word; white-space: pre-wrap;
+      }
+      /* A path / filename / foo() call called out mid-sentence - the same
+         treatment a chat client gives `inline code`, so the eye catches the
+         literal token inside an otherwise plain-English rule. */
+      .gtok {
+        font-family: var(--mono); font-size: .88em; white-space: nowrap;
+        padding: .05em .38em; border: 1px solid var(--line-strong); border-radius: 4px;
+        background: var(--bg); color: var(--code);
+      }
+      .guard-cond .gtok { font-size: 1em; background: var(--bg-panel); }
       .panel-actions { display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: wrap; }
       .close { float: right; }
       .stats { display: flex; gap: 12px; color: var(--text-dim); font-size: 13.5px; }
@@ -292,11 +417,11 @@
          in and that stays in this browser's localStorage. ---- */
       #aiModal { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; }
       #aiModal.on { display: flex; }
-      #aiModal .modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .5); }
+      #aiModal .modal-backdrop { position: absolute; inset: 0; background: rgba(23, 21, 18, .55); }
       #aiModal .modal-box {
         position: relative; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 10px;
         padding: 18px 20px; width: 420px; max-width: calc(100% - 32px); max-height: calc(100% - 64px);
-        overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+        overflow-y: auto; box-shadow: 0 20px 60px rgba(12, 9, 5, .45);
       }
       #aiModal h3 { margin: 0 0 4px; font-size: 17px; }
       #aiModal .modal-close {
@@ -328,7 +453,7 @@
          Five stacked accordions made the reader open and close rows to compare
          screens against shared code. A tab bar puts the questions side by side
          and gives the answer the full width of the page. */
-      .tabs { margin-top: 16px; }
+      .tabs { margin-top: 20px; }
       .tab-bar {
         display: flex; gap: 4px; flex-wrap: wrap;
         border-bottom: 1px solid var(--line); margin-bottom: 4px;
@@ -347,16 +472,38 @@
       .tab-pane > section:first-child { margin-top: 12px; padding-top: 0; border-top: 0; }
       .tab-pane > .ai-cta:first-child { margin-top: 16px; }
       .tab-pane > .lead:first-child { margin-top: 16px; }
+      /* The blurb that introduces a doc list needs to breathe before the list. */
+      .tab-pane > .lead { margin-bottom: 18px; }
 
       /* A second tab bar nested inside a pane - the Docs list, split by what
          each doc is for. Slightly smaller so the two levels read as a
-         hierarchy rather than one confusing double row. */
-      .tab-pane .tabs { margin-top: 14px; }
+         hierarchy rather than one confusing double row, and given real space
+         above so the two tab rows never feel stacked. */
+      .tab-pane .tabs { margin-top: 22px; }
+      .tab-pane .tab-bar { margin-bottom: 8px; }
       .tab-pane .tab-bar .tab { font-size: 13px; padding: 7px 10px; }
       /* The "needs your attention" tab only exists when it has something in
          it, so it always earns the warning colour. */
-      .tab-bar .tab.tab-bad { color: var(--bad); }
+      .tab-bar .tab.tab-bad { color: var(--bad); display: inline-flex; align-items: center; }
       .tab-bar .tab.tab-bad[aria-selected="true"] { color: var(--bad); border-bottom-color: var(--bad); }
+      /* Colour alone is a weak signal in a row of same-sized tabs - the one
+         reporting docs that point at deleted files should catch the eye before
+         the reader has finished reading the row. The dot is a fixed-size flex
+         item and the pulse is a box-shadow ripple, so nothing around it ever
+         reflows while it animates. */
+      .tab-bar .tab.tab-bad::before {
+        content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%;
+        background: var(--bad); margin-right: 7px;
+        animation: attn-pulse 1.3s cubic-bezier(.4, 0, .2, 1) infinite;
+      }
+      @keyframes attn-pulse {
+        0% { box-shadow: 0 0 0 0 var(--bad-halo); }
+        70% { box-shadow: 0 0 0 7px var(--bad-halo-0); }
+        100% { box-shadow: 0 0 0 0 var(--bad-halo-0); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .tab-bar .tab.tab-bad::before { animation: none; }
+      }
 
       /* ---- full-page detail: docs, and modules/areas ---- */
       /* Same trick #empty/#hint already use: an absolutely positioned layer
@@ -366,7 +513,10 @@
         background: var(--bg); overflow-y: auto;
       }
       #detailPage.on { display: block; }
-      #detailPage .detail-inner { max-width: 760px; margin: 0 auto; padding: 20px 28px 40px; }
+      #detailPage .detail-inner {
+        max-width: 760px; margin: 0 auto;
+        padding: calc(var(--header-h) + 20px) 28px 40px;
+      }
       /* Modules/areas carry structured content (folder trees, row lists) that
          wants more width than a doc's prose column. */
       #detailPage .detail-inner.wide { max-width: 1080px; }
@@ -386,38 +536,40 @@
         font-variant-numeric: tabular-nums;
       }
 
-      /* An entry carries a title, a summary and sometimes guardrails - it
-         needs room and a divider, or each one runs into the next. */
-      ul.entries > li { padding: 8px 0 9px; border-top: 1px solid var(--line-soft); }
+      /* An entry carries a title, a summary and sometimes guardrails. The lines
+         inside one entry sit tight; the gap BETWEEN entries is what separates
+         them, so each reads as its own block rather than one running list. */
+      ul.entries > li { padding: 16px 0 18px; border-top: 1px solid var(--line-soft); }
       ul.entries > li:first-child { border-top: 0; padding-top: 2px; }
       .entry-head { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-      .entry-head .node-link { font-weight: 600; }
+      /* Filename is the anchor: full-size, weighted, accent. The one-line
+         description sits under it a step down in size and colour so the eye
+         lands on the name first and reads the blurb only if it wants to. */
+      .entry-head .node-link { font-weight: 600; font-size: 15px; }
       .entry-head .badge { margin-left: 0; }
-      .sub { color: var(--text-dim); font-size: 13.5px; line-height: 1.55; margin: 4px 0 0; }
-      ul.entries details { margin-top: 4px; }
-      ol.steps > li .entry-head .node-link { font-weight: 400; }
+      .sub { color: var(--text-dim); font-size: 13px; line-height: 1.55; margin: 4px 0 0; max-width: 68ch; }
+      ul.entries details { margin-top: 18px; }
+      /* The guardrail disclosure carries real weight - give its label room to
+         breathe above the rules it opens onto. */
+      ul.entries details > summary { padding: 3px 0; }
+      /* Blurb above a list gets real air before the first row. */
+      .lead + ul.entries, .lead + ul.att-list { margin-top: 20px; }
+      ol.steps > li .entry-head .node-link { font-weight: 400; font-size: inherit; }
 
       /* ---- "Needs your attention" list ----
-         One doc per block with real air around it. The doc's own title leads
-         in plain body colour - it is a heading, not a link to chase - and the
-         filename sits a quiet line below. No location or kind tag here: the
-         only thing this tab is about is what has gone stale, said once on the
-         right. */
-      ul.att-list > li.att { padding: 16px 0; }
+         Same row shape as every other doc list - filename first, description
+         quiet beneath - with generous space between blocks and after the
+         removed-files disclosure, and the stale count said once on the right. */
+      ul.att-list > li.att { padding: 22px 0 24px; }
       ul.att-list > li.att:first-child { padding-top: 4px; }
       .att-head { display: flex; align-items: baseline; gap: 14px; }
-      .att-title {
-        flex: 1; min-width: 0; font-weight: 600; font-size: 15px; line-height: 1.4;
-        color: var(--text); overflow-wrap: anywhere;
-      }
-      .att-title:hover { text-decoration: underline; }
+      .att-title { flex: 1; min-width: 0; font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
       .att-status {
         flex: none; color: var(--bad); font-size: 12.5px;
         white-space: nowrap; font-variant-numeric: tabular-nums;
       }
-      .att-file { margin-top: 3px; }
-      .att-file .path { font-size: 12.5px; color: var(--text-dim); }
-      .att-detail { margin-top: 10px; }
+      .att-detail { margin-top: 26px; }
+      .att-detail + .att-detail { margin-top: 16px; }
       .att-detail > summary { color: var(--text-dim); font-size: 13px; }
 
       /* Removed files, grouped by the folder they used to live in - a reader
@@ -442,6 +594,32 @@
       }
       .gone-when { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
       ul.gone-files > li .gone-when { margin-left: auto; }
+
+      /* Each removed file is a name by default; the commit and the doc's own
+         wording for it sit behind a per-row disclosure so the list reads as a
+         list, not a wall of metadata. */
+      ul.gone-files > li.gone-file { display: block; padding: 0; }
+      ul.gone-files > li.gone-file.plain { display: flex; padding: 2px 0; }
+      .gone-file > details > summary {
+        display: flex; align-items: baseline; gap: 12px; padding: 3px 0;
+        list-style: none; cursor: pointer;
+      }
+      .gone-file > details > summary::-webkit-details-marker { display: none; }
+      .gone-file > details > summary::before {
+        content: '▸'; flex: none; font-size: 9px; color: var(--text-dim);
+        position: relative; top: -1px;
+      }
+      .gone-file > details[open] > summary::before { content: '▾'; }
+      .gone-file > details > summary .gone-when { margin-left: auto; }
+      .gone-more {
+        font-size: 12px; line-height: 1.55; color: var(--text-dim);
+        padding: 3px 0 7px 19px; max-width: 68ch;
+      }
+      .gone-more .path { font-size: 11.5px; color: var(--text-dim); }
+      .gone-more code {
+        font-family: var(--mono); font-size: 11.5px;
+        background: var(--bg-raised); border-radius: 3px; padding: 0 4px;
+      }
 
       /* Metadata as a chip, so it stops competing with the title next to it. */
       .tag {
@@ -506,44 +684,42 @@
   <body>
     <header>
       <div class="brand">__TITLE__<span id="stat-line"></span></div>
-      <span class="divider"></span>
-      <div class="views" role="tablist">
-        <!-- Restructure: only Routes ships for now. Uncomment to bring these back.
-        <button data-view="overview" role="tab" aria-selected="false">Overview</button>
-        <button data-view="focus" role="tab" aria-selected="false" disabled>Focus</button>
-        <button data-view="docs" role="tab" aria-selected="false">Docs</button>
-        -->
-        <button data-view="routes" role="tab" aria-selected="true">Routes</button>
-      </div>
-      <input id="search" type="search" placeholder="Search name or path" autocomplete="off" />
       <div class="spacer"></div>
       <button class="ghost" id="up" hidden>&#11185; Up</button>
       <div class="menu" id="viewMenu">
-        <button class="icon-btn" id="viewMenuBtn" type="button" title="Filters &amp; layout"
-          aria-haspopup="true" aria-expanded="false">
+        <button class="icon-btn" id="viewMenuBtn" type="button" title="Layout"
+          aria-label="Layout" aria-haspopup="true" aria-expanded="false">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
             <path d="M2 4h7M12 4h2M2 8h2M7 8h7M2 12h9M14 12h0"/>
             <circle cx="9.5" cy="4" r="1.6"/><circle cx="4.5" cy="8" r="1.6"/><circle cx="11.5" cy="12" r="1.6"/>
           </svg>
         </button>
         <div class="menu-panel" id="viewMenuPanel" hidden>
-          <div class="menu-section">
-            <div class="menu-label">Show</div>
-            <div class="filters" id="filters"></div>
+          <div class="menu-label">Layout</div>
+          <div class="seg" id="orientation" role="group" aria-label="Direction" hidden>
+            <button type="button" data-dir="LR" aria-pressed="false">Left to right</button>
+            <button type="button" data-dir="TB" aria-pressed="false">Top down</button>
           </div>
-          <div class="menu-section">
-            <div class="menu-label">Layout</div>
-            <div class="menu-row">
-              <button class="ghost" id="orientation" hidden>Top-down</button>
-              <button class="ghost" id="crosslinks" hidden></button>
-              <button class="ghost" id="granularity" hidden></button>
-            </div>
-            <button class="ghost" id="relayout">Reset layout</button>
-          </div>
+          <label class="switch" id="crosslinksRow" hidden
+            title="Jumps between screens that are not part of the navigation tree">
+            <span>Show jumps</span>
+            <input type="checkbox" id="crosslinks" />
+            <span class="track"></span>
+          </label>
+          <button class="ghost" id="relayout">Reset layout</button>
         </div>
       </div>
-      <button class="ghost" id="fit">Fit</button>
-      <button class="ghost" id="theme-toggle" title="Switch between dark and light">&#9788; Light</button>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch to light mode">
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>
+        </svg>
+      </button>
     </header>
 
     <main id="stage">
@@ -600,6 +776,29 @@
         }
         refreshPalette();
 
+        // Route and screen nodes are solid boxes with the label inside them,
+        // so their text sits on the node colour rather than on the canvas. A
+        // fixed near-black worked while every fill was a bright pastel; on the
+        // light theme's darker fills - plum especially - it stopped being
+        // legible. Pick whichever of the two inks actually contrasts.
+        var INK_DARK = '#1e1a14';
+        var INK_LIGHT = '#faf9f5';
+        function relLum(hex) {
+          var h = String(hex).trim().replace('#', '');
+          if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+          var c = [0, 1, 2].map(function (i) {
+            var x = parseInt(h.substr(i * 2, 2), 16) / 255;
+            return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+          });
+          return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+        }
+        function inkOn(fill) {
+          var l = relLum(fill);
+          var onDark = (l + 0.05) / (relLum(INK_DARK) + 0.05);
+          var onLight = (relLum(INK_LIGHT) + 0.05) / (l + 0.05);
+          return onDark >= onLight ? INK_DARK : INK_LIGHT;
+        }
+
         var outgoing = Object.create(null);
         var incoming = Object.create(null);
         GRAPH.edges.forEach(function (e) {
@@ -612,7 +811,6 @@
           counts[t] = GRAPH.nodes.filter(function (n) { return n.type === t; }).length;
         });
         var hasRoutes = counts.route + counts.screen > 0;
-        var hasDocs = counts.doc > 0;
 
         var moduleFiles = Object.create(null);
         GRAPH.nodes.forEach(function (n) {
@@ -717,6 +915,33 @@
             .replace(/`([^`]+)`/g, '<code>$1</code>')
             .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
         }
+        /** The literal tokens a guardrail leans on - a path, a filename, a
+         * dotfile, a foo() call, a snake_case name - get the chip treatment a
+         * chat client gives `inline code`. The source has had its backticks
+         * stripped, so this is pattern-based and deliberately narrow: ordinary
+         * words and hyphenated prose ("money-movement") are left untouched. */
+        var GTOK = new RegExp('(^|[\\s(>])(' + [
+          '[A-Za-z0-9_-]+(?:\\/[A-Za-z0-9_.*-]+)*\\/(?![A-Za-z0-9_])',  // android/  src/app/
+          '(?:[A-Za-z0-9_-]+\\/)+[A-Za-z0-9_-]+\\.[a-z0-9]{1,6}',      // src/foo/Bar.tsx
+          '\\.[a-z][A-Za-z0-9_-]*\\*?',                                // .env*  .gitignore
+          '[A-Za-z0-9_-]+\\.(?:env|tsx?|jsx?|json|mjs|cjs|md|ya?ml|lock|toml|config|sh|css|scss|html?)\\*?', // App.tsx
+          '[a-z][A-Za-z0-9]*\\(\\)',                                   // identifyUser()
+          '[a-z0-9]+(?:_[a-z0-9]+)+',                                  // deep_link_value
+        ].join('|') + ')', 'g');
+        function chipCode(html) {
+          return html.replace(GTOK, function (_, pre, tok) {
+            return pre + '<code class="gtok">' + tok + '</code>';
+          });
+        }
+        /** mdInline, then give every code token the chip look. If the author
+         * used backticks, trust those boundaries - just restyle the spans;
+         * otherwise fall back to pattern-matching the literal tokens. */
+        function guardText(s) {
+          var h = mdInline(s);
+          return h.indexOf('<code>') === -1
+            ? chipCode(h)
+            : h.replace(/<code>/g, '<code class="gtok">');
+        }
         function save(key, value) { try { localStorage.setItem(STORE + ':' + key, value); } catch (e) {} }
         function load(key) { try { return localStorage.getItem(STORE + ':' + key); } catch (e) { return null; } }
 
@@ -731,8 +956,9 @@
           // Off by default: the cross-links are a dense dotted web behind the
           // tree, and they only help once you are hunting for one of them.
           crossLinks: load('crossLinks') === 'on',
+          // Kept, and always empty: no node type is hideable from the UI any
+          // more, but the layouts still ask before drawing one.
           hidden: Object.create(null),
-          query: '',
         };
         // Positions from the layout engine, and positions the user set by hand.
         // Kept per view, so switching tabs never scrambles your arrangement.
@@ -760,7 +986,7 @@
             {
               selector: 'node',
               style: {
-                'background-color': function (n) { return COLOR[n.data('type')] || '#888'; },
+                'background-color': function (n) { return COLOR[n.data('type')] || '#8c857a'; },
                 label: 'data(label)',
                 color: function () { return PAL.text; },
                 'font-size': 12.5,
@@ -792,7 +1018,7 @@
                 'text-halign': 'center',
                 'text-margin-y': 0,
                 'text-max-width': 210,
-                color: '#12151d',
+                color: function (n) { return inkOn(COLOR[n.data('type')] || PAL.bg); },
                 'font-size': 12,
                 'font-weight': 600,
                 'text-background-opacity': 0,
@@ -828,6 +1054,9 @@
                 'font-size': 12.5,
                 'font-weight': 600,
                 'text-background-opacity': 0,
+                // Section boxes size themselves to their title; let the title
+                // render in full rather than clip at the 150px node default.
+                'text-max-width': 400,
                 padding: '12px',
               },
             },
@@ -865,7 +1094,7 @@
               style: { 'line-color': function () { return COLOR.route; }, 'target-arrow-color': function () { return COLOR.route; }, 'line-style': 'dashed', opacity: 0.3, width: 1 },
             },
             { selector: 'edge[type="documents"]', style: { 'line-color': function () { return COLOR.doc; }, 'target-arrow-color': function () { return COLOR.doc; }, opacity: 0.35, width: 1 } },
-            { selector: 'edge[type="links"]', style: { 'line-color': '#8a6577', 'target-arrow-color': '#8a6577', 'line-style': 'dotted', opacity: 0.3, width: 1 } },
+            { selector: 'edge[type="links"]', style: { 'line-color': '#8a7160', 'target-arrow-color': '#8a7160', 'line-style': 'dotted', opacity: 0.3, width: 1 } },
             { selector: 'edge[type="renders"]', style: { 'line-color': function () { return COLOR.screen; }, 'target-arrow-color': function () { return COLOR.screen; }, 'line-style': 'dashed' } },
             // Cross-cluster doc edges are noise until you ask about one node -
             // fully hidden by default, back at full opacity via edge.hot on select.
@@ -879,7 +1108,6 @@
             { selector: 'edge.dim', style: { opacity: 0.05 } },
             { selector: 'node.nolabel', style: { 'text-opacity': 0 } },
             { selector: 'edge.hot', style: { opacity: 1, width: 'data(hotWidth)', 'line-color': function () { return PAL.textDim; }, 'target-arrow-color': function () { return PAL.textDim; } } },
-            { selector: 'node.hit', style: { 'border-width': 2, 'border-color': function () { return PAL.hl; } } },
             { selector: 'node.selected', style: { 'border-width': 3, 'border-color': function () { return PAL.hl; }, 'text-opacity': 1 } },
             { selector: 'node.hover', style: { 'text-opacity': 1, 'border-width': 2, 'border-color': function () { return PAL.hl; } } },
           ],
@@ -1020,8 +1248,18 @@
           var sections = [];
           var dropEdge = {};
 
-          function makeSection(parent, key, label, ref, area, members) {
-            var secId = 'sec:' + parent + '/' + key;
+          // `parent` is the navigator this section hangs off - or, when it
+          // already starts with `sec:`, an outer module box this section nests
+          // inside (folder structure on screen: an "onboarding" box holding a
+          // "kyc" box and an "investorOnboarding" box). A nested section is a
+          // compound child of the outer box, not a tree node, so it gets no
+          // hierarchy edge. `dropParent` is the navigator whose direct edges to
+          // these members must be cut - it differs from `parent` only when
+          // nesting.
+          function makeSection(parent, key, label, ref, area, members, dropParent) {
+            var nested = parent.indexOf('sec:') === 0;
+            var secId = (nested ? parent : 'sec:' + parent) + '/' + key;
+            var cut = dropParent || parent;
             var cellW = 0;
             members.forEach(function (id) { cellW = Math.max(cellW, (byId[id].data.w || 90) + 16); });
             var cellH = 38;
@@ -1029,25 +1267,51 @@
               ? Math.max(1, Math.ceil(Math.sqrt(members.length / 1.4)))
               : Math.max(1, Math.min(members.length, Math.round(Math.sqrt(members.length * 1.7))));
             var rows = Math.ceil(members.length / cols);
-            sections.push({
-              data: {
-                id: secId, label: label, section: 1, ref: ref, area: area || undefined,
-                cols: cols, cellW: cellW, cellH: cellH,
-                // Never narrower than its own title, or the label overhangs.
-                w: Math.max(cols * cellW + SEC_PAD * 2, label.length * 7 + SEC_PAD * 2),
-                h: rows * cellH + SEC_PAD_TOP + SEC_PAD,
-              },
-            });
+            var secData = {
+              id: secId, label: label, section: 1, ref: ref, area: area || undefined,
+              cols: cols, cellW: cellW, cellH: cellH,
+              // Never narrower than its own title, or the label overhangs.
+              w: Math.max(cols * cellW + SEC_PAD * 2, label.length * 7 + SEC_PAD * 2),
+              h: rows * cellH + SEC_PAD_TOP + SEC_PAD,
+            };
+            if (nested) secData.parent = parent;
+            sections.push({ data: secData });
             members.forEach(function (id) {
               byId[id].data.parent = secId;
-              dropEdge[parent + '>' + id] = 1;
+              dropEdge[cut + '>' + id] = 1;
+            });
+            if (!nested) {
+              edges.push({
+                data: {
+                  id: 'h:' + parent + '>' + secId, source: parent, target: secId,
+                  type: 'navigates', hierarchy: true, width: 1.4, hotWidth: 3, weight: 1,
+                },
+              });
+            }
+            return secId;
+          }
+
+          // A box named for a module, holding one inner box per sub-area. Sized
+          // once its inner boxes exist (`sizeOuters`, end of this pass).
+          var outerMade = {};
+          function ensureOuter(p, m) {
+            var id = 'sec:' + p + '/' + m;
+            if (outerMade[m]) return id;
+            outerMade[m] = id;
+            sections.push({
+              data: {
+                id: id, label: m, section: 1, outer: 1,
+                ref: nodeById['module:' + m] ? 'module:' + m : null,
+                cols: 1, cellW: 0, cellH: 0, w: 0, h: 0,
+              },
             });
             edges.push({
               data: {
-                id: 'h:' + parent + '>' + secId, source: parent, target: secId,
+                id: 'h:' + p + '>' + id, source: p, target: id,
                 type: 'navigates', hierarchy: true, width: 1.4, hotWidth: 3, weight: 1,
               },
             });
+            return id;
           }
 
           Object.keys(kids).sort().forEach(function (p) {
@@ -1073,6 +1337,33 @@
               }
               byMod[key].ids.push(id);
             });
+            // A screen that itself runs a sub-flow (its own child screens) is
+            // not a leaf, so the grouping above never sees it - but it still
+            // belongs to a sub-area. Collect these so a module split across a
+            // leaf area and a flow area still reads as one module.
+            var areaBranches = {};   // module -> [{ id, area }]
+            kids[p].forEach(function (id) {
+              if (isLeaf(id) || !byId[id]) return;
+              var gn = nodeById[id];
+              var ar = gn ? areaOf(gn.module, gn.path) : null;
+              if (ar) (areaBranches[gn.module] || (areaBranches[gn.module] = [])).push({ id: id, area: ar.key });
+            });
+
+            // A module earns a wrapping box only when this navigator shows two
+            // or more of its sub-areas - one area alone is just a section.
+            var modAreas = {};
+            order.forEach(function (key) {
+              var g = byMod[key];
+              if (g.area && g.ids.length >= 2) (modAreas[g.mod] || (modAreas[g.mod] = {}))[g.area] = 1;
+            });
+            Object.keys(areaBranches).forEach(function (m) {
+              areaBranches[m].forEach(function (b) { (modAreas[m] || (modAreas[m] = {}))[b.area] = 1; });
+            });
+            var wrap = {};
+            Object.keys(modAreas).forEach(function (m) {
+              if (Object.keys(modAreas[m]).length >= 2) wrap[m] = 1;
+            });
+
             var loose = [];
             order.sort().forEach(function (key) {
               var g = byMod[key];
@@ -1080,17 +1371,17 @@
               if (members.length < 2) { loose.push.apply(loose, members); return; }
               // A box titled just "mySip" reads as the module's whole screen
               // list. When this navigator only holds some of that module's
-              // screens - the rest belong to a different navigator - name
-              // what's missing, or the box quietly understates the module.
+              // screens - the rest belong to other navigators and draw in
+              // their own boxes - say so with a plain count, or the box
+              // quietly understates the module. Clicking the box opens the
+              // module drawer, which names every screen.
               var label = g.label;
               if (!g.area) {
                 var memberSet = {};
                 members.forEach(function (id) { memberSet[id] = 1; });
                 var missing = (screensByModule[g.mod] || []).filter(function (n) { return !memberSet[n.id]; });
                 if (missing.length) {
-                  var names = missing.slice(0, 3).map(function (n) { return n.label; });
-                  if (missing.length > 3) names.push('+' + (missing.length - 3) + ' more');
-                  label += ' · elsewhere: ' + names.join(', ');
+                  label += ' (' + members.length + ' of ' + (members.length + missing.length) + ' screens)';
                 }
                 // Component/hook/util pills ride alongside the screens in the
                 // module's own box - not the sub-area boxes nested inside it.
@@ -1103,9 +1394,50 @@
                   });
                 }
               }
-              makeSection(p, key, label, g.ref, g.area, members);
+              if (g.area && wrap[g.mod]) {
+                makeSection(ensureOuter(p, g.mod), g.area, g.area, g.ref, g.area, members, p);
+              } else {
+                makeSection(p, key, label, g.ref, g.area, members);
+              }
             });
+
+            // Each sub-flow screen becomes its own inner box - the flow's entry
+            // screen plus its steps - sitting beside the leaf-area boxes of the
+            // same module.
+            Object.keys(areaBranches).forEach(function (m) {
+              if (!wrap[m]) return;
+              var outerId = ensureOuter(p, m);
+              areaBranches[m].forEach(function (b) {
+                var sub = [b.id];
+                (function gather(x) {
+                  (kids[x] || []).forEach(function (c) { if (byId[c]) { sub.push(c); gather(c); } });
+                })(b.id);
+                sub.forEach(function (x) {
+                  (kids[x] || []).forEach(function (c) { dropEdge[x + '>' + c] = 1; });
+                });
+                makeSection(outerId, b.area, b.area, nodeById['module:' + m] ? 'module:' + m : null,
+                  b.area, sub.sort(), p);
+              });
+            });
+
             if (loose.length >= 3) makeSection(p, 'other', 'other', null, null, loose.sort());
+
+            // Size every wrapping box around the inner boxes now parented to it.
+            Object.keys(outerMade).forEach(function (m) {
+              var outer = null, inner = [];
+              sections.forEach(function (s) {
+                if (s.data.id === outerMade[m]) outer = s.data;
+                else if (s.data.parent === outerMade[m]) inner.push(s.data);
+              });
+              if (!outer || !inner.length) return;
+              var GAP = 16, w = SEC_PAD * 2, h = 0;
+              inner.sort(function (a, b) { return a.id < b.id ? -1 : 1; });
+              inner.forEach(function (s, i) { w += s.w + (i ? GAP : 0); h = Math.max(h, s.h); });
+              outer.w = Math.max(w, String(outer.label).length * 7 + SEC_PAD * 2);
+              outer.h = h + SEC_PAD_TOP + SEC_PAD;
+            });
+            // A fresh map for the next navigator - outer boxes never span two.
+            outerMade = {};
           });
 
           var kept = edges.filter(function (e) {
@@ -1200,26 +1532,47 @@
           return pos;
         }
 
-        /** Fill each section's grid with its member boxes. */
+        /** Fill each section's grid with its member boxes. A wrapping box holds
+         * inner sections rather than screens: those flow left to right by their
+         * own width, and each is then filled the same way (one level deep in
+         * practice, but the recursion costs nothing). */
         function placeSectionMembers(els, pos) {
-          var members = {};
+          var byId = {}, members = {};
           els.forEach(function (e) {
-            if (e.data.source == null && e.data.parent) {
-              (members[e.data.parent] || (members[e.data.parent] = [])).push(e.data.id);
-            }
+            if (e.data.source != null) return;
+            byId[e.data.id] = e.data;
+            if (e.data.parent) (members[e.data.parent] || (members[e.data.parent] = [])).push(e.data.id);
           });
-          els.forEach(function (e) {
-            var d = e.data;
-            if (!d.section || !pos[d.id]) return;
-            var list = (members[d.id] || []).sort();
-            var left = pos[d.id].x - d.w / 2 + SEC_PAD;
-            var top = pos[d.id].y - d.h / 2 + SEC_PAD_TOP;
-            list.forEach(function (m, i) {
+          var isSec = function (id) { return byId[id] && byId[id].section; };
+
+          function fill(secId) {
+            var d = byId[secId];
+            var list = (members[secId] || []).slice().sort();
+            var inner = list.filter(isSec);
+            var cells = list.filter(function (id) { return !isSec(id); });
+            var left = pos[secId].x - d.w / 2 + SEC_PAD;
+            var top = pos[secId].y - d.h / 2 + SEC_PAD_TOP;
+            if (inner.length) {
+              var x = left, GAP = 16;
+              inner.forEach(function (id) {
+                var s = byId[id];
+                pos[id] = { x: x + s.w / 2, y: top + s.h / 2 };
+                x += s.w + GAP;
+                fill(id);
+              });
+            }
+            cells.forEach(function (m, i) {
               pos[m] = {
                 x: left + (i % d.cols) * d.cellW + d.cellW / 2,
                 y: top + Math.floor(i / d.cols) * d.cellH + d.cellH / 2,
               };
             });
+          }
+
+          els.forEach(function (e) {
+            var d = e.data;
+            if (d.source != null || !d.section || d.parent || !pos[d.id]) return;
+            fill(d.id);
           });
           return pos;
         }
@@ -1598,12 +1951,27 @@
             }
           }
 
-          cy.fit(undefined, 50);
+          fitView();
           applyDim();
-          applySearch();
           updateLabels();
           updateHint();
           updateToolbar();
+        }
+
+        /**
+         * cy.fit() centres on the whole canvas, and the canvas now runs under
+         * the glass header - so a plain fit tucks the top row of nodes behind
+         * it. Count the bar as extra padding, then pan down by half of it to
+         * re-centre in the strip that is actually visible.
+         */
+        function headerH() {
+          var v = getComputedStyle(document.documentElement).getPropertyValue('--header-h');
+          return parseFloat(v) || 0;
+        }
+        function fitView(eles, pad) {
+          var h = headerH();
+          cy.fit(eles, (pad == null ? 50 : pad) + h / 2);
+          cy.panBy({ x: 0, y: h / 2 });
         }
 
         // Highlighting never rebuilds elements or re-runs a layout - that is
@@ -1619,20 +1987,6 @@
           self.addClass('selected');
           self.connectedEdges().addClass('hot');
           updateLabels();
-        }
-
-        function applySearch() {
-          cy.nodes().removeClass('hit');
-          var q = state.query.trim().toLowerCase();
-          if (!q) { if (!state.selected) cy.elements().removeClass('dim'); else applyDim(); return; }
-          var hits = cy.nodes().filter(function (n) {
-            var meta = nodeById[n.id()];
-            var hay = (n.data('label') || '') + ' ' + ((meta && meta.path) || '');
-            return hay.toLowerCase().indexOf(q) !== -1;
-          });
-          cy.elements().addClass('dim');
-          hits.removeClass('dim').addClass('hit');
-          hits.connectedEdges().removeClass('dim');
         }
 
         // Hide the small-node labels only when zoomed far out; the layouts now
@@ -1801,12 +2155,31 @@
 
             var rows = items.map(function (it) {
               var d = it.rec;
-              var right = shared ? '' : '<span class="gone-when">' + removedWhen(d);
-              if (!shared && d.wrote && d.wrote !== d.path) {
-                right += ' &middot; written as <span class="path">' + esc(d.wrote) + '</span>';
+              // When the whole folder went in one commit, that commit is on the
+              // folder line already - each file is just a name, nothing to open.
+              if (shared) {
+                return '<li class="gone-file plain">'
+                  + '<span class="gone-name">' + esc(it.name) + '</span></li>';
               }
-              if (!shared) right += '</span>';
-              return '<li><span class="gone-name">' + esc(it.name) + '</span>' + right + '</li>';
+              // The row shows the one fact worth a glance - when it went. The
+              // only thing worth folding open is the aliased path: the exact
+              // text to search the doc for, which the resolved name above hides.
+              // The commit sha rides along inside. No alias -> nothing to open.
+              var alias = d.wrote && d.wrote !== d.path ? d.wrote : null;
+              var when = d.date ? esc(d.date) : 'earlier in history';
+              var nameCell = '<span class="gone-name">' + esc(it.name) + '</span>';
+              var whenCell = '<span class="gone-when">removed ' + when + '</span>';
+              if (!alias) {
+                return '<li class="gone-file plain">' + nameCell + whenCell + '</li>';
+              }
+              var more = 'This doc refers to it as <span class="path">' + esc(alias)
+                + '</span> - search the doc for that to fix the reference.';
+              if (d.sha) {
+                more += ' Removed in commit <code>' + esc(String(d.sha).slice(0, 7)) + '</code>.';
+              }
+              return '<li class="gone-file"><details><summary>'
+                + nameCell + whenCell
+                + '</summary><div class="gone-more">' + more + '</div></details></li>';
             }).join('');
 
             return '<div class="gone-group">' + head + '<ul class="gone-files">' + rows + '</ul></div>';
@@ -2471,27 +2844,44 @@
           if (g && typeof g === 'object') return { quote: g.quote || '', plain: g.plain || '' };
           return { quote: String(g == null ? '' : g), plain: '' };
         }
+        /** True when a doc's verbatim rule is a short condition label - a
+         * gerund phrase or code-ish fragment ("Adding a new dependency",
+         * "otp.length === otpLength") rather than a full prose sentence. Those
+         * earn a place under the gloss because they pin down exactly what
+         * trips the rule; a multi-sentence paragraph does not, and repeating
+         * it at full size is the noise this check exists to avoid. */
+        function terseCondition(quote) {
+          if (!quote) return false;
+          if (quote.length > 90) return false;
+          if (/[.!?]["')]?\s/.test(quote)) return false; // an internal sentence break -> prose
+          return quote.split(/\s+/).length <= 13;
+        }
         /** The rule list a doc carries under a "non-negotiable / never / must
-         * not" heading. Each rule shows its plain-English meaning first, then
-         * the doc's own words underneath - unglossed, the doc's words stand
-         * alone. The lead line says which of the two you are looking at so a
-         * terse "!isSubmitting" is never mistaken for our paraphrase. */
+         * not" heading. Each rule leads with its plain-English meaning; the
+         * doc's own words follow only when they are a terse condition worth
+         * pinning down. Rules with no gloss show their wording verbatim. */
         function guardListHtml(guards) {
           var parts = guards.map(guardParts);
           var glossed = parts.some(function (p) { return p.plain; });
           var lead = glossed
-            ? 'What each rule means in plain English, with the doc’s own wording beneath it.'
+            ? 'What each rule means, in plain English.'
             : 'Copied word for word from the doc - each line is a condition it says must hold for code in this module.';
           return '<p class="sub guard-lead">' + lead + '</p>'
             + '<div class="guard-list">'
             + parts.map(function (p) {
+                var ico = '<span class="guard-ico" aria-hidden="true"></span>';
                 if (p.plain) {
-                  return '<div class="guard">'
-                    + '<div class="guard-plain">' + mdInline(p.plain) + '</div>'
-                    + '<div class="guard-quote">' + mdInline(p.quote) + '</div>'
-                    + '</div>';
+                  var cond = terseCondition(p.quote)
+                    ? '<span class="guard-cond">' + guardText(p.quote) + '</span>'
+                    : '';
+                  return '<div class="guard">' + ico + '<div class="guard-body">'
+                    + '<div class="guard-plain"' + (cond ? '' : ' title="' + esc(p.quote) + '"') + '>'
+                    + guardText(p.plain) + '</div>'
+                    + cond
+                    + '</div></div>';
                 }
-                return '<div class="guard"><div class="guard-quote solo">' + mdInline(p.quote) + '</div></div>';
+                return '<div class="guard">' + ico
+                  + '<div class="guard-body"><div class="guard-quote solo">' + guardText(p.quote) + '</div></div></div>';
               }).join('')
             + '</div>';
         }
@@ -2511,16 +2901,13 @@
           return out + '</li>';
         }
 
-        /** One entry in the "Needs your attention" tab. A stale doc is not the
-         * same object as a doc you open for its content, so it does not get the
-         * same row: its own title leads (the filename is demoted to a quiet
-         * line, and the location and kind tags are dropped - neither tells you
-         * anything about the rot), the count of missing files is stated once on
-         * the right, and the list itself is one click away, grouped by folder. */
+        /** One entry in the "Needs your attention" tab. Same hierarchy as every
+         * other doc row - filename first as the anchor, one-line description
+         * quiet beneath it - with the count of missing files stated once on the
+         * right and the list itself one click away, grouped by folder. */
         function attentionDocItem(d) {
           var gone = (d.meta && d.meta.refs && d.meta.refs.deleted) || [];
           var guards = (d.meta && d.meta.guardrails) || [];
-          var hasTitle = !!d.summary;
 
           var folders = Object.create(null);
           gone.forEach(function (g) {
@@ -2533,11 +2920,11 @@
 
           var out = '<li class="att"><div class="att-head">'
             + '<button class="node-link att-title" data-goto="' + esc(d.id) + '">'
-            + (hasTitle ? mdInline(d.summary) : esc(d.label)) + '</button>'
+            + esc(d.label) + '</button>'
             + (gone.length ? '<span class="att-status">' + status + '</span>' : '')
             + '</div>';
-          if (hasTitle) {
-            out += '<div class="att-file"><span class="path">' + esc(d.label) + '</span></div>';
+          if (d.summary) {
+            out += '<div class="sub">' + mdInline(d.summary) + '</div>';
           }
           if (gone.length) {
             out += '<details class="att-detail"><summary>'
@@ -2563,7 +2950,12 @@
           docs.forEach(function (d) {
             if (d.meta && d.meta.stale) { by.attention.push(d); return; }
             var k = (d.meta && d.meta.docKind) || 'OTHER';
-            if (k === 'AGENTS') by.guardrails.push(d);
+            var hasGuards = d.meta && d.meta.guardrails && d.meta.guardrails.length;
+            // The Guardrails tab is for rules, not just for rule-files. A spec
+            // that carries its own "non-negotiable / never / must not" bullets
+            // belongs here too - the whole entry moves, disclosure and all, and
+            // is not repeated back under Specs & Notes.
+            if (k === 'AGENTS' || hasGuards) by.guardrails.push(d);
             else if (k === 'SPEC' || k === 'MAP') by.specs.push(d);
             else if (k === 'REFERENCE') by.reference.push(d);
             else by.other.push(d);
@@ -3007,7 +3399,7 @@
           amapLive = [];
         }
         function amapRestyleAll() {
-          amapLive.forEach(function (c) { c.style().update(); });
+          amapLive.forEach(function (c) { c.style().update(); c.forceRender(); });
         }
 
         /** Mounts every agent-context canvas inside `root` that is visible and
@@ -3410,7 +3802,7 @@
         /** The key never goes anywhere but here and Anthropic - no server of
          * ours sits in between, so localStorage on this page is the only
          * place it lives. */
-        var AI_KEY_STORAGE = 'codemap-anthropic-key';
+        var AI_KEY_STORAGE = 'birdseye-anthropic-key';
         function getApiKey() {
           try { return localStorage.getItem(AI_KEY_STORAGE) || ''; } catch (e) { return ''; }
         }
@@ -3655,11 +4047,12 @@
          */
         function frame(el) {
           var nb = el.closedNeighborhood();
-          cy.animate({ fit: { eles: nb, padding: 70 } }, {
+          cy.animate({ fit: { eles: nb, padding: 70 + headerH() / 2 } }, {
             duration: 220,
             complete: function () {
               // A node with no neighbours in this view fits to a single dot.
               if (cy.zoom() > 1.2) { cy.zoom(1.2); cy.center(nb); }
+              cy.panBy({ x: 0, y: headerH() / 2 });
             },
           });
         }
@@ -3740,7 +4133,6 @@
           state.selected = null;
           stage.classList.remove('panel-open');
           applyDim();
-          applySearch();
         });
         cy.on('mouseover', 'node', function (ev) { ev.target.addClass('hover'); });
         cy.on('mouseout', 'node', function (ev) { ev.target.removeClass('hover'); });
@@ -3754,32 +4146,25 @@
           });
         });
 
+        // Routes is the only view that ships, so there is no tablist to keep in
+        // sync - setView survives as the one place that swaps what is on the
+        // canvas, ready for the other views to come back.
         function setView(view) {
           closeDetailPage();
           state.view = view;
           save('view', view);
-          document.querySelectorAll('.views button').forEach(function (b) {
-            b.setAttribute('aria-selected', String(b.dataset.view === view));
-          });
-          document.getElementById('granularity').hidden = view !== 'focus';
           document.getElementById('orientation').hidden = view !== 'routes';
-          document.getElementById('crosslinks').hidden = view !== 'routes';
+          document.getElementById('crosslinksRow').hidden = view !== 'routes';
           render();
+          if (view === 'routes') orientLabel();
         }
-
-        document.querySelectorAll('.views button').forEach(function (b) {
-          b.addEventListener('click', function () { if (!b.disabled) setView(b.dataset.view); });
-        });
-        document.querySelector('[data-view="routes"]').disabled = !hasRoutes;
-        if (!hasRoutes) document.querySelector('[data-view="routes"]').title = 'No routes detected in this repo';
-        // Docs tab is commented out for now (see the .views tablist above).
-        // document.querySelector('[data-view="docs"]').disabled = !hasDocs;
-        // if (!hasDocs) document.querySelector('[data-view="docs"]').title = 'No docs matched in this repo';
-
-        document.getElementById('fit').addEventListener('click', function () { cy.fit(undefined, 50); });
 
         var viewMenuBtn = document.getElementById('viewMenuBtn');
         var viewMenuPanel = document.getElementById('viewMenuPanel');
+        // Every knob in the menu is a routes-layout knob. A repo with no router
+        // gets the empty state and no gear at all, rather than a gear that opens
+        // onto three controls with nothing to act on.
+        document.getElementById('viewMenu').hidden = !hasRoutes;
         function closeViewMenu() {
           viewMenuPanel.hidden = true;
           viewMenuBtn.setAttribute('aria-expanded', 'false');
@@ -3797,21 +4182,67 @@
           if (ev.key === 'Escape' && !viewMenuPanel.hidden) closeViewMenu();
         });
 
+        // Which icon shows is pure CSS off the data-theme attribute; the only
+        // thing JS owns here is the swap itself, the label a screen reader
+        // hears, and the wipe.
         var themeBtn = document.getElementById('theme-toggle');
         function themeLabel() {
           var light = document.documentElement.getAttribute('data-theme') === 'light';
-          themeBtn.innerHTML = light ? '&#9788; Dark' : '&#9788; Light';
+          var next = light ? 'Switch to dark mode' : 'Switch to light mode';
+          themeBtn.setAttribute('aria-label', next);
+          themeBtn.title = next;
         }
         themeLabel();
-        themeBtn.addEventListener('click', function () {
+        themeBtn.addEventListener('click', function (ev) {
           var light = document.documentElement.getAttribute('data-theme') === 'light';
-          if (light) document.documentElement.removeAttribute('data-theme');
-          else document.documentElement.setAttribute('data-theme', 'light');
-          save('theme', light ? 'dark' : 'light');
-          themeLabel();
-          refreshPalette();
-          cy.style().update();
-          amapRestyleAll();
+          function apply() {
+            if (light) document.documentElement.removeAttribute('data-theme');
+            else document.documentElement.setAttribute('data-theme', 'light');
+            save('theme', light ? 'dark' : 'light');
+            themeLabel();
+            // Cytoscape paints its own canvas and never reads CSS, so the graph
+            // and the agent maps have to be told the palette moved. forceRender
+            // rather than letting the redraw wait for the next frame: the view
+            // transition snapshots the page the instant this returns, and a
+            // canvas still holding the old palette would be baked into the
+            // "after" image and only correct itself once the wipe finished.
+            refreshPalette();
+            cy.style().update();
+            cy.forceRender();
+            amapRestyleAll();
+          }
+
+          var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (reduce || !document.startViewTransition) { apply(); return; }
+
+          // A circle grown from the click covers the viewport by the end of the
+          // animation, so the new theme arrives as one wipe rather than every
+          // element re-colouring on its own schedule. Keyboard activation
+          // reports 0,0 - fall back to the button's own centre so the reveal
+          // still starts at the control that was pressed.
+          var x = ev.clientX;
+          var y = ev.clientY;
+          if (!x && !y) {
+            var r = themeBtn.getBoundingClientRect();
+            x = r.left + r.width / 2;
+            y = r.top + r.height / 2;
+          }
+          var end = Math.hypot(
+            Math.max(x, window.innerWidth - x),
+            Math.max(y, window.innerHeight - y)
+          );
+          var vt = document.startViewTransition(apply);
+          vt.ready.then(function () {
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  'circle(0px at ' + x + 'px ' + y + 'px)',
+                  'circle(' + end + 'px at ' + x + 'px ' + y + 'px)',
+                ],
+              },
+              { duration: 500, easing: 'ease-in-out', pseudoElement: '::view-transition-new(root)' }
+            );
+          }, function () { /* transition skipped - the swap already happened */ });
         });
         document.getElementById('relayout').addEventListener('click', function () {
           userMoved[state.view] = Object.create(null);
@@ -3820,65 +4251,31 @@
         });
         document.getElementById('up').addEventListener('click', drillUp);
 
-        var orientBtn = document.getElementById('orientation');
+        // 'auto' means "whichever way the layout engine chose this time", so
+        // the pressed half reflects what is actually on screen, not the stored
+        // preference - those differ until the user picks a side.
+        var orientSeg = document.getElementById('orientation');
         function orientLabel() {
           var dir = state.treeDir === 'auto' ? (lastRoutesDir || currentRouteDir()) : state.treeDir;
-          orientBtn.textContent = dir === 'LR' ? 'Left to right' : 'Top down';
+          orientSeg.querySelectorAll('button').forEach(function (b) {
+            b.setAttribute('aria-pressed', String(b.dataset.dir === dir));
+          });
         }
-        orientBtn.addEventListener('click', function () {
-          var dir = state.treeDir === 'auto' ? (lastRoutesDir || currentRouteDir()) : state.treeDir;
-          state.treeDir = dir === 'LR' ? 'TB' : 'LR';
+        orientSeg.addEventListener('click', function (ev) {
+          var btn = ev.target.closest('button[data-dir]');
+          if (!btn || btn.getAttribute('aria-pressed') === 'true') return;
+          state.treeDir = btn.dataset.dir;
           save('treeDir', state.treeDir);
           orientLabel();
           userMoved.routes = Object.create(null);
           render();
         });
 
-        var crossBtn = document.getElementById('crosslinks');
-        function crossLabel() {
-          crossBtn.classList.toggle('on', state.crossLinks);
-          crossBtn.textContent = state.crossLinks ? 'Hide jumps' : 'Show jumps';
-          crossBtn.title = 'Jumps between screens that are not part of the navigation tree';
-        }
-        crossBtn.addEventListener('click', function () {
-          state.crossLinks = !state.crossLinks;
+        var crossBox = document.getElementById('crosslinks');
+        function crossLabel() { crossBox.checked = state.crossLinks; }
+        crossBox.addEventListener('change', function () {
+          state.crossLinks = crossBox.checked;
           save('crossLinks', state.crossLinks ? 'on' : 'off');
-          crossLabel();
-          render();
-        });
-
-        var granBtn = document.getElementById('granularity');
-        function granLabel() {
-          granBtn.textContent = state.granularity === 'files' ? 'All files' : 'By folder';
-        }
-        granBtn.addEventListener('click', function () {
-          state.granularity = state.granularity === 'files' ? 'folders' : 'files';
-          granLabel();
-          resetFocusCaches();
-          render();
-        });
-
-        var searchEl = document.getElementById('search');
-        var searchTimer;
-        searchEl.addEventListener('input', function () {
-          clearTimeout(searchTimer);
-          searchTimer = setTimeout(function () { state.query = searchEl.value; applySearch(); }, 120);
-        });
-        searchEl.addEventListener('keydown', function (ev) {
-          if (ev.key !== 'Enter') return;
-          var hit = cy.nodes('.hit').first();
-          if (hit.nonempty()) select(hit.id(), true);
-        });
-
-        var filters = document.getElementById('filters');
-        filters.innerHTML = TYPES.filter(function (t) { return counts[t] > 0; }).map(function (t) {
-          return '<label><input type="checkbox" data-type="' + t + '" checked>'
-            + '<span class="swatch" style="background:var(--c-' + t + ')"></span>' + t + '</label>';
-        }).join('');
-        filters.addEventListener('change', function (ev) {
-          var t = ev.target.dataset.type;
-          if (!t) return;
-          state.hidden[t] = !ev.target.checked;
           render();
         });
 
@@ -3887,22 +4284,7 @@
           GRAPH.stats.modules + ' modules  -  ' + GRAPH.stats.files + ' files  -  '
           + GRAPH.stats.routes + ' routes  -  ' + GRAPH.stats.docs + ' docs';
 
-        // Restructure: Routes is the only reachable tab for now, so the old
-        // last-view restore (Overview/Focus/Docs) stays commented out rather
-        // than deleted.
-        // var lastFocus = load('focus');
-        // if (lastFocus && nodeById[lastFocus]) {
-        //   state.focus = lastFocus;
-        //   try { state.focusPath = JSON.parse(load('focusPath') || '[]') || []; } catch (e) { state.focusPath = []; }
-        //   document.querySelector('[data-view="focus"]').disabled = false;
-        // }
-        // var lastView = load('view');
-        // var lastBtn = lastView && document.querySelector('[data-view="' + lastView + '"]');
-        // var startView = lastBtn && !lastBtn.disabled ? lastView : 'overview';
-        // if (startView === 'focus' && !state.focus) startView = 'overview';
-        granLabel();
         crossLabel();
-        if (hasRoutes) orientLabel();
         setView('routes');
       })();
     </script>

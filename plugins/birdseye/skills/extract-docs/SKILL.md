@@ -1,16 +1,16 @@
 ---
 name: extract-docs
-description: Find the spec and doc files an agent should read before touching a module, attach them to the code they describe, and extract guardrails with a plain-English gloss, into codemap/.cache/docs.json. Use when building or refreshing a codemap, or when asked which docs cover a given part of a repo.
+description: Find the spec and doc files an agent should read before touching a module, attach them to the code they describe, and extract guardrails with a plain-English gloss, into birdseye/.cache/docs.json. Use when building or refreshing a birdsEye map, or when asked which docs cover a given part of a repo.
 ---
 
 # Extract docs
 
-This is the half of `codemap` that answers the question the whole tool exists
+This is the half of `birdsEye` that answers the question the whole tool exists
 for: *"I need to fix a bug in the auth module - which spec files should I read
 first?"* The import graph says what auth is wired to. You say what has been
 written down about it.
 
-Write `codemap/.cache/docs.json` and nothing else. Never modify the user's
+Write `birdseye/.cache/docs.json` and nothing else. Never modify the user's
 source tree, and never write documentation into it.
 
 ## Non-negotiables
@@ -28,7 +28,7 @@ source tree, and never write documentation into it.
 
 ## Step 1 - find the docs
 
-Use the `docGlobs` list from `codemap.config.json` if it is there; otherwise
+Use the `docGlobs` list from `birdseye.config.json` if it is there; otherwise
 these defaults:
 
 ```
@@ -37,10 +37,10 @@ docs/**/*.md   **/README.md
 ```
 
 Respect `.gitignore` and skip `node_modules`, `dist`, `build`, `.next`, `ios`,
-`android`, `vendor` and the `codemap/` output directory itself.
+`android`, `vendor` and the `birdseye/` output directory itself.
 
 ```bash
-find . -name '*.md' -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path './codemap/*' | head -200
+find . -name '*.md' -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path './birdseye/*' | head -200
 ```
 
 Read each match. Large docs: the title, the first paragraph, every heading, and
@@ -62,10 +62,10 @@ Judge by content, not filename, when the two disagree.
 
 ## Step 3 - assign an owning module
 
-The modules are already computed. Read them from `codemap/.cache/imports.json`:
+The modules are already computed. Read them from `birdseye/.cache/imports.json`:
 
 ```bash
-node -e "console.log(require('./codemap/.cache/imports.json').modules.map(m=>m.slug+' -> '+m.path).join('\n'))"
+node -e "console.log(require('./birdseye/.cache/imports.json').modules.map(m=>m.slug+' -> '+m.path).join('\n'))"
 ```
 
 - A doc inside a module directory belongs to that module. Nearest ancestor wins.
@@ -241,8 +241,15 @@ every digit."
 
 Rules for the file itself:
 
-- `summary` is at most 120 characters, or `null`. One clause about what the doc
-  covers - not a review of whether it is any good.
+- `summary` is at most 170 characters, or `null`. One or two clauses about what
+  the doc covers - not a review of whether it is any good.
+  - **Never restate the title.** A doc headed `# Keyboard Avoidance` does not get
+    `"Keyboard Avoidance"` as its summary - that is the line the reader already
+    sees. Say what the title leaves out: the doc's actual subject, the flow it
+    describes, the decision it records. `# Keyboard Avoidance` ->
+    `"One keyboard-handling mechanism per screen; KeyboardAwareFormScrollView owns it, never stacked with KeyboardAvoidingView."`
+  - If you cannot say something the title does not already say, emit `null`. A
+    missing summary is fine; an echoed one is noise.
 - Sort `docs` by `path`, and sort every array inside a doc **except the
   guardrail pair** - `guardrails` keeps the doc's own bullet order so
   `guardrailsPlain` can stay aligned to it index for index. Byte-identical
@@ -252,7 +259,7 @@ Rules for the file itself:
 - No timestamps.
 
 ```bash
-mkdir -p codemap/.cache
+mkdir -p birdseye/.cache
 ```
 
 ## Step 8 - report

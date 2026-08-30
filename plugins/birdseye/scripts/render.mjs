@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { NAME, OUT_DIR } from './lib/const.mjs';
+import { NAME, DISPLAY, OUT_DIR } from './lib/const.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,16 +19,24 @@ const VENDOR = ['cytoscape.min.js', 'layout-base.min.js', 'cose-base.min.js', 'f
 /** Neutralise anything that could close the surrounding <script> element. */
 const safeForScript = (s) => s.replace(/<\/(script)/gi, '<\\/$1');
 
+/** Outfit, base64'd so the map still has its typeface with no network. One
+ * variable woff2 covers every weight the UI asks for. */
+const fontDataUri = () => {
+  const woff2 = fs.readFileSync(path.join(here, 'vendor', 'Outfit.woff2'));
+  return `data:font/woff2;base64,${woff2.toString('base64')}`;
+};
+
 export function renderHtml(graph) {
   const template = fs.readFileSync(path.join(here, 'template', 'index.html'), 'utf8');
   const vendor = VENDOR.map((f) => fs.readFileSync(path.join(here, 'vendor', f), 'utf8')).join('\n;\n');
-  const title = `${graph.repo?.name ?? 'repo'} ${NAME}`;
+  const title = `${graph.repo?.name ?? 'repo'} ${DISPLAY}`;
   const storageKey = `${NAME}:${graph.repo?.name ?? 'repo'}`;
   // Function replacements throughout: a repo name containing `$` would
   // otherwise be read as a substitution pattern.
   return template
     .replace(/__TITLE__/g, () => title.replace(/[<&]/g, ''))
     .replace('__STORAGE_KEY__', () => storageKey)
+    .replace('__FONT_OUTFIT__', fontDataUri)
     .replace('__VENDOR__', () => safeForScript(vendor))
     .replace('__GRAPH__', () => safeForScript(JSON.stringify(graph)));
 }

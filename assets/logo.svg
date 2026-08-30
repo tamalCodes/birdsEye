@@ -1,0 +1,19 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="birdsEye">
+  <title>birdsEye</title>
+  <!-- aerial framing: looking down through a lens -->
+  <circle cx="120" cy="120" r="101" stroke="#d97757" stroke-opacity="0.22" stroke-width="2" stroke-dasharray="2 9"/>
+  <circle cx="120" cy="120" r="117" stroke="#d97757" stroke-opacity="0.12" stroke-width="2" stroke-dasharray="2 9"/>
+  <!-- a bird in flight, seen from directly above, wings swept back -->
+  <path transform="translate(0 8)" d="M120 52
+           C129 54 133 66 134 82
+           C150 92 186 116 210 146
+           C213 150 211 154 206 153
+           C176 150 150 140 133 128
+           C132 145 128 164 120 178
+           C112 164 108 145 107 128
+           C90 140 64 150 34 153
+           C29 154 27 150 30 146
+           C54 116 90 92 106 82
+           C107 66 111 54 120 52 Z"
+        fill="#d97757"/>
+</svg>

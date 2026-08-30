@@ -1,14 +1,14 @@
 {
-  "name": "codemap-marketplace",
+  "name": "birdseye-marketplace",
   "owner": {
     "name": "tamalcodes"
   },
   "plugins": [
     {
-      "source": "./plugins/codemap",
-      "name": "codemap",
+      "source": "./plugins/birdseye",
+      "name": "birdseye",
       "description": "One command, one HTML file: the modules, routes and specs of a codebase, mapped."
     }
   ],
-  "description": "Tools for understanding a codebase at a glance."
+  "description": "birdsEye - see a whole codebase at one glance."
 }

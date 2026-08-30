@@ -3,7 +3,7 @@
 //
 //   node imports.mjs [repoRoot] [--force] [--json]
 //
-// Writes <repo>/codemap/.cache/imports.json. Same input, same bytes out.
+// Writes <repo>/birdseye/.cache/imports.json. Same input, same bytes out.
 
 import fs from 'node:fs';
 import path from 'node:path';

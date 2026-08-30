@@ -1,5 +1,5 @@
 {
-  "name": "codemap",
+  "name": "birdseye",
   "version": "0.1.0",
   "description": "Maps a codebase to a single self-contained interactive HTML file: modules and their dependencies, routes and screens, and the spec files to read before touching any of it.",
   "author": {

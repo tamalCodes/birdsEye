@@ -1,6 +1,6 @@
 ---
 name: extract-flowcharts
-description: Turn each module's docs into a plain-language step-by-step flow a non-technical reader can follow, into codemap/.cache/flowcharts.json. Use when building or refreshing a codemap, after extract-docs has already run.
+description: Turn each module's docs into a plain-language step-by-step flow a non-technical reader can follow, into birdseye/.cache/flowcharts.json. Use when building or refreshing a birdsEye map, after extract-docs has already run.
 ---
 
 # Extract flowcharts
@@ -11,7 +11,7 @@ skill reads what `extract-docs` already found and turns it into a small
 step-by-step diagram: the same job you would do by hand if a user asked you to
 read a module's docs and explain how it actually works.
 
-Write `codemap/.cache/flowcharts.json` and nothing else. Never modify the
+Write `birdseye/.cache/flowcharts.json` and nothing else. Never modify the
 user's source tree, and never write documentation into it.
 
 ## Non-negotiables
@@ -32,14 +32,14 @@ user's source tree, and never write documentation into it.
 
 ## Step 0 - what to run this on
 
-Read `codemap/.cache/docs.json`. Group its `docs` entries by `module`,
+Read `birdseye/.cache/docs.json`. Group its `docs` entries by `module`,
 dropping any with `module: null` - a repo-wide doc does not describe one
 feature's flow. Each module with at least one doc is a candidate; you decide
 per-candidate whether it earns a flowchart in step 2.
 
 ```bash
 node -e "
-const d = require('./codemap/.cache/docs.json');
+const d = require('./birdseye/.cache/docs.json');
 const byMod = {};
 for (const doc of d.docs) { if (doc.module) (byMod[doc.module] ||= []).push(doc.path); }
 console.log(JSON.stringify(byMod, null, 2));
@@ -140,7 +140,7 @@ Rules for the file itself:
 - No timestamps.
 
 ```bash
-mkdir -p codemap/.cache
+mkdir -p birdseye/.cache
 ```
 
 ## Step 6 - report

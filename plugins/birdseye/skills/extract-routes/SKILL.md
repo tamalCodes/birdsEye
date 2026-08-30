@@ -1,16 +1,16 @@
 ---
 name: extract-routes
-description: Extract a repo's route/screen tree and navigation edges into codemap/.cache/routes.json. Use when building or refreshing a codemap, or when asked what screens an app has and how they connect. Handles file-based routers and config-based routers in any framework.
+description: Extract a repo's route/screen tree and navigation edges into birdseye/.cache/routes.json. Use when building or refreshing a birdsEye map, or when asked what screens an app has and how they connect. Handles file-based routers and config-based routers in any framework.
 ---
 
 # Extract routes
 
-You are the only part of `codemap` that is allowed to use judgement. Everything
+You are the only part of `birdsEye` that is allowed to use judgement. Everything
 mechanical is already done by scripts. Your job is the one thing a script cannot
 do without growing a per-framework adapter for every router that will ever
 exist: look at this repo's router and describe it.
 
-Write `codemap/.cache/routes.json` and nothing else. Never modify the user's
+Write `birdseye/.cache/routes.json` and nothing else. Never modify the user's
 source tree.
 
 ## Non-negotiables
@@ -207,7 +207,7 @@ Rules for the file itself:
 Create the directory if needed, then write it:
 
 ```bash
-mkdir -p codemap/.cache
+mkdir -p birdseye/.cache
 ```
 
 ## Step 6 - report

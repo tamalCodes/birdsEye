@@ -1,4 +1,4 @@
-# Task: Module detail view for the codemap viewer
+# Task: Module detail view for the birdsEye viewer
 
 ## Goal
 
@@ -15,12 +15,12 @@ When a module is selected, the user should see, without hopping between tabs:
 
 ## Where the code lives
 
-- Viewer template: `plugins/codemap/scripts/template/index.html`. One self-contained file: CSS, then markup, then a single script. No build step, no framework, no network access at open time. Cytoscape is inlined at render time via `__VENDOR__`.
+- Viewer template: `plugins/birdseye/scripts/template/index.html`. One self-contained file: CSS, then markup, then a single script. No build step, no framework, no network access at open time. Cytoscape is inlined at render time via `__VENDOR__`.
 - The graph is inlined as `__GRAPH__` and available as the `GRAPH` global.
-- Rendering: `plugins/codemap/scripts/render.mjs` replaces the placeholders. It needs no changes unless a new placeholder is added.
+- Rendering: `plugins/birdseye/scripts/render.mjs` replaces the placeholders. It needs no changes unless a new placeholder is added.
 - To test against real data, rebuild the map in `/Users/tamalcodes/Gh/perccent-app`:
-  `node plugins/codemap/scripts/merge.mjs /Users/tamalcodes/Gh/perccent-app && node plugins/codemap/scripts/render.mjs /Users/tamalcodes/Gh/perccent-app`
-  then open `/Users/tamalcodes/Gh/perccent-app/codemap/index.html`.
+  `node plugins/birdseye/scripts/merge.mjs /Users/tamalcodes/Gh/perccent-app && node plugins/birdseye/scripts/render.mjs /Users/tamalcodes/Gh/perccent-app`
+  then open `/Users/tamalcodes/Gh/perccent-app/birdseye/index.html`.
   Do not open browser tabs to verify unless the user asks; the user checks visually themselves.
 
 ## Data already available in graph.json

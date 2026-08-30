@@ -1,12 +1,23 @@
-# codemap
+<p align="center">
+  <img src="../../assets/logo.svg" alt="birdsEye" width="112">
+</p>
 
-> `codemap` is a working name. It lives in exactly one place -
-> [`scripts/lib/const.mjs`](scripts/lib/const.mjs) - so renaming it renames the
-> config file, the output directory and every user-facing string at once.
+<h1 align="center">birdsEye</h1>
+
+<p align="center"><em>See a whole codebase at one glance.</em></p>
+
+> [!WARNING]
+> **Very early stage - work in progress.**
+> Expect rough edges and breaking changes.
+> Only one of the four planned views is wired up so far (see [The view](#the-view)).
 
 One command, one HTML file: the modules of a codebase and how they depend on
 each other, its routes and screens, and the spec files an agent should read
 before touching any of it.
+
+> The name lives in exactly one place -
+> [`scripts/lib/const.mjs`](scripts/lib/const.mjs) - so renaming it renames the
+> config file, the output directory and every user-facing string at once.
 
 The use case that shaped every decision here:
 
@@ -18,28 +29,28 @@ Open the map, click `auth`, get the answer in five seconds.
 ## Use
 
 ```
-/codemap:map
+/birdseye:map
 ```
 
-First run asks two questions - whether to write `codemap.config.json`, and
-whether to add `codemap/` to `.gitignore` - then takes a minute or two.
+First run asks two questions - whether to write `birdseye.config.json`, and
+whether to add `birdseye/` to `.gitignore` - then takes a minute or two.
 Subsequent runs take a couple of seconds and cost nothing, because the two
 stages that involve the model are skipped when nothing they read has changed.
 
 ```
-/codemap:map --force                 rebuild everything from scratch
-/codemap:map --only=imports          run one stage, for debugging
+/birdseye:map --force                 rebuild everything from scratch
+/birdseye:map --only=imports          run one stage, for debugging
 ```
 
-The output is `codemap/index.html`. It is self-contained: no CDN, no server, no
+The output is `birdseye/index.html`. It is self-contained: no CDN, no server, no
 network at all. It opens from `file://` on a plane.
 
 ## What it writes
 
 ```
 <repo>/
-├── codemap.config.json     committed, human-editable, generated on first run
-└── codemap/                gitignored
+├── birdseye.config.json     committed, human-editable, generated on first run
+└── birdseye/                gitignored
     ├── index.html          the deliverable
     ├── graph.json          the canonical graph
     └── .cache/             manifest + per-stage output
@@ -75,27 +86,23 @@ reported as stale - with the commit that removed it. A path that resolves after
 all becomes an edge instead of a warning, and one that was never in this repo is
 listed as exactly that. A warning nobody can verify is worse than no warning.
 
-## The four views
+## The view
 
-- **Overview** - modules only, sized by file count, edges weighted by how many
-  underlying imports they represent. This is the landing view on purpose: a
-  450-file repo drawn all at once is an unreadable hairball, and that is the
-  single most common failure of code visualisers.
-- **Focus** - click a module and it expands into its files (or, past ~25 files,
-  its folders), with everything else dimmed rather than hidden so you keep your
-  bearings. This is the view that answers the bug-fixing question.
-- **Routes** - the navigation tree, laid out hierarchically.
-- **Docs** - doc nodes over the module map, with the `documents` edges drawn.
-  Click a feature section and, if its docs describe an end-to-end flow, the
-  page opens straight to a generated flowchart - already built during
-  extraction, not something you wait on or generate yourself.
+One view ships: the navigation tree, laid out hierarchically and boxed by
+feature. Click a section and, if its docs describe an end-to-end flow, the page
+opens straight to a generated flowchart - already built during extraction, not
+something you wait on or generate yourself.
 
-A repo with no router or no docs gets those tabs disabled with a line saying
-why, rather than an empty canvas.
+A repo with no router gets a line saying so, rather than an empty canvas.
+
+Overview, Focus and Docs are built and working behind `setView()` but are not
+reachable from the chrome. The toolbar carries what one glance needs and
+nothing else: the repo and its counts on the left, the layout menu and the
+theme toggle on the right, on a pane of glass the map runs underneath.
 
 ## Configuration
 
-`codemap.config.json` is generated from directory shape and is meant to be
+`birdseye.config.json` is generated from directory shape and is meant to be
 edited. `moduleRoots` is the one worth checking.
 
 ```jsonc
@@ -111,7 +118,7 @@ edited. `moduleRoots` is the one worth checking.
 
 `editor` controls the scheme behind every path in the side panel, so clicking a
 file opens it where you actually work. `.gitignore` and an optional
-`.codemapignore` are both respected.
+`.birdseyeignore` are both respected.
 
 ## Limitations
 

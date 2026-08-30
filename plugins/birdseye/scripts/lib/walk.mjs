@@ -3,7 +3,7 @@
 // Three layers, applied in this order (later layers can re-include via `!`):
 //   1. config.ignore        - hard directory names, always applied at any depth
 //   2. .gitignore           - per-directory, applies to that directory's subtree
-//   3. .codemapignore       - same mechanics as .gitignore, evaluated last
+//   3. .birdseyeignore       - same mechanics as .gitignore, evaluated last
 //
 // The gitignore subset implemented here covers: comments, blank lines, `!`
 // negation, leading `/` anchoring, trailing `/` directory-only, `*`, `?`,
