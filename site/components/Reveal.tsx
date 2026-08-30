@@ -39,6 +39,7 @@ export default function Reveal({ children, delay = 0, as = "div", className = ""
   return (
     <Tag
       ref={ref as RefObject<HTMLDivElement>}
+      data-reveal=""
       className={className}
       style={{
         opacity: shown ? 1 : 0,

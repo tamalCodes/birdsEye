@@ -42,7 +42,11 @@ export default function ThemeToggle() {
       type="button"
       onClick={toggle}
       className="theme-toggle grid h-9 w-9 place-items-center rounded-lg border border-hair text-muted transition-colors hover:border-clay hover:text-ink"
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      /* Static on purpose. The visible glyph is chosen by CSS from the
+         data-theme attribute, which is correct on first paint, while `theme`
+         only becomes correct after hydration - a label derived from it
+         contradicts the icon for that first stretch. */
+      aria-label="Switch colour theme"
     >
       <svg
         className="theme-ico theme-ico--sun h-[17px] w-[17px]"
