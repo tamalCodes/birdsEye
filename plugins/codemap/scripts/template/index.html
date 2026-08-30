@@ -25,11 +25,38 @@
         --bg-raised: #1d2230;
         --line: #2a3040;
         --line-soft: #222735;
+        --line-strong: #5a6480;
+        --hl: #ffffff;
         --text: #ccd2e0;
         --text-dim: #7c8497;
         --accent: #7aa2f7;
-        --font: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Display", "Segoe UI Variable Text",
+          "Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, sans-serif;
+        --mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Code", Menlo, Consolas, monospace;
+      }
+
+      /* Same five hues as the dark theme, same roles - just re-tuned to hold
+         contrast on a neutral white surface instead of near-black. A warm
+         sepia palette was tried here before and read as off-brand next to the
+         cool dark theme; a plain gray scale keeps the two feeling like one
+         product with the lights on, not two different apps. */
+      [data-theme="light"] {
+        --c-module: #3762d6;
+        --c-file: #1a8f4c;
+        --c-route: #c17d00;
+        --c-screen: #7c3aed;
+        --c-doc: #e0245e;
+
+        --bg: #ffffff;
+        --bg-panel: #f7f8fa;
+        --bg-raised: #eef0f4;
+        --line: #e1e4ea;
+        --line-soft: #ecedf1;
+        --line-strong: #c3c8d1;
+        --hl: #0a0b0d;
+        --text: #16181d;
+        --text-dim: #6b7280;
+        --accent: #3762d6;
       }
 
       * { box-sizing: border-box; }
@@ -47,16 +74,21 @@
       header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 8px 14px;
+        gap: 16px;
+        padding: 10px 16px;
         border-bottom: 1px solid var(--line);
         background: var(--bg-panel);
         flex-wrap: wrap;
       }
-      .brand { font-weight: 600; }
-      .brand span { color: var(--text-dim); font-weight: 400; margin-left: 6px; }
+      .brand { font-weight: 600; white-space: nowrap; }
+      /* One notch down from the brand name, not level with it - the stat
+         line is context, not a second headline competing for the same
+         glance. */
+      .brand span { display: block; color: var(--text-dim); font-weight: 400; font-size: 11px; margin-top: 1px; }
 
-      .views { display: flex; gap: 2px; background: var(--bg-raised); border-radius: 7px; padding: 2px; }
+      .divider { width: 1px; align-self: stretch; margin: 4px 0; background: var(--line); flex: none; }
+
+      .views { display: flex; gap: 2px; background: var(--bg-raised); border-radius: 7px; padding: 2px; flex: none; }
       .views button {
         appearance: none; border: 0; background: transparent; color: var(--text-dim);
         font: inherit; padding: 5px 12px; border-radius: 5px; cursor: pointer;
@@ -85,13 +117,46 @@
       .ghost[hidden] { display: none; }
       .ghost.on { color: var(--text); border-color: var(--accent); }
 
+      /* ---- overflow menu: everything that isn't "which view" or "search"
+         lives one click away instead of permanently on the bar. A toolbar a
+         vibe coder can read in one glance beats one that lists every knob. */
+      .menu { position: relative; }
+      .icon-btn {
+        appearance: none; background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+        border-radius: 6px; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer;
+      }
+      .icon-btn svg { width: 16px; height: 16px; }
+      .icon-btn:hover { color: var(--text); border-color: var(--text-dim); }
+      .icon-btn[aria-expanded="true"] { color: var(--text); border-color: var(--accent); }
+      .menu-panel {
+        position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; min-width: 230px;
+        background: var(--bg-panel); border: 1px solid var(--line); border-radius: 10px;
+        padding: 14px; display: flex; flex-direction: column; gap: 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+      }
+      .menu-panel[hidden] { display: none; }
+      .menu-label {
+        font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+        color: var(--text-dim); font-weight: 600; margin-bottom: 8px;
+      }
+      .menu-section .filters { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .menu-row { display: flex; gap: 6px; flex-wrap: wrap; }
+      .menu-row .ghost, .menu-section > .ghost { width: 100%; text-align: left; }
+
       /* ---- stage ---- */
       main {
         position: relative; display: grid; grid-template-columns: 1fr 0;
         transition: grid-template-columns .15s; min-height: 0;
       }
       main.panel-open { grid-template-columns: 1fr 340px; }
-      #cy { width: 100%; height: 100%; min-width: 0; }
+      /* A flat canvas has no sense of scale or position - the dot grid gives
+         the eye a ruler, and JS keeps it panning/zooming with the graph
+         (updateGrid) so it reads as a surface the graph sits on, not wallpaper. */
+      #cy {
+        width: 100%; height: 100%; min-width: 0;
+        background-image: radial-gradient(circle, var(--line) 1px, transparent 1px);
+        background-repeat: repeat;
+      }
 
       #empty {
         position: absolute; inset: 0; display: none; place-items: center; text-align: center;
@@ -125,7 +190,7 @@
       .detail h3 .muted { margin-left: auto; font-size: 11px; }
       .detail ul { list-style: none; margin: 0; padding: 0; }
       .detail li { padding: 2px 0; }
-      .detail .summary { color: var(--text); margin: 8px 0 0; }
+      .detail .summary { color: var(--text); margin: 8px 0 18px; }
       .path { font-family: var(--mono); font-size: 11.5px; word-break: break-all; }
       a.path, .node-link {
         color: var(--accent); text-decoration: none; cursor: pointer; background: none; border: 0;
@@ -144,7 +209,6 @@
       .stats b { color: var(--text); font-weight: 600; }
 
       /* ---- module detail ---- */
-      main.panel-open.panel-wide { grid-template-columns: 1fr 440px; }
       .detail .lead { color: var(--text-dim); margin: 6px 0 4px; }
       .detail details { margin: 2px 0; }
       .detail details > ul { padding: 2px 0 4px 16px; }
@@ -165,7 +229,7 @@
       .detail h4.grp .muted { font-weight: 400; font-size: 11.5px; white-space: nowrap; }
 
       /* ---- glance chips: the 3-second answer, before any section is opened ---- */
-      .chips { display: flex; gap: 7px; margin: 10px 0 4px; flex-wrap: wrap; }
+      .chips { display: flex; gap: 7px; margin: 12px 0 16px; flex-wrap: wrap; }
       .chip {
         display: flex; align-items: baseline; gap: 5px;
         background: var(--bg-raised); border: 1px solid var(--line); border-radius: 7px;
@@ -176,6 +240,49 @@
       .chip.good .dot { background: var(--good); }
       .chip.warn .dot { background: var(--warn); }
       .chip.bad .dot { background: var(--bad); }
+      /* Chips that are actually buttons (Risk, for now) - reset button chrome
+         so they still look like the plain informational chips beside them. */
+      button.chip { font: inherit; }
+      .chip.explainable { cursor: pointer; }
+      .chip.explainable:hover { border-color: var(--line-strong); }
+      .chip.explainable:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+      /* ---- AI explain modal: static facts always shown free; the write-up
+         below them is a live call to Anthropic using a key the user pastes
+         in and that stays in this browser's localStorage. ---- */
+      #aiModal { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; }
+      #aiModal.on { display: flex; }
+      #aiModal .modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .5); }
+      #aiModal .modal-box {
+        position: relative; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 10px;
+        padding: 18px 20px; width: 420px; max-width: calc(100% - 32px); max-height: calc(100% - 64px);
+        overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+      }
+      #aiModal h3 { margin: 0 0 4px; font-size: 14px; }
+      #aiModal .modal-close {
+        position: absolute; top: 10px; right: 10px; background: none; border: 0; color: var(--text-dim);
+        cursor: pointer; font-size: 18px; line-height: 1; padding: 4px;
+      }
+      #aiModal .modal-close:hover { color: var(--text); }
+      #aiModal .key-input {
+        width: 100%; box-sizing: border-box; margin: 6px 0 4px; padding: 7px 9px;
+        background: var(--bg-raised); border: 1px solid var(--line); border-radius: 6px;
+        color: var(--text); font: inherit; font-size: 12.5px;
+      }
+      #aiModal .key-note { font-size: 11px; color: var(--text-dim); margin: 0 0 8px; }
+      #aiModal .ai-output {
+        margin-top: 10px; padding: 9px 11px; background: var(--bg-raised); border-radius: 6px;
+        border-left: 3px solid var(--accent); font-size: 12.5px; line-height: 1.55; white-space: pre-wrap;
+      }
+      #aiModal .ai-error { color: var(--bad); font-size: 12px; margin-top: 8px; }
+      #aiModal .change-key { font-size: 11px; margin-top: 8px; display: inline-block; }
+      .spinner {
+        display: inline-block; width: 11px; height: 11px; border: 2px solid var(--line);
+        border-top-color: var(--accent); border-radius: 50%; vertical-align: -1.5px;
+        animation: spin .7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 
       /* ---- collapsible section rows: same content the old full page always
          showed expanded, now closed until asked for, one per concern. ---- */
@@ -183,7 +290,7 @@
       .detail details.row:first-of-type { border-top: 0; }
       .detail details.row > summary {
         list-style: none; cursor: pointer; user-select: none;
-        display: flex; align-items: flex-start; gap: 8px; padding: 12px 2px;
+        display: flex; align-items: flex-start; gap: 8px; padding: 16px 2px;
       }
       .detail details.row > summary::-webkit-details-marker { display: none; }
       .detail details.row .chev {
@@ -197,12 +304,12 @@
         color: var(--text-dim); font-weight: 600;
       }
       .detail details.row .row-title .muted { text-transform: none; letter-spacing: 0; }
-      .detail details.row .row-teaser { color: var(--text); font-size: 12.5px; margin-top: 3px; }
+      .detail details.row .row-teaser { color: var(--text); font-size: 12.5px; margin-top: 4px; }
       .detail details.row .row-teaser.flag { color: var(--bad); }
-      .detail details.row .row-body { padding: 0 0 14px 21px; }
+      .detail details.row .row-body { padding: 0 0 20px 21px; }
       @media (prefers-reduced-motion: reduce) { .detail details.row .chev { transition: none; } }
 
-      /* ---- full-page doc detail (modules/areas use the drawer above now) ---- */
+      /* ---- full-page detail: docs, and modules/areas ---- */
       /* Same trick #empty/#hint already use: an absolutely positioned layer
          over main's relative box, independent of the panel-open grid columns. */
       #detailPage {
@@ -210,7 +317,10 @@
         background: var(--bg); overflow-y: auto;
       }
       #detailPage.on { display: block; }
-      #detailPage .detail-inner { max-width: 760px; margin: 0 auto; padding: 24px 32px 80px; }
+      #detailPage .detail-inner { max-width: 760px; margin: 0 auto; padding: 20px 28px 40px; }
+      /* Modules/areas carry structured content (folder trees, row lists) that
+         wants more width than a doc's prose column. */
+      #detailPage .detail-inner.wide { max-width: 1080px; }
       .page-back { margin-bottom: 14px; }
       .crumb { color: var(--text-dim); font-size: 12px; margin: 0 0 6px; }
       .crumb .node-link { font-size: inherit; }
@@ -254,6 +364,7 @@
       }
       .ai-cta h3 { margin: 0 0 6px; color: var(--text); }
       .ai-cta .lead { margin: 0; }
+      .ai-cta.flowchart-card { padding: 22px 26px 26px; margin: 16px 0 26px; }
       .prompt-box {
         background: var(--bg); border: 1px solid var(--line-soft); border-radius: 6px;
         padding: 10px 12px; margin: 10px 0 0; font: 11.5px/1.55 var(--mono); color: var(--text);
@@ -262,7 +373,7 @@
       .copy-prompt.copied { color: var(--c-file); border-color: var(--c-file); }
 
       /* ---- generated flowchart ---- */
-      .flowchart-wrap { overflow-x: auto; margin: 10px 0 4px; }
+      .flowchart-wrap { overflow-x: auto; margin: 16px 0 20px; }
       .flowchart-svg { display: block; }
       .flowchart-svg text { font: 11px/1.3 var(--font); fill: var(--text); pointer-events: none; }
       .flow-node { cursor: pointer; }
@@ -283,6 +394,7 @@
   <body>
     <header>
       <div class="brand">__TITLE__<span id="stat-line"></span></div>
+      <span class="divider"></span>
       <div class="views" role="tablist">
         <button data-view="overview" role="tab" aria-selected="true">Overview</button>
         <button data-view="focus" role="tab" aria-selected="false" disabled>Focus</button>
@@ -290,14 +402,34 @@
         <button data-view="docs" role="tab" aria-selected="false">Docs</button>
       </div>
       <input id="search" type="search" placeholder="Search name or path" autocomplete="off" />
-      <div class="filters" id="filters"></div>
       <div class="spacer"></div>
       <button class="ghost" id="up" hidden>&#11185; Up</button>
-      <button class="ghost" id="orientation" hidden>Top-down</button>
-      <button class="ghost" id="crosslinks" hidden></button>
-      <button class="ghost" id="granularity" hidden></button>
-      <button class="ghost" id="relayout">Reset layout</button>
+      <div class="menu" id="viewMenu">
+        <button class="icon-btn" id="viewMenuBtn" type="button" title="Filters &amp; layout"
+          aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+            <path d="M2 4h7M12 4h2M2 8h2M7 8h7M2 12h9M14 12h0"/>
+            <circle cx="9.5" cy="4" r="1.6"/><circle cx="4.5" cy="8" r="1.6"/><circle cx="11.5" cy="12" r="1.6"/>
+          </svg>
+        </button>
+        <div class="menu-panel" id="viewMenuPanel" hidden>
+          <div class="menu-section">
+            <div class="menu-label">Show</div>
+            <div class="filters" id="filters"></div>
+          </div>
+          <div class="menu-section">
+            <div class="menu-label">Layout</div>
+            <div class="menu-row">
+              <button class="ghost" id="orientation" hidden>Top-down</button>
+              <button class="ghost" id="crosslinks" hidden></button>
+              <button class="ghost" id="granularity" hidden></button>
+            </div>
+            <button class="ghost" id="relayout">Reset layout</button>
+          </div>
+        </div>
+      </div>
       <button class="ghost" id="fit">Fit</button>
+      <button class="ghost" id="theme-toggle" title="Switch between dark and light">&#9788; Light</button>
     </header>
 
     <main id="stage">
@@ -306,6 +438,10 @@
       <div id="hint"></div>
       <aside id="panel" class="detail"></aside>
       <div id="detailPage" class="detail"></div>
+      <div id="aiModal">
+        <div class="modal-backdrop" data-close-modal></div>
+        <div class="modal-box" id="aiModalBox"></div>
+      </div>
     </main>
 
     <script>__VENDOR__</script>
@@ -316,6 +452,14 @@
         var GRAPH = JSON.parse(document.getElementById('graph-data').textContent);
         var STORE = '__STORAGE_KEY__';
 
+        // Applied before COLOR/PAL below are computed, and before cytoscape
+        // paints anything, so the graph never flashes the wrong theme.
+        (function initTheme() {
+          var saved;
+          try { saved = localStorage.getItem(STORE + ':theme'); } catch (e) { saved = null; }
+          if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        })();
+
         cytoscape.use(cytoscapeFcose);
 
         // ---------------------------------------------------------------- data
@@ -324,9 +468,23 @@
 
         var TYPES = ['module', 'file', 'route', 'screen', 'doc'];
         var COLOR = {};
-        TYPES.forEach(function (t) {
-          COLOR[t] = getComputedStyle(document.documentElement).getPropertyValue('--c-' + t).trim();
-        });
+        // Cytoscape paints its own canvas - it never sees CSS. These two
+        // objects are what let a theme switch reach the graph too: re-read
+        // the custom properties and cy.style().update() picks the new values
+        // up through the style functions below.
+        var PAL = {};
+        function refreshPalette() {
+          var cs = getComputedStyle(document.documentElement);
+          function v(name) { return cs.getPropertyValue(name).trim(); }
+          TYPES.forEach(function (t) { COLOR[t] = v('--c-' + t); });
+          PAL.bg = v('--bg');
+          PAL.line = v('--line');
+          PAL.lineStrong = v('--line-strong');
+          PAL.text = v('--text');
+          PAL.textDim = v('--text-dim');
+          PAL.hl = v('--hl');
+        }
+        refreshPalette();
 
         var outgoing = Object.create(null);
         var incoming = Object.create(null);
@@ -434,6 +592,17 @@
             return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
           });
         }
+        /** Guardrails and doc summaries are hand-written prose that leans on
+         * `code` spans and **bold** for emphasis - escape first so nothing in
+         * the source text can inject markup, then turn just those two markers
+         * into real tags. Anything fancier than that is out of scope; this is
+         * not a markdown renderer, just enough to stop backticks showing up
+         * as backticks. */
+        function mdInline(s) {
+          return esc(s)
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        }
         function save(key, value) { try { localStorage.setItem(STORE + ':' + key, value); } catch (e) {} }
         function load(key) { try { return localStorage.getItem(STORE + ':' + key); } catch (e) { return null; } }
 
@@ -463,6 +632,13 @@
         // ----------------------------------------------------------- cytoscape
         var cy = cytoscape({
           container: document.getElementById('cy'),
+          // 'auto' reads window.devicePixelRatio verbatim, which goes
+          // fractional the moment the browser's own zoom isn't exactly 100%
+          // (2x retina x 90% zoom = 1.8x) - a non-integer backing-store size
+          // that shows up as softened text. Rendering at a fixed, always-at-
+          // least-2x ratio supersamples instead, which stays crisp regardless
+          // of the browser's zoom level, at the cost of a larger canvas buffer.
+          pixelRatio: Math.max(2, window.devicePixelRatio || 1),
           wheelSensitivity: 0.25,
           maxZoom: 3,
           minZoom: 0.03,
@@ -472,9 +648,10 @@
               style: {
                 'background-color': function (n) { return COLOR[n.data('type')] || '#888'; },
                 label: 'data(label)',
-                color: '#ccd2e0',
+                color: function () { return PAL.text; },
                 'font-size': 11,
-                'font-family': 'ui-sans-serif, -apple-system, sans-serif',
+                'font-family': '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Display", '
+                  + '"Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, sans-serif',
                 'text-valign': 'bottom',
                 'text-margin-y': 4,
                 'text-max-width': 150,
@@ -482,7 +659,7 @@
                 width: 'data(size)',
                 height: 'data(size)',
                 'border-width': 0,
-                'text-background-color': '#0f1117',
+                'text-background-color': function () { return PAL.bg; },
                 'text-background-opacity': 0.55,
                 'text-background-padding': 2,
                 'transition-property': 'opacity',
@@ -508,21 +685,21 @@
               },
             },
             { selector: 'node[group]', style: { shape: 'round-rectangle' } },
-            { selector: 'node[?up]', style: { 'background-opacity': 0.25, 'border-width': 1.5, 'border-style': 'dashed', 'border-color': '#7c8497' } },
+            { selector: 'node[?up]', style: { 'background-opacity': 0.25, 'border-width': 1.5, 'border-style': 'dashed', 'border-color': function () { return PAL.textDim; } } },
             {
               // Feature sections in Routes, doc clusters in Docs.
               selector: ':parent',
               style: {
                 shape: 'round-rectangle',
-                'background-color': '#7aa2f7',
+                'background-color': function () { return COLOR.module; },
                 'background-opacity': 0.05,
                 'border-width': 1,
-                'border-color': '#39415a',
+                'border-color': function () { return PAL.line; },
                 label: 'data(label)',
                 'text-valign': 'top',
                 'text-halign': 'center',
                 'text-margin-y': -3,
-                color: '#9aa5c4',
+                color: function () { return PAL.textDim; },
                 'font-size': 11,
                 'font-weight': 600,
                 'text-background-opacity': 0,
@@ -533,8 +710,8 @@
               selector: 'edge',
               style: {
                 width: 'data(width)',
-                'line-color': '#39415a',
-                'target-arrow-color': '#39415a',
+                'line-color': function () { return PAL.line; },
+                'target-arrow-color': function () { return PAL.line; },
                 'target-arrow-shape': 'triangle',
                 'arrow-scale': 0.7,
                 'curve-style': 'bezier',
@@ -552,19 +729,19 @@
                 'taxi-direction': function (e) { return e.data('taxiDir') || 'downward'; },
                 'taxi-turn': 22,
                 'taxi-turn-min-distance': 8,
-                'line-color': '#5a6480',
-                'target-arrow-color': '#5a6480',
+                'line-color': function () { return PAL.lineStrong; },
+                'target-arrow-color': function () { return PAL.lineStrong; },
                 opacity: 0.95,
                 width: 1.4,
               },
             },
             {
               selector: 'edge[type="navigates"][!hierarchy]',
-              style: { 'line-color': '#e0af68', 'target-arrow-color': '#e0af68', 'line-style': 'dashed', opacity: 0.3, width: 1 },
+              style: { 'line-color': function () { return COLOR.route; }, 'target-arrow-color': function () { return COLOR.route; }, 'line-style': 'dashed', opacity: 0.3, width: 1 },
             },
-            { selector: 'edge[type="documents"]', style: { 'line-color': '#f7768e', 'target-arrow-color': '#f7768e', opacity: 0.35, width: 1 } },
+            { selector: 'edge[type="documents"]', style: { 'line-color': function () { return COLOR.doc; }, 'target-arrow-color': function () { return COLOR.doc; }, opacity: 0.35, width: 1 } },
             { selector: 'edge[type="links"]', style: { 'line-color': '#8a6577', 'target-arrow-color': '#8a6577', 'line-style': 'dotted', opacity: 0.3, width: 1 } },
-            { selector: 'edge[type="renders"]', style: { 'line-color': '#bb9af7', 'target-arrow-color': '#bb9af7', 'line-style': 'dashed' } },
+            { selector: 'edge[type="renders"]', style: { 'line-color': function () { return COLOR.screen; }, 'target-arrow-color': function () { return COLOR.screen; }, 'line-style': 'dashed' } },
             // Cross-cluster doc edges are noise until you ask about one node -
             // fully hidden by default, back at full opacity via edge.hot on select.
             { selector: 'edge.faint', style: { opacity: 0 } },
@@ -576,12 +753,39 @@
             // noise, and they are what made a dimmed graph look like scribble.
             { selector: 'edge.dim', style: { opacity: 0.05 } },
             { selector: 'node.nolabel', style: { 'text-opacity': 0 } },
-            { selector: 'edge.hot', style: { opacity: 1, width: 'data(hotWidth)', 'line-color': '#9aa5c4', 'target-arrow-color': '#9aa5c4' } },
-            { selector: 'node.hit', style: { 'border-width': 2, 'border-color': '#ffffff' } },
-            { selector: 'node.selected', style: { 'border-width': 3, 'border-color': '#ffffff', 'text-opacity': 1 } },
-            { selector: 'node.hover', style: { 'text-opacity': 1, 'border-width': 2, 'border-color': '#ffffff' } },
+            { selector: 'edge.hot', style: { opacity: 1, width: 'data(hotWidth)', 'line-color': function () { return PAL.textDim; }, 'target-arrow-color': function () { return PAL.textDim; } } },
+            { selector: 'node.hit', style: { 'border-width': 2, 'border-color': function () { return PAL.hl; } } },
+            { selector: 'node.selected', style: { 'border-width': 3, 'border-color': function () { return PAL.hl; }, 'text-opacity': 1 } },
+            { selector: 'node.hover', style: { 'text-opacity': 1, 'border-width': 2, 'border-color': function () { return PAL.hl; } } },
           ],
         });
+
+        // Cytoscape sizes its canvas backing store once, from the container's
+        // box at init time. The panel/page grid columns change that box on a
+        // CSS transition, which cytoscape never sees - the bitmap stays the
+        // old resolution and gets stretched to the new box by the browser,
+        // which is what reads as "blurry". A resize observer keeps the canvas
+        // matched to its container (and device pixel ratio) on every change,
+        // not just the window resizes cytoscape listens for on its own.
+        var cyEl = document.getElementById('cy');
+        if (window.ResizeObserver) {
+          new ResizeObserver(function () { cy.resize(); }).observe(cyEl);
+        } else {
+          window.addEventListener('resize', function () { cy.resize(); });
+        }
+
+        // A flat canvas has no sense of scale or position. This keeps the dot
+        // grid in #cy's CSS background panning and zooming with the graph, so
+        // the graph reads as sitting on a surface instead of floating on
+        // wallpaper - same trick Figma/Miro/tldraw use for an infinite canvas.
+        function updateGrid() {
+          var z = cy.zoom(), pan = cy.pan();
+          var size = Math.max(6, 22 * z);
+          cyEl.style.backgroundSize = size + 'px ' + size + 'px';
+          cyEl.style.backgroundPosition = pan.x + 'px ' + pan.y + 'px';
+        }
+        cy.on('pan zoom', updateGrid);
+        updateGrid();
 
         // ------------------------------------------------------------- sizing
         function moduleSize(n) {
@@ -634,6 +838,17 @@
           edges.forEach(function (e) {
             if (e.data.hierarchy) (kids[e.data.source] || (kids[e.data.source] = [])).push(e.data.target);
           });
+          // A module's screens can be scattered across several navigators (a
+          // bottom-tab entry here, a stack destination there); each navigator
+          // only ever sees its own slice. Knowing each module's full screen
+          // list lets a partial box name what's missing instead of just
+          // saying "2 of 3" and leaving the reader to guess.
+          var screensByModule = {};
+          GRAPH.nodes.forEach(function (n) {
+            if (n.type === 'screen' || n.type === 'route') {
+              (screensByModule[n.module] || (screensByModule[n.module] = [])).push(n);
+            }
+          });
           var isLeaf = function (id) { return !(kids[id] || []).length; };
 
           var sections = [];
@@ -685,6 +900,7 @@
                   label: area ? m + ' / ' + area.key : m,
                   ref: nodeById['module:' + m] ? 'module:' + m : null,
                   area: area ? area.key : null,
+                  mod: m,
                   ids: [],
                 };
                 order.push(key);
@@ -696,7 +912,22 @@
               var g = byMod[key];
               var members = g.ids.sort();
               if (members.length < 2) { loose.push.apply(loose, members); return; }
-              makeSection(p, key, g.label, g.ref, g.area, members);
+              // A box titled just "mySip" reads as the module's whole screen
+              // list. When this navigator only holds some of that module's
+              // screens - the rest belong to a different navigator - name
+              // what's missing, or the box quietly understates the module.
+              var label = g.label;
+              if (!g.area) {
+                var memberSet = {};
+                members.forEach(function (id) { memberSet[id] = 1; });
+                var missing = (screensByModule[g.mod] || []).filter(function (n) { return !memberSet[n.id]; });
+                if (missing.length) {
+                  var names = missing.slice(0, 3).map(function (n) { return n.label; });
+                  if (missing.length > 3) names.push('+' + (missing.length - 3) + ' more');
+                  label += ' · elsewhere: ' + names.join(', ');
+                }
+              }
+              makeSection(p, key, label, g.ref, g.area, members);
             });
             if (loose.length >= 3) makeSection(p, 'other', 'other', null, null, loose.sort());
           });
@@ -1287,6 +1518,8 @@
         var stage = document.getElementById('stage');
         var panel = document.getElementById('panel');
         var detailPage = document.getElementById('detailPage');
+        var aiModal = document.getElementById('aiModal');
+        var aiModalBox = document.getElementById('aiModalBox');
 
         function related(id, type, dir) {
           var list = (dir === 'in' ? incoming[id] : outgoing[id]) || [];
@@ -1327,16 +1560,38 @@
         // not rot at all. Merged into one red list they cancel each other out,
         // so each gets its own group and its own reason for being there.
 
-        /** The badge means one thing: git removed a file this doc still names. */
+        /** The badge means one thing: git removed a file this doc still names -
+         * not that the doc itself is gone. Spell that out, since "N removed"
+         * alone reads as "this doc was removed". */
         function staleBadge(n) {
           var gone = n.meta && n.meta.refs && n.meta.refs.deleted;
           if (!gone || !gone.length) return '';
-          return '<span class="badge">' + gone.length + ' removed</span>';
+          return '<span class="badge" title="This doc still names ' + gone.length
+            + ' file' + (gone.length === 1 ? '' : 's') + ' that git has since removed.">names '
+            + gone.length + ' deleted file' + (gone.length === 1 ? '' : 's') + '</span>';
         }
 
         function refPath(text, note) {
           return '<li><div class="path">' + esc(text) + '</div>'
             + (note ? '<div class="sub">' + note + '</div>' : '') + '</li>';
+        }
+
+        /** The "removed from the repo" list, shared by a doc's own full page
+         * and the compact inline toggle next to its badge in a list - one
+         * place decides what "removed" means so the two never disagree. */
+        function deletedRefsList(gone) {
+          return '<ul class="entries">' + gone.map(function (d) {
+            var note = d.sha
+              ? 'removed in <span class="path">' + esc(d.sha) + '</span>'
+                + (d.date ? ' on ' + esc(d.date) : '')
+              : 'removed at some point in the history';
+            // The doc may have written it module-relative; show both, or
+            // the reader cannot find the line to edit.
+            if (d.wrote && d.wrote !== d.path) {
+              note += ' &middot; written as <span class="path">' + esc(d.wrote) + '</span>';
+            }
+            return refPath(d.path, note);
+          }).join('') + '</ul>';
         }
 
         function brokenRefsHtml(n) {
@@ -1353,20 +1608,7 @@
           if (gone.length) {
             html += groupHead('Removed from the repo', pluralize(gone.length, 'path'))
               + '<p class="lead">Git has the commit that took each of these out, so the doc is'
-              + ' out of date and worth fixing.</p><ul class="entries">'
-              + gone.map(function (d) {
-                  var note = d.sha
-                    ? 'removed in <span class="path">' + esc(d.sha) + '</span>'
-                      + (d.date ? ' on ' + esc(d.date) : '')
-                    : 'removed at some point in the history';
-                  // The doc may have written it module-relative; show both, or
-                  // the reader cannot find the line to edit.
-                  if (d.wrote && d.wrote !== d.path) {
-                    note += ' &middot; written as <span class="path">' + esc(d.wrote) + '</span>';
-                  }
-                  return refPath(d.path, note);
-                }).join('')
-              + '</ul>';
+              + ' out of date and worth fixing.</p>' + deletedRefsList(gone);
           }
           if (never.length) {
             html += groupHead('Never in this repo', pluralize(never.length, 'path'))
@@ -1464,70 +1706,6 @@
           });
         }
 
-        // What a document is for. Order runs from "rules you must follow" down to
-        // "background reading", which is also the order a reader wants them in.
-        var DOC_KINDS = [
-          ['AGENTS', 'Rules for working here'],
-          ['MAP', 'Routing maps'],
-          ['SPEC', 'Specs and flows'],
-          ['REFERENCE', 'Reference'],
-          ['OTHER', 'Plans and notes'],
-        ];
-
-        /** The leftover pile once sub-areas (if any) have claimed their own docs:
-         * cut by doc kind once it is long enough that a flat list stops helping. */
-        function docGroupsRest(rest, labeled) {
-          var groups = [];
-          if (!rest.length) return groups;
-          if (rest.length > 6) {
-            var byKind = Object.create(null);
-            rest.forEach(function (d) {
-              var k = (d.meta && d.meta.docKind) || 'OTHER';
-              if (!byKind[k]) byKind[k] = [];
-              byKind[k].push(d);
-            });
-            var known = Object.create(null);
-            DOC_KINDS.forEach(function (pair) {
-              known[pair[0]] = 1;
-              if (byKind[pair[0]]) groups.push({ label: esc(pair[1]), docs: byKind[pair[0]], hideKind: true });
-            });
-            var spare = [];
-            Object.keys(byKind).sort().forEach(function (k) { if (!known[k]) spare = spare.concat(byKind[k]); });
-            if (spare.length) groups.push({ label: 'Other', docs: spare });
-            return groups;
-          }
-          groups.push({ label: labeled ? 'Across the whole module' : null, docs: rest });
-          return groups;
-        }
-        /**
-         * Docs cut into groups a reader can skim. Sub-areas first, since a KYC
-         * spec and an investor-onboarding spec are not interchangeable. What is
-         * left over is module-wide; if that pile is still long, cut it again by
-         * what each document is for. A flat list of 29 is not an answer.
-         */
-        function docGroups(slug, list) {
-          var areas = subAreas(slug);
-          if (!areas.length) return docGroupsRest(list, false);
-          var groups = [], byArea = Object.create(null), rest = [];
-          list.forEach(function (d) {
-            var a = areaOf(slug, d.path);
-            if (a) (byArea[a.key] || (byArea[a.key] = [])).push(d);
-            else rest.push(d);
-          });
-          areas.forEach(function (a) {
-            if (!byArea[a.key]) return;
-            // The group name already says the area, so the rows drop that tag.
-            groups.push({ label: '<span class="folder">' + esc(a.key) + '/</span>',
-              docs: byArea[a.key], hideArea: true });
-          });
-          return groups.concat(docGroupsRest(rest, groups.length > 0));
-        }
-        /** A module's docs still split by area/kind as docGroups does; a single
-         * area's docs are already scoped, so they only need the kind split. */
-        function docGroupsFor(slug, list, isArea) {
-          return isArea ? docGroupsRest(list, false) : docGroups(slug, list);
-        }
-
         /**
          * Step screens in the order the user walks them. The extractor writes
          * the sequence down as navigates edges between siblings; following
@@ -1587,6 +1765,38 @@
           });
           return order.map(function (m) { return byMod[m]; }).filter(function (r) { return r.node; })
             .sort(function (a, b) { return b.weight - a.weight || (a.node.label < b.node.label ? -1 : 1); });
+        }
+
+        /** Whether an imported file is the kind of thing "shared components &
+         * hooks" is asking about - its own folder name, or the whole module
+         * it lives in, says so. Anything else (utils, config, store...) is
+         * still a real dependency, just not what that section is naming. */
+        function sharedFileKind(node) {
+          var p = '/' + (node.path || '') + '/';
+          if (p.indexOf('/hooks/') !== -1 || node.module === 'hooks') return 'hook';
+          if (p.indexOf('/components/') !== -1 || node.module === 'components') return 'component';
+          return null;
+        }
+
+        /** File-level cross-boundary rows (from areaEdges), rolled up one
+         * group per source module - same shape groupFilesByModule produces,
+         * but keeping the individual files instead of collapsing them, since
+         * "which components" is the whole point of this section. */
+        function groupSharedFiles(rows) {
+          var byMod = Object.create(null), order = [];
+          rows.forEach(function (r) {
+            var m = r.node.module;
+            if (!byMod[m]) { byMod[m] = { mod: m, node: nodeById['module:' + m], files: [], weight: 0 }; order.push(m); }
+            byMod[m].files.push(r);
+            byMod[m].weight += r.weight;
+          });
+          order.forEach(function (m) {
+            byMod[m].files.sort(function (a, b) {
+              return (b.weight - a.weight) || (a.node.label < b.node.label ? -1 : 1);
+            });
+          });
+          return order.map(function (m) { return byMod[m]; })
+            .sort(function (a, b) { return b.weight - a.weight || (a.mod < b.mod ? -1 : 1); });
         }
 
         /** Everything detailHtml needs, gathered up front so the same builder
@@ -1652,23 +1862,55 @@
           return { label: 'High', cls: 'bad' };
         }
 
+        /** The plain-English version of the same tiers, free and instant -
+         * shown in the Risk modal before anyone hits the AI generate button. */
+        function riskTierMeaning(fanInCount) {
+          if (!fanInCount) {
+            return 'No other module imports code from here, so a change is very unlikely to affect anything outside it.';
+          }
+          if (fanInCount <= 5) {
+            return 'A handful of other modules import from here. A change could ripple into a few places - worth a '
+              + 'quick check of who calls in before editing.';
+          }
+          if (fanInCount <= 15) {
+            return 'A good number of other modules import from here. Changes are fairly likely to affect other parts '
+              + 'of the app, so review call sites before editing.';
+          }
+          return 'This is one of the more heavily depended-on parts of the app. A change here can ripple widely, so '
+            + 'treat edits with extra care.';
+        }
+
+        /** Keyed by module slug (or "slug/area" for an area scope) so the Risk
+         * modal can look up the numbers behind whichever chip was clicked,
+         * without threading node objects through HTML data attributes. */
+        var riskContexts = Object.create(null);
+
         /** The 3-second answer, before any section below is opened: how big,
          * how risky to touch, how documented. */
         function chipsHtml(scope) {
           var tier = riskTier(scope.fanIn.length);
           var docs = docStats(scope.docs);
+          var riskKey = scope.areaKey ? scope.slug + '/' + scope.areaKey : scope.slug;
+          riskContexts[riskKey] = {
+            label: scope.areaKey ? scope.areaKey + '/ area of ' + scope.slug : scope.slug,
+            tier: tier,
+            fanInCount: scope.fanIn.length,
+            fanInNames: scope.fanIn.map(function (r) { return r.node.label; }),
+            fileCount: scope.files.length,
+          };
           var chips = [];
           chips.push('<div class="chip"><span class="dot"></span><span class="muted">Size</span> <b>'
             + pluralize(scope.files.length, 'file') + '</b>'
             + (scope.screens.length ? ' <span class="muted">&middot; ' + pluralize(scope.screens.length, 'screen') + '</span>' : '')
             + '</div>');
-          chips.push('<div class="chip ' + tier.cls + '"><span class="dot"></span><span class="muted">Risk</span> <b>'
+          chips.push('<button type="button" class="chip ' + tier.cls + ' explainable" data-explain-risk="' + esc(riskKey) + '" '
+            + 'title="Click for what this means"><span class="dot"></span><span class="muted">Risk</span> <b>'
             + tier.label + '</b>'
             + (scope.fanIn.length
               ? ' <span class="muted">&middot; ' + pluralize(scope.fanIn.length, 'module')
                 + ' depend' + (scope.fanIn.length === 1 ? 's' : '') + ' on this</span>'
               : '')
-            + '</div>');
+            + '</button>');
           if (docs.total) {
             chips.push('<div class="chip' + (docs.stale ? ' bad' : '') + '"><span class="dot"></span><span class="muted">Docs</span> <b>'
               + docs.total + '</b>'
@@ -1724,7 +1966,7 @@
 
           function itemWithSummary(node2, chip) {
             return '<li><div class="entry-head">' + nodeLink(node2) + tag(chip) + '</div>'
-              + (node2.summary ? '<div class="sub">' + esc(node2.summary) + '</div>' : '') + '</li>';
+              + (node2.summary ? '<div class="sub">' + mdInline(node2.summary) + '</div>' : '') + '</li>';
           }
 
           /** The "does a change here ripple out" sentence - shared by the top
@@ -1760,6 +2002,7 @@
               + pluralize(risky[0].meta.fanIn, 'file') + '.');
           }
           var html = '<p class="summary">' + story.join(' ') + '</p>';
+          html += moduleAiCta(isArea ? scope.areaKey + '/ area of ' + slug : slug, scope);
 
           // The folders on disk already name the sub-journeys inside a module.
           // Say them out loud rather than flattening everything into one bag.
@@ -1818,35 +2061,39 @@
             html += collapsible('Screens', scope.screens.length, screenShape(all), screensBody);
           }
 
-          if (scope.docs.length) {
-            var guardTotal = 0;
-            var staleCount = docStats(scope.docs).stale;
-            scope.docs.forEach(function (d) {
-              guardTotal += ((d.meta && d.meta.guardrails) || []).length;
+          // What this module borrows from the rest of the codebase, one file
+          // at a time - not just "10 other modules", but which components and
+          // hooks specifically, since that's what you'd go read next.
+          var sharedRows = areaEdges({ files: scope.files }, 'out');
+          if (sharedRows.length) {
+            var sharedGroups = groupSharedFiles(sharedRows);
+            var compCount = 0, hookCount = 0;
+            sharedRows.forEach(function (r) {
+              var k = sharedFileKind(r.node);
+              if (k === 'component') compCount++; else if (k === 'hook') hookCount++;
             });
-            var docLead = 'What is written down about ' + (isArea ? 'this area' : 'this module') + '.';
-            if (guardTotal) {
-              docLead += ' ' + pluralize(guardTotal, 'rule') + ' to respect '
-                + (guardTotal === 1 ? 'is' : 'are') + ' spelled out below.';
-            }
-            if (staleCount) {
-              docLead += ' ' + pluralize(staleCount, 'doc') + ' still name'
-                + (staleCount === 1 ? 's' : '') + ' files git has since removed.';
-            }
-            var docsBody = '<p class="lead">' + docLead + '</p>';
-            docGroupsFor(slug, scope.docs, isArea).forEach(function (g) {
-              if (g.label) docsBody += groupHead(g.label, pluralize(g.docs.length, 'doc'));
-              docsBody += '<ul class="entries">'
-                + g.docs.map(function (d) { return docItem(d, g, slug, scope.modPath); }).join('') + '</ul>';
+            var sharedBits = [];
+            if (compCount) sharedBits.push(pluralize(compCount, 'component'));
+            if (hookCount) sharedBits.push(pluralize(hookCount, 'hook'));
+            var sharedLead = 'What ' + (isArea ? 'this area' : 'this module') + ' pulls in from elsewhere: '
+              + pluralize(sharedRows.length, 'file') + ' across ' + pluralize(sharedGroups.length, 'other module')
+              + (sharedBits.length ? ', including ' + andList(sharedBits) : '') + '.';
+            var sharedBody = '<p class="lead">' + sharedLead + '</p>';
+            sharedGroups.forEach(function (g) {
+              sharedBody += groupHead(g.node ? nodeLink(g.node) : esc(g.mod), pluralize(g.files.length, 'file'));
+              sharedBody += rowList(g.files.map(function (r) {
+                var k = sharedFileKind(r.node);
+                return row(nodeLink(r.node) + tag(k), pluralize(r.weight || 1, 'import'));
+              }));
             });
-            var docsTeaser = staleCount
-              ? pluralize(staleCount, 'doc') + ' still name' + (staleCount === 1 ? 's' : '') + ' files git has since removed'
-              : pluralize(scope.docs.length, 'doc') + ' on file';
-            html += collapsible('Docs and specs', scope.docs.length, docsTeaser, docsBody, { flag: !!staleCount });
+            var sharedTeaser = pluralize(sharedRows.length, 'file') + ' from ' + pluralize(sharedGroups.length, 'other module')
+              + (sharedBits.length ? ' &middot; ' + andList(sharedBits) : '');
+            html += collapsible('Shared components & hooks used', sharedRows.length, sharedTeaser, sharedBody);
           }
 
           // Three different questions - who feels a change, what can break this,
           // what is fragile inside - so three headed blocks, not one long run.
+          // Real, but not the reason this page got opened - it goes last.
           function importRows(list) {
             return rowList(list.map(function (r) {
               return row(nodeLink(r.node), pluralize(r.weight || 1, 'import'));
@@ -1886,6 +2133,9 @@
           var changeTeaser = changeSentence() + (risky.length ? ' Riskiest: ' + nodeLink(risky[0]) + '.' : '');
           html += collapsible('If you change ' + boundary, null, changeTeaser, changeBody);
 
+          // The raw file inventory - real, but a reader opens this page to
+          // learn what a module does, not to browse a folder listing. It can
+          // run into the hundreds of entries, so it goes dead last.
           if (scope.files.length) {
             var filesLead = 'The files that make up ' + (isArea ? 'this area' : 'this module')
               + ', grouped as the folders sit on disk.';
@@ -1903,7 +2153,18 @@
             }
             var filesBody = '<p class="lead">' + filesLead + '</p>';
             var folderTeaserBits = [];
-            tree.groups.forEach(function (g) {
+            // components/ and hooks/ are what a reader is asking for by name;
+            // put them first, then the rest in the order they sit on disk.
+            var pinned = ['components', 'hooks'];
+            var orderedGroups = tree.groups.slice().sort(function (a, b) {
+              var pa = pinned.indexOf(a.label.toLowerCase());
+              var pb = pinned.indexOf(b.label.toLowerCase());
+              if (pa === -1 && pb === -1) return 0;
+              if (pa === -1) return 1;
+              if (pb === -1) return -1;
+              return pa - pb;
+            });
+            orderedGroups.forEach(function (g) {
               var gBase = scope.basePath + '/' + g.label;
               var inner = g.subs.map(function (s) {
                 return folderDetails(s.label + '/', s.files.length, fileList(s.files, gBase + '/' + s.label));
@@ -1917,8 +2178,9 @@
             }
             var folderTeaser = folderTeaserBits.slice(0, 4).join(' &middot; ')
               + (folderTeaserBits.length > 4 ? ' &middot; +' + (folderTeaserBits.length - 4) + ' more' : '');
-            html += collapsible('Inside, folder by folder', scope.files.length, folderTeaser, filesBody);
+            html += collapsible('Components, hooks and other files here', scope.files.length, folderTeaser, filesBody);
           }
+
           return html;
         }
 
@@ -1930,19 +2192,28 @@
           if (segs.length < 2) return '';
           return segs.slice(0, Math.min(segs.length - 1, 2)).join('/') + '/';
         }
-        function docItem(d, group, slug, modPath) {
+        function docItem(d, slug, modPath) {
           var guards = (d.meta && d.meta.guardrails) || [];
+          var gone = (d.meta && d.meta.refs && d.meta.refs.deleted) || [];
           var dArea = areaOf(slug, d.path);
           var out = '<li><div class="entry-head">' + nodeLink(d)
-            + (group.hideArea || !dArea ? '' : tag(dArea.key + '/', 'area'))
+            + (!dArea ? '' : tag(dArea.key + '/', 'area'))
             + (dArea ? '' : tag(docWhere(d, modPath), 'loc'))
-            + (group.hideKind ? '' : tag(d.meta && d.meta.docKind))
+            + tag(d.meta && d.meta.docKind)
             + staleBadge(d)
             + '</div>';
-          if (d.summary) out += '<div class="sub">' + esc(d.summary) + '</div>';
+          if (d.summary) out += '<div class="sub">' + mdInline(d.summary) + '</div>';
+          // The badge says "names 2 deleted files" - useless on its own unless
+          // the reader can see which files, so the answer sits one click away,
+          // right here, instead of only on the doc's own full page.
+          if (gone.length) {
+            out += '<details><summary class="muted">' + pluralize(gone.length, 'file')
+              + ' this doc still names ' + (gone.length === 1 ? 'has' : 'have') + ' since been removed by git</summary>'
+              + deletedRefsList(gone) + '</details>';
+          }
           if (guards.length) {
             out += '<details><summary class="muted">' + pluralize(guards.length, 'guardrail') + '</summary>'
-              + '<div class="guard-list">' + guards.map(function (g) { return '<div class="guard">' + esc(g) + '</div>'; }).join('') + '</div>'
+              + '<div class="guard-list">' + guards.map(function (g) { return '<div class="guard">' + mdInline(g) + '</div>'; }).join('') + '</div>'
               + '</details>';
           }
           return out + '</li>';
@@ -1997,6 +2268,43 @@
             + 'Copy prompt for an AI agent</button></div>'
             + '<pre class="prompt-box" id="ai-prompt-box">' + esc(prompt) + '</pre>'
             + '</div>';
+        }
+
+        /** A module page is a generated overview - it does not read prose the
+         * way a person does, so it stops well short of a full explanation.
+         * This hands a reader who wants more a ready-made prompt: send an
+         * agent to everything the page already found (docs, screens, source)
+         * and have it come back with the deeper story. */
+        function moduleAgentPrompt(label, scope) {
+          var lines = [
+            'I am looking at ' + label + ' in this codebase and want to understand it in more depth than a '
+              + 'generated overview can give. Read through its source files, screens and documentation, and '
+              + 'explain in plain English what it does, why it is structured the way it is, and how its pieces '
+              + 'fit together end to end.',
+            '',
+            'Where to look:',
+            '- Source: ' + scope.basePath,
+          ];
+          if (scope.docs.length) {
+            lines.push('- Docs:');
+            scope.docs.forEach(function (d) { lines.push('  - ' + d.path); });
+          }
+          if (scope.screens.length) {
+            lines.push('- Screens the user sees: ' + scope.screens.map(function (s) { return s.label; }).join(', '));
+          }
+          lines.push('', 'Ask me for anything else you need before you start.');
+          return lines.join('\n');
+        }
+
+        function moduleAiCta(label, scope) {
+          var prompt = moduleAgentPrompt(label, scope);
+          var body = '<p class="lead">This page is generated straight from the code - a starting point, not '
+            + 'the full story. Hand this prompt to an AI coding agent and it will read through the docs, '
+            + 'screens and source above and explain ' + esc(label) + ' the way a teammate would.</p>'
+            + '<div class="panel-actions"><button class="ghost copy-prompt" data-copy="module-ai-prompt-box">'
+            + 'Copy prompt for an AI agent</button></div>'
+            + '<pre class="prompt-box" id="module-ai-prompt-box">' + esc(prompt) + '</pre>';
+          return collapsible('Want to know more?', null, 'Generate a deeper explanation with an AI agent', body);
         }
 
         /**
@@ -2144,7 +2452,7 @@
           var items = (flow.steps || []).map(function (s) {
             var kindTag = s.kind && s.kind !== 'step' ? tag(s.kind) : '';
             return '<li id="flow-step-' + esc(s.id) + '"><div class="entry-head"><b>' + esc(s.label) + '</b>' + kindTag + '</div>'
-              + (s.detail ? '<div class="sub">' + esc(s.detail) + '</div>' : '') + '</li>';
+              + (s.detail ? '<div class="sub">' + mdInline(s.detail) + '</div>' : '') + '</li>';
           }).join('');
           return '<ol class="steps">' + items + '</ol>';
         }
@@ -2184,8 +2492,8 @@
 
         function closeDetailPage() { detailPage.classList.remove('on'); }
 
-        /** Same drawer treatment as any other node, scoped to one area inside a
-         * module - a KYC box on the Routes graph should not dump the whole
+        /** Same full-page treatment a module gets, scoped to one area inside
+         * it - a KYC box on the Routes graph should not dump the whole
          * onboarding module. */
         function openAreaPanel(slug, areaKey) {
           var mod = nodeById['module:' + slug];
@@ -2194,15 +2502,16 @@
           var area = null;
           for (var i = 0; i < areas.length; i++) { if (areas[i].key === areaKey) { area = areas[i]; break; } }
           if (!area) { openPanel('module:' + slug); return; }
-          closeDetailPage();
           var areaScope = areaDetailScope(mod, area);
-          var header = '<button class="ghost close" data-close="1">Close</button>'
-            + '<p class="crumb">' + nodeLink(mod) + ' / ' + esc(area.key) + '/</p>'
+          var header = '<p class="crumb">' + nodeLink(mod) + ' / ' + esc(area.key) + '/</p>'
             + '<div class="kind">area of ' + esc(slug) + '</div>'
             + '<h2>' + esc(area.key) + '/</h2>'
             + '<div class="path muted">' + esc(area.prefix.slice(0, -1)) + '</div>';
-          panel.innerHTML = header + chipsHtml(areaScope) + detailHtml(areaScope);
-          stage.classList.add('panel-open', 'panel-wide');
+          detailPage.innerHTML = '<div class="detail-inner wide">'
+            + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
+            + header + chipsHtml(areaScope) + detailHtml(areaScope) + '</div>';
+          detailPage.classList.add('on');
+          stage.classList.remove('panel-open');
         }
 
         /** A doc's full story fills the window too - a spec with guardrails and
@@ -2236,7 +2545,7 @@
 
           if (guardrails.length) {
             html += '<section><h3>Guardrails</h3>'
-              + '<div class="guard-list">' + guardrails.map(function (g) { return '<div class="guard">' + esc(g) + '</div>'; }).join('') + '</div>'
+              + '<div class="guard-list">' + guardrails.map(function (g) { return '<div class="guard">' + mdInline(g) + '</div>'; }).join('') + '</div>'
               + '</section>';
           }
           html += listSection('Describes', related(n.id, 'documents', 'out').map(function (r) { return nodeLink(r.node); }));
@@ -2248,7 +2557,7 @@
             + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
             + html + '</div>';
           detailPage.classList.add('on');
-          stage.classList.remove('panel-open', 'panel-wide');
+          stage.classList.remove('panel-open');
         }
 
         /** A doc cluster box (a feature section in the Docs view, e.g. "Portfolio"
@@ -2295,20 +2604,19 @@
             + '<section><h3>Docs in this section <span class="muted">' + docs.length + '</span></h3>'
             + '<p class="lead">' + lead + '</p>'
             + '<ul class="entries">' + docs.map(function (d) {
-                return docItem(d, {}, mod ? mod.module : null, mod ? mod.path : '');
+                return docItem(d, mod ? mod.module : null, mod ? mod.path : '');
               }).join('') + '</ul>'
             + '</section>';
 
-          detailPage.innerHTML = '<div class="detail-inner">'
+          detailPage.innerHTML = '<div class="detail-inner wide">'
             + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
             + header + body + '</div>';
           detailPage.classList.add('on');
-          stage.classList.remove('panel-open', 'panel-wide');
+          stage.classList.remove('panel-open');
         }
 
         function openPanel(id) {
           closeDetailPage();
-          stage.classList.remove('panel-wide');
           if (id.indexOf('group:') === 0) { openFolderPanel(id); return; }
           var n = nodeById[id];
           if (!n) return;
@@ -2327,16 +2635,18 @@
               : '<div class="path muted">' + esc(n.path) + '</div>';
           }
           if (n.meta && n.meta.routePath) html += '<div class="path muted">' + esc(n.meta.routePath) + '</div>';
-          if (n.summary) html += '<p class="summary">' + esc(n.summary) + '</p>';
+          if (n.summary) html += '<p class="summary">' + mdInline(n.summary) + '</p>';
 
-          // A module gets the same drawer as everything else, just wider and
-          // with its own chips and collapsible sections - the map stays
-          // visible instead of being replaced by a full page.
+          // A module's story - screens, folders, docs, blast radius - runs
+          // long. The small drawer squeezed it into one narrow column; a full
+          // page gives it room, same as a doc gets.
           if (n.type === 'module') {
             var modScope = moduleDetailScope(n);
-            panel.innerHTML = '<button class="ghost close" data-close="1">Close</button>'
-              + html + chipsHtml(modScope) + detailHtml(modScope);
-            stage.classList.add('panel-open', 'panel-wide');
+            detailPage.innerHTML = '<div class="detail-inner wide">'
+              + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
+              + html + chipsHtml(modScope) + detailHtml(modScope) + '</div>';
+            detailPage.classList.add('on');
+            stage.classList.remove('panel-open');
             return;
           }
 
@@ -2384,7 +2694,7 @@
           }
           if (guardrails.length) {
             html += '<section><h3>Guardrails</h3>'
-              + '<div class="guard-list">' + guardrails.map(function (g) { return '<div class="guard">' + esc(g) + '</div>'; }).join('') + '</div>'
+              + '<div class="guard-list">' + guardrails.map(function (g) { return '<div class="guard">' + mdInline(g) + '</div>'; }).join('') + '</div>'
               + '</section>';
           }
           html += listSection('Describes', related(n.id, 'documents', 'out').map(function (r) { return nodeLink(r.node); }));
@@ -2444,7 +2754,135 @@
           }
         }
 
+        // ---------------------------------------------------------- risk modal
+        /** The key never goes anywhere but here and Anthropic - no server of
+         * ours sits in between, so localStorage on this page is the only
+         * place it lives. */
+        var AI_KEY_STORAGE = 'codemap-anthropic-key';
+        function getApiKey() {
+          try { return localStorage.getItem(AI_KEY_STORAGE) || ''; } catch (e) { return ''; }
+        }
+        function setApiKey(key) {
+          try {
+            if (key) localStorage.setItem(AI_KEY_STORAGE, key);
+            else localStorage.removeItem(AI_KEY_STORAGE);
+          } catch (e) { /* storage disabled (private mode, etc.) - key just won't persist */ }
+        }
+        function openModal(html) {
+          aiModalBox.innerHTML = '<button type="button" class="modal-close" data-close-modal aria-label="Close">&times;</button>' + html;
+          aiModal.classList.add('on');
+        }
+        function closeModal() { aiModal.classList.remove('on'); }
+
+        var currentRiskKey = null;
+        function openRiskModal(key) {
+          var ctx = riskContexts[key];
+          if (!ctx) return;
+          currentRiskKey = key;
+          openModal(riskModalBody(ctx));
+        }
+        function riskModalBody(ctx) {
+          var body = '<h3>Risk: ' + esc(ctx.tier.label) + '</h3>'
+            + '<p class="lead">' + riskTierMeaning(ctx.fanInCount) + '</p>';
+          if (ctx.fanInNames.length) {
+            body += '<p class="lead">Depended on by: '
+              + andList(ctx.fanInNames.map(function (n) { return esc(n); })) + '.</p>';
+          }
+          return body + '<div id="ai-generate-area">' + aiGenerateSection() + '</div>';
+        }
+        /** A key-entry form the first time, a plain Generate button once one
+         * is saved - the same markup either state hands back to swap itself
+         * back in after a call succeeds, fails, or the user changes keys. */
+        function aiGenerateSection() {
+          if (!getApiKey()) {
+            return '<p class="lead">Want a deeper, plain-English write-up? Paste your own Anthropic API key below - '
+              + 'it is saved only in this browser’s local storage for this page. The request below goes '
+              + 'straight from your browser to Anthropic’s API - we never see it.</p>'
+              + '<input type="password" class="key-input" id="ai-key-input" placeholder="sk-ant-..." autocomplete="off" />'
+              + '<div class="panel-actions"><button class="ghost" data-ai-generate="1">Save key &amp; generate</button></div>';
+          }
+          return '<div class="panel-actions"><button class="ghost" data-ai-generate="1">Generate a deeper explanation</button></div>'
+            + '<a href="#" class="change-key" data-ai-change-key="1">Use a different API key</a>';
+        }
+        function changeAiKey() {
+          setApiKey('');
+          var area = document.getElementById('ai-generate-area');
+          if (area) area.innerHTML = aiGenerateSection();
+        }
+        function runAiGenerate() {
+          var ctx = riskContexts[currentRiskKey];
+          var area = document.getElementById('ai-generate-area');
+          if (!ctx || !area) return;
+          var keyInput = document.getElementById('ai-key-input');
+          var apiKey = (keyInput ? keyInput.value.trim() : '') || getApiKey();
+          if (!apiKey) return;
+          setApiKey(apiKey);
+          area.innerHTML = '<p class="lead"><span class="spinner"></span> Generating - this goes straight from '
+            + 'your browser to Anthropic using the key above, and back. Nothing passes through us.</p>';
+          var prompt = 'You are explaining a risk indicator on a generated code map to a non-technical reader.\n\n'
+            + 'Scope: ' + ctx.label + '\n'
+            + 'Risk tier: ' + ctx.tier.label + ' (' + pluralize(ctx.fanInCount, 'other module') + ' import from it)\n'
+            + (ctx.fanInNames.length ? 'Those modules: ' + ctx.fanInNames.join(', ') + '\n' : '')
+            + 'Size: ' + pluralize(ctx.fileCount, 'file') + '\n\n'
+            + 'In 2-4 short sentences with no jargon, explain what this risk level means in practice and what '
+            + 'someone should watch for before changing files here. Do not just restate the numbers back.';
+          callClaude(apiKey, prompt, function (err, text) {
+            // Bail if the modal moved on (closed, or a different chip opened)
+            // while this request was in flight - #ai-generate-area now points
+            // at a fresh element, not the one this callback captured.
+            if (document.getElementById('ai-generate-area') !== area) return;
+            if (err) {
+              if (err.status === 401) setApiKey('');
+              area.innerHTML = '<div class="ai-error">' + esc(err.message || 'Could not reach Anthropic.') + '</div>'
+                + aiGenerateSection();
+              return;
+            }
+            area.innerHTML = '<div class="ai-output">' + esc(text) + '</div>'
+              + '<a href="#" class="change-key" data-ai-change-key="1">Use a different API key</a>';
+          });
+        }
+        /** Direct browser-to-Anthropic call - this file has no server of its
+         * own, so the header below is what Anthropic requires to allow a
+         * request like this straight from a page instead of a backend. */
+        function callClaude(apiKey, prompt, cb) {
+          fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+              'anthropic-dangerous-direct-browser-access': 'true',
+            },
+            body: JSON.stringify({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 220,
+              messages: [{ role: 'user', content: prompt }],
+            }),
+          }).then(function (res) {
+            return res.json().then(function (json) {
+              if (!res.ok) {
+                var err = new Error((json.error && json.error.message) || ('Anthropic API error (' + res.status + ')'));
+                err.status = res.status;
+                throw err;
+              }
+              return json;
+            });
+          }).then(function (json) {
+            var text = (json.content || []).map(function (b) { return b.text || ''; }).join('').trim();
+            cb(null, text || 'Claude returned an empty response.');
+          }).catch(function (err) {
+            cb(err.status ? err : { message: 'Could not reach Anthropic from this browser - this can happen if the '
+              + 'request was blocked (e.g. by an extension) or you are offline.' });
+          });
+        }
+
         stage.addEventListener('click', function (ev) {
+          if (ev.target.closest('[data-close-modal]')) { closeModal(); return; }
+          var explainBtn = ev.target.closest('[data-explain-risk]');
+          if (explainBtn) { openRiskModal(explainBtn.getAttribute('data-explain-risk')); return; }
+          if (ev.target.closest('[data-ai-generate]')) { runAiGenerate(); return; }
+          var changeKeyLink = ev.target.closest('[data-ai-change-key]');
+          if (changeKeyLink) { ev.preventDefault(); changeAiKey(); return; }
           if (ev.target.closest('[data-close]')) { stage.classList.remove('panel-open'); return; }
           if (ev.target.closest('[data-close-page]')) { closeDetailPage(); return; }
           var copyBtn = ev.target.closest('[data-copy]');
@@ -2483,11 +2921,19 @@
 
         document.addEventListener('keydown', function (ev) {
           if (ev.key !== 'Escape') return;
+          if (aiModal.classList.contains('on')) { closeModal(); return; }
           if (detailPage.classList.contains('on')) { closeDetailPage(); return; }
           if (stage.classList.contains('panel-open')) {
             stage.classList.remove('panel-open');
             state.selected = null;
             applyDim();
+          }
+        });
+
+        stage.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' && ev.target && ev.target.id === 'ai-key-input') {
+            ev.preventDefault();
+            runAiGenerate();
           }
         });
 
@@ -2567,12 +3013,9 @@
           var n = nodeById[id];
           if (!n) return;
           if (n.type === 'file') { enterFocus(id); return; }
-          // A doc's full page (just opened above by openPanel) replaces the
-          // whole screen, so there is nothing left to frame there. A module now
-          // opens in the docked drawer instead - the map stays visible, so it
-          // still deserves to be switched to a view where the module exists and
-          // framed, same as any other node.
-          if (n.type === 'doc') return;
+          // A doc's or module's full page (just opened above by openPanel)
+          // replaces the whole screen, so there is nothing left to frame there.
+          if (n.type === 'doc' || n.type === 'module') return;
           var target = n.type === 'route' || n.type === 'screen' ? 'routes' : 'overview';
           setView(target);
           var el2 = cy.getElementById(id);
@@ -2663,6 +3106,41 @@
         if (!hasDocs) document.querySelector('[data-view="docs"]').title = 'No docs matched in this repo';
 
         document.getElementById('fit').addEventListener('click', function () { cy.fit(undefined, 50); });
+
+        var viewMenuBtn = document.getElementById('viewMenuBtn');
+        var viewMenuPanel = document.getElementById('viewMenuPanel');
+        function closeViewMenu() {
+          viewMenuPanel.hidden = true;
+          viewMenuBtn.setAttribute('aria-expanded', 'false');
+        }
+        viewMenuBtn.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var opening = viewMenuPanel.hidden;
+          viewMenuPanel.hidden = !opening;
+          viewMenuBtn.setAttribute('aria-expanded', String(opening));
+        });
+        document.addEventListener('click', function (ev) {
+          if (!viewMenuPanel.hidden && !ev.target.closest('#viewMenu')) closeViewMenu();
+        });
+        document.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Escape' && !viewMenuPanel.hidden) closeViewMenu();
+        });
+
+        var themeBtn = document.getElementById('theme-toggle');
+        function themeLabel() {
+          var light = document.documentElement.getAttribute('data-theme') === 'light';
+          themeBtn.innerHTML = light ? '&#9788; Dark' : '&#9788; Light';
+        }
+        themeLabel();
+        themeBtn.addEventListener('click', function () {
+          var light = document.documentElement.getAttribute('data-theme') === 'light';
+          if (light) document.documentElement.removeAttribute('data-theme');
+          else document.documentElement.setAttribute('data-theme', 'light');
+          save('theme', light ? 'dark' : 'light');
+          themeLabel();
+          refreshPalette();
+          cy.style().update();
+        });
         document.getElementById('relayout').addEventListener('click', function () {
           userMoved[state.view] = Object.create(null);
           computed[state.view] = Object.create(null);
