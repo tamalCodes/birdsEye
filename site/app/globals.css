@@ -285,20 +285,12 @@ body {
 .theme-toggle svg { transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .theme-toggle:active svg { transform: rotate(-35deg) scale(0.9); }
 
-/* Draw-in for the hero map, once, gently. */
-@keyframes be-draw {
-  from { stroke-dashoffset: var(--dash, 400); }
-  to { stroke-dashoffset: 0; }
-}
-
+/* Section reveals. The hero map drives its own motion through Motion One
+   (components/MapVisual.tsx), so the old stroke-draw and float keyframes that
+   used to live here are gone rather than left dead. */
 @keyframes be-fade-up {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: none; }
-}
-
-@keyframes be-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
 }
 
 .reveal {

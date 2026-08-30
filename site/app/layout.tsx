@@ -72,10 +72,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {/* Reveal starts its children at opacity 0 and only shows them once an
-            IntersectionObserver fires. With no JS that never happens and most
-            of the page stays invisible, so unhide it outright in that case. */}
+            IntersectionObserver fires, and the hero map's Motion elements start
+            hidden and undrawn. With no JS neither ever resolves and most of the
+            page stays invisible, so unhide both outright in that case. */}
         <noscript>
-          <style>{`[data-reveal]{opacity:1!important;transform:none!important}`}</style>
+          <style>{`[data-reveal]{opacity:1!important;transform:none!important;stroke-dasharray:none!important;stroke-dashoffset:0!important}`}</style>
         </noscript>
       </head>
       <body className="min-h-full">
