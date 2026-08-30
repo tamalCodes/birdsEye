@@ -43,12 +43,15 @@ export default function Home() {
    The three editors are the targets of the `editor` config: clicking a file in
    the finished map opens it there. Both halves are labelled as such, so the row
    never reads as a claim that the plugin runs inside an editor. */
-const HOST = { name: "Claude Code", Mark: ClaudeMark };
+/* Sizes are optical, not uniform: a solid square (JetBrains) and a solid cube
+   (Cursor) read heavier than a spiky burst or a thin ribbon at the same box
+   size, so the two solids come down a notch to sit level with the rest. */
+const HOST = { name: "Claude Code", Mark: ClaudeMark, size: "h-5 w-5" };
 
 const EDITORS = [
-  { name: "VS Code", Mark: VsCodeMark },
-  { name: "Cursor", Mark: CursorMark },
-  { name: "JetBrains", Mark: JetBrainsMark },
+  { name: "VS Code", Mark: VsCodeMark, size: "h-5 w-5" },
+  { name: "Cursor", Mark: CursorMark, size: "h-[1.1rem] w-[1.1rem]" },
+  { name: "JetBrains", Mark: JetBrainsMark, size: "h-[1.05rem] w-[1.05rem]" },
 ];
 
 function Hero() {
@@ -94,7 +97,7 @@ function ToolRow() {
   return (
     <div className="mt-14 flex flex-wrap items-center justify-center gap-x-7 gap-y-4 text-sm text-faint">
       <span className="flex items-center gap-2.5 text-muted">
-        <HOST.Mark className="h-5 w-5 text-clay" />
+        <HOST.Mark className={`${HOST.size} text-clay`} />
         {HOST.name}
       </span>
 
@@ -104,7 +107,7 @@ function ToolRow() {
 
       {EDITORS.map((t) => (
         <span key={t.name} className="flex items-center gap-2.5 text-muted">
-          <t.Mark className="h-5 w-5" />
+          <t.Mark className={t.size} />
           {t.name}
         </span>
       ))}
