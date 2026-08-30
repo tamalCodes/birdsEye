@@ -11,9 +11,10 @@
 > Expect rough edges and breaking changes.
 > Only one of the four planned views is wired up so far (see [The view](#the-view)).
 
-One command, one HTML file: the modules of a codebase and how they depend on
-each other, its routes and screens, and the spec files an agent should read
-before touching any of it.
+One command, one HTML file: an agent-readiness audit of the repo - which docs
+cover each module, which guardrails have gone stale, and which specs an agent
+should read before touching the code - over a map of the modules, dependencies,
+routes and screens that audit is checked against.
 
 > The name lives in exactly one place -
 > [`scripts/lib/const.mjs`](scripts/lib/const.mjs) - so renaming it renames the
@@ -21,8 +22,8 @@ before touching any of it.
 
 The use case that shaped every decision here:
 
-> *I need to fix a bug in the auth module. What is auth connected to, and which
-> spec files should I read first?*
+> *Before this agent edits the auth module - does it know what auth is wired to,
+> which guardrails apply, and which spec to read first?*
 
 Open the map, click `auth`, get the answer in five seconds.
 

@@ -59,24 +59,39 @@ function Hero() {
     <section className="shell relative pt-20 pb-20 md:pt-28 md:pb-28">
       <div className="reveal mx-auto max-w-3xl text-center">
         <h1 className="font-display t-hero text-ink">
-          See a whole codebase{" "}
-          <span className="font-display-italic text-clay">at one glance</span>
+          Find out where your agent{" "}
+          <span className="font-display-italic text-clay">will get lost</span>
         </h1>
-        <p className="mx-auto mt-6 max-w-lg text-lg leading-relaxed text-muted md:text-xl">
-          One command turns any repository into a single HTML file: its modules, its
-          screens, and the docs an agent should read first.
+        {/* Two lines at max-w-xl on desktop. The artifact ("one HTML file") moved
+            down to the line under the buttons: in the subhead it pushed this to
+            four lines, and it is a detail, not the reason to care. */}
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted md:text-xl">
+          One command audits your repo for stale guardrails, uncovered modules, and the
+          specs an agent should read first.
         </p>
 
-        <div className="mx-auto mt-10 max-w-md">
-          <p className="mb-3 text-sm text-faint">
-            Run it in Claude Code, in any repo
-          </p>
-          <CopyCommand command={MAP_COMMAND} />
-          <p className="mt-3 text-sm text-faint">
-            Not installed yet?{" "}
-            <a href="#install" className="link-underline text-muted hover:text-ink">
-              Two commands and you are set
+        {/* No copyable command up here on purpose. `/birdseye:map` only runs for
+            somebody who already has the plugin, which is nobody arriving on this
+            page for the first time - so as a hero call to action it asked the one
+            thing a new visitor cannot do. The command still leads the Install
+            section, three lines down, where it is actually runnable. */}
+        <div className="mt-10 flex flex-col items-center">
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a
+              href="#install"
+              className="inline-flex items-center rounded-lg bg-clay px-5 py-2.5 font-medium text-canvas transition-colors hover:bg-clay-bright"
+            >
+              Install the plugin
             </a>
+            <a
+              href="#what"
+              className="inline-flex items-center rounded-lg border border-hair px-5 py-2.5 text-muted transition-colors hover:border-clay hover:text-ink"
+            >
+              See what it finds
+            </a>
+          </div>
+          <p className="mt-4 text-sm text-faint">
+            Two commands to install, one to run. One HTML file out, no server.
           </p>
         </div>
 
@@ -117,7 +132,22 @@ function ToolRow() {
 
 /* ------------------------------------------------------------- what it does */
 
+/* Order is the argument: the readiness audit is what birdsEye is for, and the
+   structural views under it are the evidence that the audit can be trusted.
+   Dot colours stay bound to their concept, not to their position - they echo
+   the map legend further down (clay module, ochre route, rose doc), so
+   reshuffling them to keep clay in the lead slot would break that link. */
 const CAPABILITIES = [
+  {
+    dot: "var(--olive)",
+    title: "Agent-readiness, per module",
+    body: "Every module answered on one question: does an agent have what it needs before it touches this code? The docs that cover it, the guardrails it has to respect, the flow it should follow - and, where those are missing, a gap you can actually see.",
+  },
+  {
+    dot: "var(--rose)",
+    title: "Guardrails that went stale",
+    body: "Docs are matched to the code they really describe, guardrails quoted verbatim, then glossed in plain English. Any spec still pointing at a file git has since deleted is flagged - that is the one an agent will read and confidently act on.",
+  },
   {
     dot: "var(--clay)",
     title: "Modules & dependencies",
@@ -128,16 +158,6 @@ const CAPABILITIES = [
     title: "Routes & screens",
     body: "The navigation tree, laid out like an org chart and boxed by feature. Step-flows like onboarding or checkout show their real order, not a pile of screens.",
   },
-  {
-    dot: "var(--rose)",
-    title: "Specs & guardrails",
-    body: "The docs that actually cover each module, glossed in plain English - and a flag on any that still point at a file git has since deleted.",
-  },
-  {
-    dot: "var(--olive)",
-    title: "Agent-readiness",
-    body: "Each module's docs turned into a step-by-step flow a non-technical reader can follow. Built during extraction, so the page opens straight to it.",
-  },
 ];
 
 function WhatItDoes() {
@@ -145,12 +165,12 @@ function WhatItDoes() {
     <Section
       id="what"
       kicker="What it does"
-      title="Four things about a repo, in one picture"
+      title="What an agent knows before it touches your code"
       intro={
         <>
           <span className="font-display-italic text-ink">
-            &ldquo;I need to fix a bug in auth. What is auth connected to, and which spec
-            files should I read first?&rdquo;
+            &ldquo;Before this agent edits auth - does it know what auth is wired to,
+            which guardrails apply, and which spec to read first?&rdquo;
           </span>{" "}
           Open the map, click the node, get the answer in five seconds. Every decision in
           birdsEye was shaped by that one moment.
@@ -310,7 +330,7 @@ function HowItWorks() {
       title="Mechanical work is code. Judgement is the model."
       intro="Anything a script can do exactly is a script, so it is exact and free. The model runs only where a person would have to think - and only once, because the result is cached. Same input, same output, every time."
     >
-      <ol className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-hair bg-hair sm:grid-cols-2 lg:grid-cols-3">
+      <ol className="mt-12 grid gap-px overflow-hidden rounded-t-2xl border border-hair bg-hair sm:grid-cols-2 lg:grid-cols-3">
         {PIPELINE.map((s, i) => (
           <Reveal as="li" key={s.name} delay={i * 0.05} className="bg-canvas p-6 md:p-7">
             <p className="flex items-center gap-2 font-mono text-[0.9rem] text-ink">
@@ -324,18 +344,15 @@ function HowItWorks() {
             <p className="mt-2.5 text-[0.95rem] leading-relaxed text-muted">{s.body}</p>
           </Reveal>
         ))}
-        <Reveal
-          as="li"
-          delay={0.3}
-          className="flex items-center bg-raised/50 p-6 text-[0.95rem] leading-relaxed text-muted md:p-7"
-        >
-          <span>
-            <span className="text-clay">&bull;</span> model &nbsp;
-            <span className="text-olive">&bull;</span> plain Node. Later runs take seconds
-            and cost nothing - the model stages are skipped when nothing they read changed.
-          </span>
-        </Reveal>
       </ol>
+
+      {/* Outside the <ol> on purpose: it is a legend, and inside the list a
+          screen reader announces it as a sixth pipeline stage. */}
+      <Reveal className="mt-px rounded-b-2xl border-x border-b border-hair bg-raised/50 p-6 text-[0.95rem] leading-relaxed text-muted md:p-7">
+        <span className="text-clay">&bull;</span> model &nbsp;
+        <span className="text-olive">&bull;</span> plain Node. Later runs take seconds and
+        cost nothing - the model stages are skipped when nothing they read changed.
+      </Reveal>
 
       <div className="mt-14 border-t border-hair pt-12">
         <p className="kicker">Where it stops</p>
@@ -369,8 +386,13 @@ function Install() {
       id="install"
       className="scroll-mt-24 border-y border-hair-soft bg-panel/60 py-20 md:py-24"
     >
-      <div className="shell grid gap-12 lg:grid-cols-[1fr_1.2fr] lg:items-start">
-        <Reveal className="lg:sticky lg:top-24">
+      {/* No items-start here: the sticky column has to be a full-height grid
+          item for the box inside it to have any room to travel. Shrinking the
+          item to its content, as items-start does, pins it in place and the
+          sticky never fires. */}
+      <div className="shell grid gap-12 lg:grid-cols-[1fr_1.2fr]">
+        <div className="lg:sticky lg:top-24 lg:self-start">
+          <Reveal>
           <p className="kicker">Install</p>
           <h2 className="font-display mt-5 t-section text-ink">
             Three commands, then any repo
@@ -379,8 +401,9 @@ function Install() {
             Everything runs inside Claude Code. The first run asks two questions - whether to
             write birdseye.config.json and whether to gitignore the output - then takes a
             minute or two. Every run after that is seconds.
-          </p>
-        </Reveal>
+            </p>
+          </Reveal>
+        </div>
 
         <Reveal delay={0.08} className="space-y-6">
           {STEPS.map((s) => (

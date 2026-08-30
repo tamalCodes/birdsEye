@@ -1,7 +1,13 @@
 # birdsEye - marketing site
 
 The showcase site for [birdsEye](../plugins/birdseye), the Claude Code plugin that
-maps a codebase to a single self-contained HTML file.
+audits a repository for agent-readiness and hands back a single self-contained
+HTML file.
+
+The landing page leads on that audit - stale guardrails, uncovered modules, the
+specs to read first - and treats the structural map (modules, routes, screens) as
+the evidence underneath it. Keep new copy in that order: the page argues readiness
+first, mechanism second.
 
 Next.js 16 (App Router) + Tailwind v4. One long landing page, no CMS, no database.
 

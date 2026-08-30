@@ -26,8 +26,10 @@ export const metadata: Metadata = {
     template: "%s - birdsEye",
   },
   description:
-    "A Claude Code plugin that maps any repository to a single self-contained HTML file: its modules and how they depend on each other, its routes and screens, and the spec files an agent should read before touching any of it.",
+    "A Claude Code plugin that audits any repository for agent-readiness: which docs cover each module, which guardrails have gone stale, and which specs an agent should read before touching the code. The whole picture lands as one self-contained HTML file.",
   keywords: [
+    "agent readiness",
+    "documentation drift",
     "codebase map",
     "code visualization",
     "dependency graph",
@@ -43,13 +45,13 @@ export const metadata: Metadata = {
     siteName: "birdsEye",
     title: "birdsEye - see a whole codebase at one glance",
     description:
-      "One command, one HTML file: the modules, routes and specs of a codebase, mapped. Runs on your own Claude account. No server, no build step, no network.",
+      "One command tells you where an agent will get lost: stale guardrails, uncovered modules, the specs to read first. One HTML file. Runs on your own Claude account. No server, no build step, no network.",
   },
   twitter: {
     card: "summary_large_image",
     title: "birdsEye - see a whole codebase at one glance",
     description:
-      "One command, one HTML file: the modules, routes and specs of a codebase, mapped.",
+      "One command tells you where an agent will get lost: stale guardrails, uncovered modules, the specs to read first.",
   },
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
@@ -69,6 +71,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* Reveal starts its children at opacity 0 and only shows them once an
+            IntersectionObserver fires. With no JS that never happens and most
+            of the page stays invisible, so unhide it outright in that case. */}
+        <noscript>
+          <style>{`[data-reveal]{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
       </head>
       <body className="min-h-full">
         <SmoothScroll />

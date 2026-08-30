@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
-export const alt = "birdsEye - see a whole codebase at one glance";
+export const alt = "birdsEye - find out where your agent will get lost";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -87,13 +87,13 @@ export default async function OgImage() {
             <span
               style={{
                 fontFamily: "Fraunces",
-                fontSize: 88,
+                fontSize: 76,
                 lineHeight: 1.08,
                 letterSpacing: "-0.02em",
                 color: INK,
               }}
             >
-              See a whole codebase
+              Find out where your agent
             </span>
           </div>
           <div style={{ display: "flex" }}>
@@ -101,21 +101,21 @@ export default async function OgImage() {
               style={{
                 fontFamily: "Fraunces",
                 fontStyle: "italic",
-                fontSize: 88,
+                fontSize: 76,
                 lineHeight: 1.08,
                 letterSpacing: "-0.02em",
                 color: CLAY,
               }}
             >
-              at one glance
+              will get lost
             </span>
           </div>
           {/* Broken by hand for the same reason as the headline: left to wrap,
               this lands a one- or two-word orphan on the last line. */}
           <div style={{ display: "flex", flexDirection: "column", marginTop: 30 }}>
             {[
-              "One command in Claude Code turns any repo into a single HTML file:",
-              "its modules, its screens, and the docs to read first.",
+              "One command audits any repo for stale guardrails, uncovered modules,",
+              "and the specs an agent should read before it touches the code.",
             ].map((line) => (
               <div key={line} style={{ display: "flex" }}>
                 <span style={{ fontSize: 27, lineHeight: 1.5, color: MUTED }}>{line}</span>
