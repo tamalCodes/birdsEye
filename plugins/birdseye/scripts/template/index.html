@@ -4,6 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>__TITLE__</title>
+    <!-- birdsEye mark, inlined so the tab icon works from file:// with no network -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjE2IDE5IDIwOCAyMDgiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iYmlyZHNFeWUiPgogIDxwYXRoIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgOCkiIGQ9Ik0xMjAgNTJDMTI5IDU0IDEzMyA2NiAxMzQgODJDMTUwIDkyIDE4NiAxMTYgMjEwIDE0NkMyMTMgMTUwIDIxMSAxNTQgMjA2IDE1M0MxNzYgMTUwIDE1MCAxNDAgMTMzIDEyOEMxMzIgMTQ1IDEyOCAxNjQgMTIwIDE3OEMxMTIgMTY0IDEwOCAxNDUgMTA3IDEyOEM5MCAxNDAgNjQgMTUwIDM0IDE1M0MyOSAxNTQgMjcgMTUwIDMwIDE0NkM1NCAxMTYgOTAgOTIgMTA2IDgyQzEwNyA2NiAxMTEgNTQgMTIwIDUyWiIgZmlsbD0iI2Q5Nzc1NyIvPgo8L3N2Zz4K" />
     <style>
       :root {
         /* The whole map is set in a warm palette - warm charcoal in the dark,
@@ -164,7 +166,9 @@
         border-bottom: 1px solid var(--glass-line);
         box-shadow: var(--glass-shadow);
       }
-      .brand { font-weight: 600; white-space: nowrap; line-height: 1.25; min-width: 0; }
+      .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; white-space: nowrap; line-height: 1.25; min-width: 0; }
+      .brand-mark { flex: none; width: 20px; height: 20px; }
+      .brand-text { min-width: 0; }
       /* One notch down from the brand name, not level with it - the stat
          line is context, not a second headline competing for the same
          glance. */
@@ -683,7 +687,12 @@
   </head>
   <body>
     <header>
-      <div class="brand">__TITLE__<span id="stat-line"></span></div>
+      <div class="brand">
+        <svg class="brand-mark" viewBox="16 19 208 208" aria-hidden="true">
+          <path transform="translate(0 8)" d="M120 52C129 54 133 66 134 82C150 92 186 116 210 146C213 150 211 154 206 153C176 150 150 140 133 128C132 145 128 164 120 178C112 164 108 145 107 128C90 140 64 150 34 153C29 154 27 150 30 146C54 116 90 92 106 82C107 66 111 54 120 52Z" fill="var(--accent)"/>
+        </svg>
+        <div class="brand-text">__TITLE__<span id="stat-line"></span></div>
+      </div>
       <div class="spacer"></div>
       <button class="ghost" id="up" hidden>&#11185; Up</button>
       <div class="menu" id="viewMenu">
