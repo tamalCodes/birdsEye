@@ -26,6 +26,9 @@
         --line: #2a3040;
         --line-soft: #222735;
         --line-strong: #5a6480;
+        /* Canvas dot grid only - kept barely above --bg so it reads as a
+           faint ruler, never as a field of dots competing for the eye. */
+        --dot: #191d28;
         --hl: #ffffff;
         --text: #ccd2e0;
         --text-dim: #7c8497;
@@ -70,6 +73,7 @@
         --line: #e1e4ea;
         --line-soft: #ecedf1;
         --line-strong: #c3c8d1;
+        --dot: #eef0f3;
         --hl: #0a0b0d;
         --text: #16181d;
         --text-dim: #6b7280;
@@ -172,7 +176,7 @@
          (updateGrid) so it reads as a surface the graph sits on, not wallpaper. */
       #cy {
         width: 100%; height: 100%; min-width: 0;
-        background-image: radial-gradient(circle, var(--line) 1px, transparent 1px);
+        background-image: radial-gradient(circle, var(--dot) 1px, transparent 1px);
         background-repeat: repeat;
       }
 
@@ -192,7 +196,9 @@
       main.panel-open aside { display: block; }
       /* ---- detail content (shared by the small side panel and the full page) ---- */
       .detail h2 { margin: 0 0 3px; font-size: 21px; line-height: 1.25; word-break: break-word; }
-      .kind { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: .07em; }
+      .detail h2 .in-parent { font-size: 14px; font-weight: 400; color: var(--text-dim); }
+      .detail h2 .in-parent .node-link { font-size: inherit; }
+      .kind { color: var(--text-dim); font-size: 12.5px; letter-spacing: .01em; margin-bottom: 1px; }
       .badge {
         display: inline-block; font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase;
         border: 1px solid var(--c-doc); color: var(--c-doc); border-radius: 4px; padding: 1px 5px; margin-left: 6px;
@@ -218,11 +224,18 @@
       }
       a.path:hover, .node-link:hover { text-decoration: underline; }
       .muted { color: var(--text-dim); }
+      .guard-lead { margin: 6px 0 0; }
       .guard-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
       .guard {
         border-left: 3px solid var(--c-doc); background: var(--bg-raised); border-radius: 0 5px 5px 0;
-        padding: 8px 11px; color: var(--text); font-size: 14.5px; line-height: 1.6;
+        padding: 9px 12px; color: var(--text); font-size: 14.5px; line-height: 1.6;
       }
+      .guard-plain { color: var(--text); }
+      .guard-quote {
+        margin-top: 6px; font-family: var(--mono); font-size: 12px; line-height: 1.5;
+        color: var(--text-dim); word-break: break-word;
+      }
+      .guard-quote.solo { margin-top: 0; font-size: 13.5px; color: var(--text); }
       .panel-actions { display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: wrap; }
       .close { float: right; }
       .stats { display: flex; gap: 12px; color: var(--text-dim); font-size: 13.5px; }
@@ -249,22 +262,29 @@
       .detail h4.grp .muted { font-weight: 400; font-size: 13px; white-space: nowrap; }
 
       /* ---- glance chips: the 3-second answer, before any section is opened ---- */
-      .chips { display: flex; gap: 7px; margin: 12px 0 16px; flex-wrap: wrap; }
+      .chips { display: flex; gap: 14px; margin: 10px 0 14px; flex-wrap: wrap; }
       .chip {
         display: flex; align-items: baseline; gap: 5px;
-        background: var(--bg-raised); border: 1px solid var(--line); border-radius: 7px;
-        padding: 7px 11px; font-size: 13.5px; color: var(--text-dim);
+        background: none; border: 0; padding: 0;
+        font-size: 13.5px; color: var(--text-dim);
       }
+      .chip + .chip { border-left: 1px solid var(--line); padding-left: 14px; }
       .chip .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--text-dim); }
       .chip b { color: var(--text); font-weight: 600; }
       .chip.good .dot { background: var(--good); }
       .chip.warn .dot { background: var(--warn); }
       .chip.bad .dot { background: var(--bad); }
+      /* The risk level (and a stale-docs warning) carries its colour on the
+         value itself, not just the dot - it is the one word worth reading fast. */
+      .chip.good b { color: var(--good); }
+      .chip.warn b { color: var(--warn); }
+      .chip.bad b { color: var(--bad); }
       /* Chips that are actually buttons (Risk, for now) - reset button chrome
          so they still look like the plain informational chips beside them. */
       button.chip { font: inherit; }
       .chip.explainable { cursor: pointer; }
-      .chip.explainable:hover { border-color: var(--line-strong); }
+      .chip.explainable:hover { color: var(--text); }
+      .chip.explainable:hover b { text-decoration: underline; }
       .chip.explainable:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
       /* ---- AI explain modal: static facts always shown free; the write-up
@@ -308,7 +328,7 @@
          Five stacked accordions made the reader open and close rows to compare
          screens against shared code. A tab bar puts the questions side by side
          and gives the answer the full width of the page. */
-      .tabs { margin-top: 8px; }
+      .tabs { margin-top: 16px; }
       .tab-bar {
         display: flex; gap: 4px; flex-wrap: wrap;
         border-bottom: 1px solid var(--line); margin-bottom: 4px;
@@ -327,6 +347,16 @@
       .tab-pane > section:first-child { margin-top: 12px; padding-top: 0; border-top: 0; }
       .tab-pane > .ai-cta:first-child { margin-top: 16px; }
       .tab-pane > .lead:first-child { margin-top: 16px; }
+
+      /* A second tab bar nested inside a pane - the Docs list, split by what
+         each doc is for. Slightly smaller so the two levels read as a
+         hierarchy rather than one confusing double row. */
+      .tab-pane .tabs { margin-top: 14px; }
+      .tab-pane .tab-bar .tab { font-size: 13px; padding: 7px 10px; }
+      /* The "needs your attention" tab only exists when it has something in
+         it, so it always earns the warning colour. */
+      .tab-bar .tab.tab-bad { color: var(--bad); }
+      .tab-bar .tab.tab-bad[aria-selected="true"] { color: var(--bad); border-bottom-color: var(--bad); }
 
       /* ---- full-page detail: docs, and modules/areas ---- */
       /* Same trick #empty/#hint already use: an absolutely positioned layer
@@ -356,7 +386,7 @@
         font-variant-numeric: tabular-nums;
       }
 
-      /* An entry carries a title, tags, a summary and sometimes guardrails - it
+      /* An entry carries a title, a summary and sometimes guardrails - it
          needs room and a divider, or each one runs into the next. */
       ul.entries > li { padding: 8px 0 9px; border-top: 1px solid var(--line-soft); }
       ul.entries > li:first-child { border-top: 0; padding-top: 2px; }
@@ -367,14 +397,58 @@
       ul.entries details { margin-top: 4px; }
       ol.steps > li .entry-head .node-link { font-weight: 400; }
 
+      /* ---- "Needs your attention" list ----
+         One doc per block with real air around it. The doc's own title leads
+         in plain body colour - it is a heading, not a link to chase - and the
+         filename sits a quiet line below. No location or kind tag here: the
+         only thing this tab is about is what has gone stale, said once on the
+         right. */
+      ul.att-list > li.att { padding: 16px 0; }
+      ul.att-list > li.att:first-child { padding-top: 4px; }
+      .att-head { display: flex; align-items: baseline; gap: 14px; }
+      .att-title {
+        flex: 1; min-width: 0; font-weight: 600; font-size: 15px; line-height: 1.4;
+        color: var(--text); overflow-wrap: anywhere;
+      }
+      .att-title:hover { text-decoration: underline; }
+      .att-status {
+        flex: none; color: var(--bad); font-size: 12.5px;
+        white-space: nowrap; font-variant-numeric: tabular-nums;
+      }
+      .att-file { margin-top: 3px; }
+      .att-file .path { font-size: 12.5px; color: var(--text-dim); }
+      .att-detail { margin-top: 10px; }
+      .att-detail > summary { color: var(--text-dim); font-size: 13px; }
+
+      /* Removed files, grouped by the folder they used to live in - a reader
+         who knows the tree thinks "the slices are gone", not in a flat pile of
+         paths. When a whole folder went in one commit, that commit is named
+         once on the folder line instead of on every file under it. */
+      .gone-group { margin-top: 12px; }
+      .gone-group:first-child { margin-top: 8px; }
+      .gone-dir {
+        display: flex; align-items: baseline; gap: 10px;
+        padding-bottom: 3px; margin-bottom: 3px; border-bottom: 1px solid var(--line-soft);
+      }
+      .gone-dir .path { font-size: 12.5px; color: var(--text-dim); }
+      .gone-dir .gone-when { margin-left: auto; }
+      .gone-dir .gone-count { margin-left: auto; font-size: 12px; color: var(--text-dim); }
+      ul.gone-files { list-style: none; margin: 0; padding: 0 0 0 12px; }
+      ul.gone-files > li {
+        display: flex; align-items: baseline; gap: 12px; padding: 2px 0;
+      }
+      .gone-name {
+        font-family: var(--mono); font-size: 13px; color: var(--text); overflow-wrap: anywhere;
+      }
+      .gone-when { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+      ul.gone-files > li .gone-when { margin-left: auto; }
+
       /* Metadata as a chip, so it stops competing with the title next to it. */
       .tag {
         display: inline-block; font-size: 11.5px; line-height: 18px; letter-spacing: .04em;
         color: var(--text-dim); background: var(--bg-raised); border-radius: 3px;
         padding: 0 5px; white-space: nowrap;
       }
-      .tag.area { font-family: var(--mono); color: var(--accent); }
-      .tag.loc { font-family: var(--mono); }
 
       /* ---- AI agent CTA ---- */
       .ai-cta {
@@ -417,8 +491,8 @@
         height: 520px; min-height: 300px; resize: vertical; overflow: hidden;
         /* Same dot grid the main canvas uses, so the map reads as a surface
            you are panning across rather than a static image. */
-        background-image: radial-gradient(var(--line-soft) 1px, transparent 1px);
-        background-size: 22px 22px;
+        background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+        background-size: 28px 28px;
       }
       .amap-tip {
         position: absolute; left: 10px; right: 10px; bottom: 10px;
@@ -831,7 +905,7 @@
         // wallpaper - same trick Figma/Miro/tldraw use for an infinite canvas.
         function updateGrid() {
           var z = cy.zoom(), pan = cy.pan();
-          var size = Math.max(6, 22 * z);
+          var size = Math.max(6, 28 * z);
           cyEl.style.backgroundSize = size + 'px ' + size + 'px';
           cyEl.style.backgroundPosition = pan.x + 'px ' + pan.y + 'px';
         }
@@ -1678,22 +1752,65 @@
             + (note ? '<div class="sub">' + note + '</div>' : '') + '</li>';
         }
 
-        /** The "removed from the repo" list, shared by a doc's own full page
-         * and the compact inline toggle next to its badge in a list - one
-         * place decides what "removed" means so the two never disagree. */
+        /** When and in which commit a path was removed - short sha and date,
+         * the two facts worth carrying. */
+        function removedWhen(d) {
+          if (!d.sha) return 'removed earlier in history';
+          return 'removed ' + esc(String(d.sha).slice(0, 7))
+            + (d.date ? ' &middot; ' + esc(d.date) : '');
+        }
+
+        /** The "removed from the repo" list, shared by a doc's own full page,
+         * the Broken references section and the "Needs your attention" tab - one
+         * place decides what "removed" means so they never disagree.
+         *
+         * Grouped by the folder each file used to sit in rather than left as a
+         * flat run of paths: a reader who knows the tree thinks in areas, and a
+         * doc that has fallen behind a refactor usually lost a whole folder at
+         * once. When every file in a folder went in the same commit, that commit
+         * is named once on the folder line instead of on every row. */
         function deletedRefsList(gone) {
-          return '<ul class="entries">' + gone.map(function (d) {
-            var note = d.sha
-              ? 'removed in <span class="path">' + esc(d.sha) + '</span>'
-                + (d.date ? ' on ' + esc(d.date) : '')
-              : 'removed at some point in the history';
-            // The doc may have written it module-relative; show both, or
-            // the reader cannot find the line to edit.
-            if (d.wrote && d.wrote !== d.path) {
-              note += ' &middot; written as <span class="path">' + esc(d.wrote) + '</span>';
-            }
-            return refPath(d.path, note);
-          }).join('') + '</ul>';
+          var groups = Object.create(null), order = [];
+          gone.forEach(function (d) {
+            var slash = d.path.lastIndexOf('/');
+            var dir = slash === -1 ? 'repo root' : d.path.slice(0, slash + 1);
+            var name = slash === -1 ? d.path : d.path.slice(slash + 1);
+            if (!groups[dir]) { groups[dir] = []; order.push(dir); }
+            groups[dir].push({ name: name, rec: d });
+          });
+          order.sort();
+
+          return order.map(function (dir) {
+            var items = groups[dir].sort(function (a, b) { return a.name < b.name ? -1 : 1; });
+            var keys = Object.create(null);
+            items.forEach(function (it) {
+              keys[(it.rec.sha || '') + '|' + (it.rec.date || '')] = 1;
+            });
+            var wroteDiffers = items.some(function (it) {
+              return it.rec.wrote && it.rec.wrote !== it.rec.path;
+            });
+            // One commit for the whole folder, and nothing written under an
+            // alias - then the commit belongs on the folder line, not repeated.
+            var shared = Object.keys(keys).length === 1 && !wroteDiffers ? items[0].rec : null;
+
+            var head = '<div class="gone-dir"><span class="path">' + esc(dir) + '</span>'
+              + (shared
+                ? '<span class="gone-when">' + removedWhen(shared) + '</span>'
+                : '<span class="gone-count">' + pluralize(items.length, 'file') + '</span>')
+              + '</div>';
+
+            var rows = items.map(function (it) {
+              var d = it.rec;
+              var right = shared ? '' : '<span class="gone-when">' + removedWhen(d);
+              if (!shared && d.wrote && d.wrote !== d.path) {
+                right += ' &middot; written as <span class="path">' + esc(d.wrote) + '</span>';
+              }
+              if (!shared) right += '</span>';
+              return '<li><span class="gone-name">' + esc(it.name) + '</span>' + right + '</li>';
+            }).join('');
+
+            return '<div class="gone-group">' + head + '<ul class="gone-files">' + rows + '</ul></div>';
+          }).join('');
         }
 
         function brokenRefsHtml(n) {
@@ -1937,13 +2054,16 @@
         /** One concern per tab instead of a stack of collapsed rows: the reader
          * picks a question at the top and the full width below answers it. The
          * first tab is the one that is open on arrival. Tabs with no body are
-         * dropped, so a module with no screens never shows an empty Screens. */
+         * dropped, so a module with no screens never shows an empty Screens.
+         *
+         * Safe to nest: selectTab scopes its lookups to one .tabs level, so a
+         * tab bar inside a tab pane (the Docs list groups) works on its own. */
         function tabsHtml(tabs) {
           var live = tabs.filter(function (t) { return t && t.body; });
           if (!live.length) return '';
           var bar = live.map(function (t, i) {
-            return '<button type="button" class="tab" role="tab" data-tab="' + esc(t.id) + '"'
-              + ' aria-selected="' + (i === 0 ? 'true' : 'false') + '">' + t.label
+            return '<button type="button" class="tab' + (t.cls ? ' ' + t.cls : '') + '" role="tab"'
+              + ' data-tab="' + esc(t.id) + '" aria-selected="' + (i === 0 ? 'true' : 'false') + '">' + t.label
               + (t.count != null ? ' <span class="muted">' + t.count + '</span>' : '') + '</button>';
           }).join('');
           var panes = live.map(function (t, i) {
@@ -1976,11 +2096,13 @@
           var wrap = btn.closest('.tabs');
           if (!wrap) return;
           var id = btn.getAttribute('data-tab');
-          var i, btns = wrap.querySelectorAll('.tab-bar > .tab');
+          // `:scope >` keeps a nested tab bar from touching its parent's tabs
+          // (or the other way round) - each .tabs owns only its direct children.
+          var i, btns = wrap.querySelectorAll(':scope > .tab-bar > .tab');
           for (i = 0; i < btns.length; i++) {
             btns[i].setAttribute('aria-selected', btns[i] === btn ? 'true' : 'false');
           }
-          var panes = wrap.querySelectorAll('[data-tab-pane]');
+          var panes = wrap.querySelectorAll(':scope > [data-tab-pane]');
           for (i = 0; i < panes.length; i++) {
             panes[i].hidden = panes[i].getAttribute('data-tab-pane') !== id;
           }
@@ -2053,11 +2175,11 @@
                 + ' depend' + (scope.fanIn.length === 1 ? 's' : '') + ' on this</span>'
               : '')
             + '</button>');
-          if (docs.total) {
-            chips.push('<div class="chip' + (docs.stale ? ' bad' : '') + '"><span class="dot"></span><span class="muted">Docs</span> <b>'
-              + docs.total + '</b>'
-              + (docs.stale ? ' <span class="muted">&middot; ' + pluralize(docs.stale, 'doc') + ' stale</span>' : '')
-              + '</div>');
+          // The doc count is already on the Docs tab; a chip here only earns its
+          // place when it is flagging something wrong - docs that have gone stale.
+          if (docs.stale) {
+            chips.push('<div class="chip bad"><span class="dot"></span><span class="muted">Docs</span> <b>'
+              + pluralize(docs.stale, 'doc') + ' stale</b></div>');
           }
           return '<div class="chips">' + chips.join('') + '</div>';
         }
@@ -2133,17 +2255,19 @@
             return 'Nothing outside ' + boundary + ' imports from it, so changes stay local.';
           }
 
-          // The story in words first; the sections below only back it up.
+          // The glance chips just above already carry size and how many modules
+          // depend on this; the summary adds only what they leave out - which
+          // way this module leans on others, and the one file to be careful with.
+          // The full "who feels a change" picture lives in the Overview tab.
           var story = [];
-          story.push('Holds ' + pluralize(scope.files.length, 'file')
-            + (scope.screens.length ? ' and ' + pluralize(scope.screens.length, 'screen') + ' the user can see' : '') + '.');
-          story.push(changeSentence());
-          if (scope.fanOut.length) story.push('It draws on ' + pluralize(scope.fanOut.length, 'other module') + '.');
+          if (scope.fanOut.length) {
+            story.push('It relies on code from ' + pluralize(scope.fanOut.length, 'other module') + '.');
+          }
           if (risky.length) {
             story.push('The riskiest file to touch is ' + nodeLink(risky[0]) + ', used by '
               + pluralize(risky[0].meta.fanIn, 'file') + '.');
           }
-          var html = '<p class="summary">' + story.join(' ') + '</p>';
+          var html = story.length ? '<p class="summary">' + story.join(' ') + '</p>' : '';
 
           var mod = nodeById['module:' + slug];
           var tabs = [];
@@ -2251,6 +2375,18 @@
             tabs.push({ id: 'screens', label: 'Screens', count: scope.screens.length, body: screensBody });
           }
 
+          // ---- Docs: the agent-context map first - what an agent reads
+          // before it edits anything here - then every doc, split by what it
+          // is for so a stale spec and a rule file don't sit in one pile.
+          if (scope.docs.length) {
+            var docLabel = isArea ? scope.areaKey + '/ in ' + slug : slug;
+            var docsBody = (agentContextSection(scope, docLabel) || '')
+              + '<p class="lead">What is written down about ' + (isArea ? 'this area' : 'this module')
+              + '. Pick a tab for what you are after - what needs fixing, the rules, the specs.</p>'
+              + docGroupTabs(scope.docs);
+            tabs.push({ id: 'docs', label: 'Docs', count: scope.docs.length, body: docsBody });
+          }
+
           // ---- Shared components & hooks: what this module borrows from the
           // rest of the codebase, one file at a time - not just "10 other
           // modules", but which components and hooks specifically, since that
@@ -2281,31 +2417,6 @@
               id: 'shared', label: 'Shared components & hooks',
               count: sharedRows.length, body: sharedBody,
             });
-          }
-
-          // ---- Docs: the same page a doc cluster has always shown - the
-          // the agent-context map first - what an agent reads before it edits
-          // anything here - then every doc with its guardrails and dead refs.
-          if (scope.docs.length) {
-            var dStats = docStats(scope.docs);
-            var guardTotal = 0;
-            scope.docs.forEach(function (d) { guardTotal += ((d.meta && d.meta.guardrails) || []).length; });
-            var docsLead = 'What is written down about ' + (isArea ? 'this area' : 'this module') + '.';
-            if (guardTotal) {
-              docsLead += ' ' + pluralize(guardTotal, 'rule') + ' to respect '
-                + (guardTotal === 1 ? 'is' : 'are') + ' spelled out below.';
-            }
-            if (dStats.stale) {
-              docsLead += ' ' + pluralize(dStats.stale, 'doc') + ' still name' + (dStats.stale === 1 ? 's' : '')
-                + ' files git has since removed.';
-            }
-            var docLabel = isArea ? scope.areaKey + '/ in ' + slug : slug;
-            var docsBody = (agentContextSection(scope, docLabel) || '') + aiCta(docLabel, scope.docs)
-              + '<p class="lead">' + docsLead + '</p>'
-              + '<ul class="entries">' + scope.docs.map(function (d) {
-                  return docItem(d, slug, scope.modPath);
-                }).join('') + '</ul>';
-            tabs.push({ id: 'docs', label: 'Docs', count: scope.docs.length, body: docsBody });
           }
 
           // ---- Files: real, but a reader opens this page to learn what a
@@ -2353,92 +2464,158 @@
           return html + tabsHtml(tabs);
         }
 
-        // Where a doc that lives outside the module actually sits. Without it
-        // half the list is filenames with no address.
-        function docWhere(d, modPath) {
-          if (d.path.indexOf(modPath + '/') === 0) return '';
-          var segs = d.path.split('/');
-          if (segs.length < 2) return '';
-          return segs.slice(0, Math.min(segs.length - 1, 2)).join('/') + '/';
+        // A guardrail is stored either as a bare quoted string (older graphs) or
+        // as { quote, plain } once extract-docs has written a plain-English
+        // gloss for it. Both collapse to the same shape here.
+        function guardParts(g) {
+          if (g && typeof g === 'object') return { quote: g.quote || '', plain: g.plain || '' };
+          return { quote: String(g == null ? '' : g), plain: '' };
         }
-        function docItem(d, slug, modPath) {
-          var guards = (d.meta && d.meta.guardrails) || [];
-          var gone = (d.meta && d.meta.refs && d.meta.refs.deleted) || [];
-          var dArea = areaOf(slug, d.path);
-          var out = '<li><div class="entry-head">' + nodeLink(d)
-            + (!dArea ? '' : tag(dArea.key + '/', 'area'))
-            + (dArea ? '' : tag(docWhere(d, modPath), 'loc'))
-            + tag(d.meta && d.meta.docKind)
-            + staleBadge(d)
+        /** The rule list a doc carries under a "non-negotiable / never / must
+         * not" heading. Each rule shows its plain-English meaning first, then
+         * the doc's own words underneath - unglossed, the doc's words stand
+         * alone. The lead line says which of the two you are looking at so a
+         * terse "!isSubmitting" is never mistaken for our paraphrase. */
+        function guardListHtml(guards) {
+          var parts = guards.map(guardParts);
+          var glossed = parts.some(function (p) { return p.plain; });
+          var lead = glossed
+            ? 'What each rule means in plain English, with the doc’s own wording beneath it.'
+            : 'Copied word for word from the doc - each line is a condition it says must hold for code in this module.';
+          return '<p class="sub guard-lead">' + lead + '</p>'
+            + '<div class="guard-list">'
+            + parts.map(function (p) {
+                if (p.plain) {
+                  return '<div class="guard">'
+                    + '<div class="guard-plain">' + mdInline(p.plain) + '</div>'
+                    + '<div class="guard-quote">' + mdInline(p.quote) + '</div>'
+                    + '</div>';
+                }
+                return '<div class="guard"><div class="guard-quote solo">' + mdInline(p.quote) + '</div></div>';
+              }).join('')
             + '</div>';
+        }
+
+        function docItem(d) {
+          var guards = (d.meta && d.meta.guardrails) || [];
+          // No path, no kind chip - the tab already says what kind of doc this
+          // is and which module it belongs to, so both were just noise.
+          var out = '<li><div class="entry-head">' + nodeLink(d) + '</div>';
           if (d.summary) out += '<div class="sub">' + mdInline(d.summary) + '</div>';
-          // The badge says "names 2 deleted files" - useless on its own unless
-          // the reader can see which files, so the answer sits one click away,
-          // right here, instead of only on the doc's own full page.
-          if (gone.length) {
-            out += '<details><summary class="muted">' + pluralize(gone.length, 'file')
-              + ' this doc still names ' + (gone.length === 1 ? 'has' : 'have') + ' since been removed by git</summary>'
-              + deletedRefsList(gone) + '</details>';
-          }
           if (guards.length) {
-            out += '<details><summary class="muted">' + pluralize(guards.length, 'guardrail') + '</summary>'
-              + '<div class="guard-list">' + guards.map(function (g) { return '<div class="guard">' + mdInline(g) + '</div>'; }).join('') + '</div>'
+            out += '<details><summary class="muted">'
+              + pluralize(guards.length, 'guardrail') + ' an agent must keep</summary>'
+              + guardListHtml(guards)
               + '</details>';
           }
           return out + '</li>';
         }
 
+        /** One entry in the "Needs your attention" tab. A stale doc is not the
+         * same object as a doc you open for its content, so it does not get the
+         * same row: its own title leads (the filename is demoted to a quiet
+         * line, and the location and kind tags are dropped - neither tells you
+         * anything about the rot), the count of missing files is stated once on
+         * the right, and the list itself is one click away, grouped by folder. */
+        function attentionDocItem(d) {
+          var gone = (d.meta && d.meta.refs && d.meta.refs.deleted) || [];
+          var guards = (d.meta && d.meta.guardrails) || [];
+          var hasTitle = !!d.summary;
+
+          var folders = Object.create(null);
+          gone.forEach(function (g) {
+            var slash = g.path.lastIndexOf('/');
+            folders[slash === -1 ? '.' : g.path.slice(0, slash)] = 1;
+          });
+          var nFolders = Object.keys(folders).length;
+          var status = pluralize(gone.length, 'missing file')
+            + (nFolders > 1 ? ' in ' + nFolders + ' folders' : '');
+
+          var out = '<li class="att"><div class="att-head">'
+            + '<button class="node-link att-title" data-goto="' + esc(d.id) + '">'
+            + (hasTitle ? mdInline(d.summary) : esc(d.label)) + '</button>'
+            + (gone.length ? '<span class="att-status">' + status + '</span>' : '')
+            + '</div>';
+          if (hasTitle) {
+            out += '<div class="att-file"><span class="path">' + esc(d.label) + '</span></div>';
+          }
+          if (gone.length) {
+            out += '<details class="att-detail"><summary>'
+              + (gone.length === 1 ? 'Show the file git removed' : 'Show all ' + gone.length + ' removed files')
+              + '</summary>' + deletedRefsList(gone) + '</details>';
+          }
+          if (guards.length) {
+            out += '<details class="att-detail"><summary>' + pluralize(guards.length, 'guardrail')
+              + ' in this file</summary>' + guardListHtml(guards) + '</details>';
+          }
+          return out + '</li>';
+        }
+
+        /** The Docs list split by why a reader opens each doc, rather than left
+         * in one alphabetical pile. Health first: a doc that still names files
+         * git has deleted needs a look before anything it says can be trusted.
+         * Then the three things module docs are actually for - rules to obey,
+         * behaviour to read up on, facts to look up. Each doc lands in exactly
+         * one group; a stale rule file shows under "Needs your attention", with
+         * its rules still one click away on the entry. */
+        function docPurposeGroups(docs) {
+          var by = { attention: [], guardrails: [], specs: [], reference: [], other: [] };
+          docs.forEach(function (d) {
+            if (d.meta && d.meta.stale) { by.attention.push(d); return; }
+            var k = (d.meta && d.meta.docKind) || 'OTHER';
+            if (k === 'AGENTS') by.guardrails.push(d);
+            else if (k === 'SPEC' || k === 'MAP') by.specs.push(d);
+            else if (k === 'REFERENCE') by.reference.push(d);
+            else by.other.push(d);
+          });
+          // Rule files shallowest-path first - the same order the context map
+          // shows them in, repo-wide AGENTS above a module's own.
+          by.guardrails.sort(function (a, b) {
+            return a.path.split('/').length - b.path.split('/').length || (a.label < b.label ? -1 : 1);
+          });
+          return [
+            { key: 'attention', title: 'Needs your attention', tone: 'bad',
+              blurb: 'Each of these still points at files git has removed. Check what it claims before you rely on it.' },
+            { key: 'guardrails', title: 'Guardrails for this module', tone: 'warn',
+              blurb: 'Rules an agent has to follow when it works here.' },
+            { key: 'specs', title: 'Specs & Notes', tone: '',
+              blurb: 'How a feature or flow is meant to behave - read for context before editing.' },
+            { key: 'reference', title: 'Reference', tone: '',
+              blurb: 'Lookup material: tables, inventories, API shapes.' },
+            { key: 'other', title: 'Other docs', tone: '',
+              blurb: '' },
+          ].map(function (g) { g.docs = by[g.key]; return g; })
+            .filter(function (g) { return g.docs.length; });
+        }
+
+        /** The grouped Docs list - shared by the module Docs tab and a doc
+         * cluster's own page, so the two can never drift apart. Each group is
+         * its own side-by-side tab: the doc lists run long and vertical, and a
+         * reader after "the specs" should not have to scroll past every rule
+         * file to reach them. One group only -> a plain list, no tab bar. */
+        function docGroupTabs(docs) {
+          var groups = docPurposeGroups(docs);
+          function list(ds, key) {
+            if (key === 'attention') {
+              return '<ul class="entries att-list">' + ds.map(attentionDocItem).join('') + '</ul>';
+            }
+            return '<ul class="entries">' + ds.map(docItem).join('') + '</ul>';
+          }
+          if (groups.length <= 1) {
+            return groups.length ? list(groups[0].docs, groups[0].key) : list(docs, null);
+          }
+          return tabsHtml(groups.map(function (g) {
+            return {
+              id: 'docgrp-' + g.key, label: esc(g.title), count: g.docs.length,
+              cls: g.tone === 'bad' ? 'tab-bad' : '',
+              body: (g.blurb ? '<p class="lead">' + g.blurb + '</p>' : '') + list(g.docs, g.key),
+            };
+          }));
+        }
+
         /** Rule/memory files (AGENTS docKind) for a doc's own module, other than
          * the doc itself - context worth an agent's attention even though they
          * are not the thing being read. */
-        function memoryDocsFor(n) {
-          if (!n.module || !nodeById['module:' + n.module]) return [];
-          return moduleDocs(nodeById['module:' + n.module]).filter(function (d) {
-            return d.meta && d.meta.docKind === 'AGENTS' && d.id !== n.id;
-          });
-        }
-
-        /** The whole point of the Docs view: a copy-pasteable prompt that sends
-         * an AI agent to read this documentation, gather whatever else it needs
-         * from the code, and hand back an interactive flowchart. AGENTS-kind
-         * docs are framed as background rules rather than reading material -
-         * they tell the agent how this codebase expects work to be done. */
-        function agentPrompt(label, docs) {
-          var memory = [], rest = [];
-          docs.forEach(function (d) { (d.meta && d.meta.docKind === 'AGENTS' ? memory : rest).push(d); });
-          var lines = [
-            'Read through the documentation below for ' + label + ' in this codebase, follow it into whatever '
-              + 'source files it points at for extra context, and then produce an interactive flowchart (a Mermaid '
-              + 'diagram works well) that walks a non-technical reader through how ' + label + ' actually works end '
-              + 'to end - the steps, decisions and hand-offs, not the code.',
-            '',
-          ];
-          if (rest.length) {
-            lines.push('Docs to read:');
-            rest.forEach(function (d) { lines.push('- ' + d.path); });
-            lines.push('');
-          }
-          if (memory.length) {
-            lines.push('Also check these rule files for how this codebase expects work to be done:');
-            memory.forEach(function (d) { lines.push('- ' + d.path); });
-            lines.push('');
-          }
-          lines.push('Ask me for anything else you need before you start.');
-          return lines.join('\n');
-        }
-
-        function aiCta(label, docs) {
-          var prompt = agentPrompt(label, docs);
-          return '<div class="ai-cta"><h3>Turn this into a flowchart</h3>'
-            + '<p class="lead">A wall of markdown is slow to read. Hand this prompt to an AI coding agent - it will '
-            + 'work through ' + (docs.length === 1 ? 'this doc' : 'these docs') + ', gather whatever else it needs '
-            + 'from the code, and hand you back an interactive flowchart of how ' + esc(label) + ' works.</p>'
-            + '<div class="panel-actions"><button class="ghost copy-prompt" data-copy="ai-prompt-box">'
-            + 'Copy prompt for an AI agent</button></div>'
-            + '<pre class="prompt-box" id="ai-prompt-box">' + esc(prompt) + '</pre>'
-            + '</div>';
-        }
-
         /** A module page is a generated overview - it does not read prose the
          * way a person does, so it stops well short of a full explanation.
          * This hands a reader who wants more a ready-made prompt: send an
@@ -2607,7 +2784,7 @@
           }
           if (modReading.length) {
             left.push({
-              key: 'specs', title: 'Specs and notes it reads', edge: 'read for context',
+              key: 'specs', title: 'Specs & Notes it reads', edge: 'read for context',
               items: modReading.map(function (d) {
                 return { label: d.label, sub: (d.meta && d.meta.docKind || 'doc').toLowerCase(), goto: d.id };
               }),
@@ -2941,9 +3118,8 @@
             return f.items.length > AMAP.maxItems;
           });
           return '<section class="agent-map"><h3>How an AI agent sees ' + esc(label) + '</h3>'
-            + '<p class="lead">Everything an agent has in front of it when it is asked to work here - the rules '
-            + 'it carries in from the repo, the rules and specs written for this module, and the code it would '
-            + 'end up touching. Drag to pan, scroll to zoom, click any card to open it.</p>'
+            + '<p class="lead">Everything an agent reads before it changes anything here: repo-wide rules, '
+            + 'this module\'s own specs, and the code it would touch.</p>'
             + '<div class="amap">'
             + '<div class="amap-bar">'
             + (expandable ? '<button type="button" class="ghost" data-amap-act="all">Expand all</button>' : '')
@@ -2992,10 +3168,10 @@
           for (var i = 0; i < areas.length; i++) { if (areas[i].key === areaKey) { area = areas[i]; break; } }
           if (!area) { openPanel('module:' + slug); return; }
           var areaScope = areaDetailScope(mod, area);
-          var header = '<p class="crumb">' + nodeLink(mod) + ' / ' + esc(area.key) + '/</p>'
-            + '<div class="kind">area of ' + esc(slug) + '</div>'
-            + '<h2>' + esc(area.key) + '/</h2>'
-            + '<div class="path muted">' + esc(area.prefix.slice(0, -1)) + '</div>';
+          // One identity line is enough: the heading names the area, the muted
+          // tail says which module it lives in (and links back to it).
+          var header = '<h2>' + esc(area.key) + '/ <span class="in-parent">in '
+            + nodeLink(mod) + '</span></h2>';
           amapDisposeAll();
           detailPage.innerHTML = '<div class="detail-inner wide">'
             + '<button class="ghost page-back" data-close-page>&#8592; Back to map</button>'
@@ -3032,12 +3208,9 @@
               + esc(ownerModForMap.module) + '/docs">Open the ' + esc(ownerModForMap.label)
               + ' context map</button></div></div>';
           }
-          html += aiCta(n.label, [n].concat(memoryDocsFor(n)));
 
           if (guardrails.length) {
-            html += '<section><h3>Guardrails</h3>'
-              + '<div class="guard-list">' + guardrails.map(function (g) { return '<div class="guard">' + mdInline(g) + '</div>'; }).join('') + '</div>'
-              + '</section>';
+            html += '<section><h3>Guardrails</h3>' + guardListHtml(guardrails) + '</section>';
           }
           html += listSection('Describes', related(n.id, 'documents', 'out').map(function (r) { return nodeLink(r.node); }));
           html += listSection('Links to', related(n.id, 'links', 'out').map(function (r) { return nodeLink(r.node); }));
@@ -3071,35 +3244,16 @@
           }).sort(function (a, b) { return a.label < b.label ? -1 : a.label > b.label ? 1 : (a.id < b.id ? -1 : 1); });
           if (!docs.length) return;
 
-          var guardTotal = 0, staleCount = 0;
-          docs.forEach(function (d) {
-            guardTotal += ((d.meta && d.meta.guardrails) || []).length;
-            if (d.meta && d.meta.stale) staleCount++;
-          });
-
           var header = '<div class="kind">documentation' + (mod ? ' &middot; module' : '') + '</div>'
             + '<h2>' + esc(label) + '</h2>'
             + (mod ? '<p class="lead module-context">Docs about the ' + nodeLink(mod) + ' module'
                 + (mod.summary ? '. ' + esc(mod.summary) : '.') + '</p>' : '');
 
-          var lead = 'What is written down here.';
-          if (guardTotal) {
-            lead += ' ' + pluralize(guardTotal, 'rule') + ' to respect ' + (guardTotal === 1 ? 'is' : 'are')
-              + ' spelled out below.';
-          }
-          if (staleCount) {
-            lead += ' ' + pluralize(staleCount, 'doc') + ' still name' + (staleCount === 1 ? 's' : '')
-              + ' files git has since removed.';
-          }
-
           var clusterMap = mod ? agentContextSection(moduleDetailScope(mod), label) : null;
-          var body = (clusterMap || '') + aiCta(label, docs)
-            + '<section><h3>Docs in this section <span class="muted">' + docs.length + '</span></h3>'
-            + '<p class="lead">' + lead + '</p>'
-            + '<ul class="entries">' + docs.map(function (d) {
-                return docItem(d, mod ? mod.module : null, mod ? mod.path : '');
-              }).join('') + '</ul>'
-            + '</section>';
+          var body = (clusterMap || '')
+            + '<p class="lead">What is written down here. Pick a tab for what you are after - '
+            + 'what needs fixing, the rules, the specs.</p>'
+            + docGroupTabs(docs);
 
           amapDisposeAll();
           detailPage.innerHTML = '<div class="detail-inner wide">'
@@ -3119,10 +3273,13 @@
           var href = editorHref(n.path);
           var guardrails = (n.meta && n.meta.guardrails) || [];
 
-          var html = '<div class="kind">' + esc(n.type)
+          // A module heading stands on its own - the reader got here from the
+          // map and the name says it all. Other node types keep the kind label
+          // because "documentation", "screen . flow" etc. is genuine context.
+          var html = n.type === 'module' ? '' : ('<div class="kind">' + esc(n.type)
             + (n.meta && n.meta.docKind ? ' &middot; ' + esc(n.meta.docKind) : '')
             + (n.meta && n.meta.navigatorType ? ' &middot; ' + esc(n.meta.navigatorType) : '')
-            + '</div>';
+            + '</div>');
           html += '<h2>' + esc(n.label) + staleBadge(n) + '</h2>';
           if (n.path) {
             html += href
@@ -3190,9 +3347,7 @@
             }
           }
           if (guardrails.length) {
-            html += '<section><h3>Guardrails</h3>'
-              + '<div class="guard-list">' + guardrails.map(function (g) { return '<div class="guard">' + mdInline(g) + '</div>'; }).join('') + '</div>'
-              + '</section>';
+            html += '<section><h3>Guardrails</h3>' + guardListHtml(guardrails) + '</section>';
           }
           html += listSection('Describes', related(n.id, 'documents', 'out').map(function (r) { return nodeLink(r.node); }));
           html += listSection('Links to', related(n.id, 'links', 'out').map(function (r) { return nodeLink(r.node); }));

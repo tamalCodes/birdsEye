@@ -1,6 +1,6 @@
 ---
 name: extract-docs
-description: Find the spec and doc files an agent should read before touching a module, attach them to the code they describe, and extract guardrails, into codemap/.cache/docs.json. Use when building or refreshing a codemap, or when asked which docs cover a given part of a repo.
+description: Find the spec and doc files an agent should read before touching a module, attach them to the code they describe, and extract guardrails with a plain-English gloss, into codemap/.cache/docs.json. Use when building or refreshing a codemap, or when asked which docs cover a given part of a repo.
 ---
 
 # Extract docs
@@ -20,8 +20,10 @@ source tree, and never write documentation into it.
 - **Location is a hint, not the answer.** A doc sitting at the repo root can
   still be about one module. Its title and first paragraph will usually say so.
   This judgement is the reason a script is not doing this job.
-- **Guardrails are quoted, not summarised.** Copy the bullet. Do not paraphrase
-  it into something the author did not write.
+- **Guardrails are quoted, not summarised.** Copy the bullet verbatim into
+  `guardrails`. The plain-English gloss goes in a *separate* field
+  (`guardrailsPlain`) and may not add any fact the bullet does not already
+  carry - it only unpacks jargon and shorthand.
 - **One README and nothing else is a valid result.** Emit it and stop.
 
 ## Step 1 - find the docs
@@ -173,9 +175,39 @@ non-negotiable | scope fence | invariant | constraint | never | do not | must no
 
 - At most **10 per doc**, at most **200 characters** each - truncate with `...`.
 - Copy the bullet text verbatim, minus the leading marker and any markdown
-  emphasis. Keep inline code as plain text.
-- If a doc has no such heading, emit an empty array. Do not go hunting for
-  sentences that sound like rules.
+  emphasis. Keep inline code as plain text. This is the `guardrails` array.
+- **One bullet is one entry.** Join a bullet's wrapped continuation lines back
+  into a single string - a rule that runs onto a second physical line is still
+  one rule, and half of it is not a rule at all. If a bullet has its own
+  indented sub-bullets (`- name` / `- phone` under "Do not include:"), fold the
+  lead-in and its children into one entry ("Do not include name, phone, ...")
+  rather than emitting the fragment and each child separately.
+- A bold lead-in followed by explanation (`**iOS Modal = freeze.** Never leave
+  a sheet presented across ...`) is one entry: keep enough of the sentence
+  after the lead-in that the rule is actionable, not just the label.
+- If a doc has no such heading, emit empty arrays for both `guardrails` and
+  `guardrailsPlain`. Do not go hunting for sentences that sound like rules.
+
+### `guardrailsPlain` - the plain-English gloss
+
+For every entry in `guardrails`, emit one entry in `guardrailsPlain` at the
+**same index**. The two arrays are always the same length.
+
+Each gloss is **one sentence, at most 200 characters**, that says what the rule
+means to someone who has never opened this codebase - a fragment like
+`otp.length === otpLength` becomes "Only submit the OTP once the user has typed
+every digit."
+
+- **Restate, do not extend.** The gloss may unpack a symbol, a filename, or an
+  abbreviation the bullet uses, but it must not introduce a reason, a
+  consequence, or a mechanism the doc did not state. If the bullet is already
+  plain prose, the gloss is a light rephrasing of it, not a copy and not an
+  embellishment.
+- If a bullet is too cryptic to gloss faithfully - a bare identifier with no
+  surrounding context anywhere in the doc - repeat it verbatim rather than
+  guess at what it means.
+- Write it for the same reader `extract-flowcharts` writes for: no "slice", no
+  "reducer", no "hook".
 
 ## Step 7 - write the file
 
@@ -198,6 +230,9 @@ non-negotiable | scope fence | invariant | constraint | never | do not | must no
       "guardrails": [
         "Never render the blue Portfolio Value hero - it is intentionally dead."
       ],
+      "guardrailsPlain": [
+        "Do not show the blue Portfolio Value card on this screen - it was left in the code on purpose but must stay hidden."
+      ],
       "stalePaths": ["components/OldCard.tsx"]
     }
   ]
@@ -208,7 +243,9 @@ Rules for the file itself:
 
 - `summary` is at most 120 characters, or `null`. One clause about what the doc
   covers - not a review of whether it is any good.
-- Sort `docs` by `path`, and sort every array inside a doc. Byte-identical
+- Sort `docs` by `path`, and sort every array inside a doc **except the
+  guardrail pair** - `guardrails` keeps the doc's own bullet order so
+  `guardrailsPlain` can stay aligned to it index for index. Byte-identical
   output on unchanged input.
 - Repo-relative POSIX paths everywhere. `links` and `documents` targets must be
   paths, never doc titles.
@@ -221,6 +258,6 @@ mkdir -p codemap/.cache
 ## Step 8 - report
 
 One line: how many docs, how many `documents` edges, how many modules ended up
-with at least one doc attached, and how many unplaced paths you are handing on.
-Do not describe those as stale - `merge.mjs` decides that, and it will report
-how many survived the check.
+with at least one doc attached, how many guardrails you glossed, and how many
+unplaced paths you are handing on. Do not describe those as stale - `merge.mjs`
+decides that, and it will report how many survived the check.

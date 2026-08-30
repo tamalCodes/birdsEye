@@ -139,7 +139,13 @@ export function mergeGraph(root) {
       // told apart from a doc it actually points at.
       meta: {
         docKind: d.kind ?? 'OTHER',
-        guardrails: (d.guardrails ?? []).slice(0, 10).map((g) => clamp(g, 200)),
+        // Each guardrail keeps the doc's exact wording in `quote`; `plain` is the
+        // one-sentence plain-English gloss extract-docs writes alongside it, or
+        // null when the doc has none yet. Order is paired by index.
+        guardrails: (d.guardrails ?? []).slice(0, 10).map((g, i) => ({
+          quote: clamp(g, 200),
+          plain: clamp((d.guardrailsPlain ?? [])[i] ?? null, 240),
+        })),
         stale: false,
         refs: { deleted: [], unknown: [], external: [] },
       },

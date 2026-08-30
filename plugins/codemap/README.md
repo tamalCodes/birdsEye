@@ -54,7 +54,7 @@ written into it.
 |---|---|---|
 | `imports.mjs` | plain Node - tsconfig aliases, barrels, comment-stripped parsing | milliseconds, no model |
 | `extract-routes` | a skill - reads the router and describes it | ~25 files, once |
-| `extract-docs` | a skill - attaches docs to the code they describe | once |
+| `extract-docs` | a skill - attaches docs to the code they describe, glosses their guardrails in plain English | once |
 | `extract-flowcharts` | a skill - turns each module's docs into a step-by-step flow | once, after docs |
 | `merge.mjs` | plain Node - one canonical `graph.json` | milliseconds |
 | `render.mjs` | plain Node - inlines vendored Cytoscape | milliseconds |
