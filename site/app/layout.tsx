@@ -22,19 +22,20 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://birdseye.tamal.me";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   title: {
-    default: "birdsEye - find out where your agent will get lost",
+    default: "birdsEye - see how a repo fits together before you touch it",
     template: "%s - birdsEye",
   },
   description:
-    "A Claude Code plugin that audits any repository for agent-readiness: which docs cover each module, which guardrails have gone stale, and which specs an agent should read before touching the code. The whole picture lands as one self-contained HTML file.",
+    "A Claude Code plugin that turns any repository into an interactive flowchart: the major modules, the folders and files inside them, and the dependency arrows between them. Runs locally on tree-sitter with no model call - zero tokens. One self-contained HTML file out.",
   keywords: [
-    "agent readiness",
-    "documentation drift",
+    "code structure",
     "codebase map",
     "code visualization",
     "dependency graph",
+    "tree-sitter",
+    "AST",
     "Claude Code plugin",
-    "agentic coding",
+    "module map",
     "architecture diagram",
     "repository map",
   ],
@@ -43,15 +44,15 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE,
     siteName: "birdsEye",
-    title: "birdsEye - find out where your agent will get lost",
+    title: "birdsEye - see how a repo fits together before you touch it",
     description:
-      "One command tells you where an agent will get lost: stale guardrails, uncovered modules, the specs to read first. One HTML file. Runs on your own Claude account. No server, no build step, no network.",
+      "One command turns any repo into an interactive flowchart of its modules, files, and dependencies. Local tree-sitter parse, no model, zero tokens. One HTML file, no server.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "birdsEye - find out where your agent will get lost",
+    title: "birdsEye - see how a repo fits together before you touch it",
     description:
-      "One command tells you where an agent will get lost: stale guardrails, uncovered modules, the specs to read first.",
+      "One command turns any repo into an interactive flowchart of its modules, files, and dependencies. Local, deterministic, zero tokens.",
   },
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],

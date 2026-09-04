@@ -12,6 +12,8 @@ type Props = {
    * that only for a command you actually run in the terminal. A command
    * typed inside Claude Code's own prompt (a slash command) must use ">"
    * instead, or people paste it into zsh/bash and it fails to resolve.
+   * Pass "" for something that is neither - a bare file path, say - and no
+   * glyph is rendered at all.
    */
   prompt?: string;
 };
@@ -31,9 +33,11 @@ export default function CopyCommand({ command, copyText, label, prompt = "$" }: 
 
   return (
     <div className="group flex items-center gap-3 rounded-xl border border-hair bg-panel/70 px-4 py-3 font-mono text-[0.92rem]">
-      <span aria-hidden className="select-none text-clay">
-        {prompt}
-      </span>
+      {prompt ? (
+        <span aria-hidden className="select-none text-clay">
+          {prompt}
+        </span>
+      ) : null}
       <code className="flex-1 overflow-x-auto whitespace-nowrap text-ink">
         {command}
       </code>

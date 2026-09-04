@@ -19,6 +19,7 @@ import {
   MARKETPLACE_REMOVE,
   MARKETPLACE_UPDATE,
   MAP_COMMAND,
+  MAP_OPEN,
 } from "@/lib/links";
 
 export default function Home() {
@@ -42,13 +43,10 @@ export default function Home() {
 /* ------------------------------------------------------------------ hero */
 
 /* What actually runs birdsEye, and where the map it produces sends you. Claude
-   Code is the host - the plugin is a set of Claude Code commands and skills.
-   The three editors are the targets of the `editor` config: clicking a file in
-   the finished map opens it there. Both halves are labelled as such, so the row
+   Code is the host - the plugin is a set of Claude Code commands. The three
+   editors are the targets of the `editor` config: clicking a file in the
+   finished map opens it there. Both halves are labelled as such, so the row
    never reads as a claim that the plugin runs inside an editor. */
-/* Sizes are optical, not uniform: a solid square (JetBrains) and a solid cube
-   (Cursor) read heavier than a spiky burst or a thin ribbon at the same box
-   size, so the two solids come down a notch to sit level with the rest. */
 const HOST = { name: "Claude Code", Mark: ClaudeMark, size: "h-5 w-5" };
 
 const EDITORS = [
@@ -62,22 +60,18 @@ function Hero() {
     <section className="shell relative pt-20 pb-20 md:pt-28 md:pb-28">
       <div className="reveal mx-auto max-w-3xl text-center">
         <h1 className="font-display t-hero text-ink">
-          Find out where your agent{" "}
-          <span className="font-display-italic text-clay">will get lost</span>
+          See how a repo fits together{" "}
+          <span className="font-display-italic text-clay">before you touch it</span>
         </h1>
-        {/* Two lines at max-w-xl on desktop. The artifact ("one HTML file") moved
-            down to the line under the buttons: in the subhead it pushed this to
-            four lines, and it is a detail, not the reason to care. */}
         <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted md:text-xl">
-          One command audits your repo for stale guardrails, uncovered modules, and the
-          specs an agent should read first.
+          One command turns any codebase into an interactive flowchart: the major modules
+          up top, expand any box to the files inside, dependency arrows between them.
         </p>
 
         {/* No copyable command up here on purpose. `/birdseye:map` only runs for
             somebody who already has the plugin, which is nobody arriving on this
-            page for the first time - so as a hero call to action it asked the one
-            thing a new visitor cannot do. The command still leads the Install
-            section, three lines down, where it is actually runnable. */}
+            page for the first time. The command leads the Install section, three
+            lines down, where it is actually runnable. */}
         <div className="mt-10 flex flex-col items-center">
           <div className="flex flex-wrap items-center justify-center gap-3">
             <a
@@ -90,11 +84,11 @@ function Hero() {
               href="#what"
               className="inline-flex items-center rounded-lg border border-hair px-5 py-2.5 text-muted transition-colors hover:border-clay hover:text-ink"
             >
-              See what it finds
+              See what it does
             </a>
           </div>
           <p className="mt-4 text-sm text-faint">
-            Two commands to install, one to run. One HTML file out, no server.
+            Two commands to install, one to run. Runs on your machine - no model, no tokens.
           </p>
         </div>
 
@@ -135,31 +129,28 @@ function ToolRow() {
 
 /* ------------------------------------------------------------- what it does */
 
-/* Order is the argument: the readiness audit is what birdsEye is for, and the
-   structural views under it are the evidence that the audit can be trusted.
-   Dot colours stay bound to their concept, not to their position - they echo
-   the map legend further down (clay module, ochre route, rose doc), so
-   reshuffling them to keep clay in the lead slot would break that link. */
+/* Dot colours stay bound to their concept, echoing the map legend further down
+   (ochre root, clay module, plum folder, olive file). */
 const CAPABILITIES = [
   {
-    dot: "var(--olive)",
-    title: "Agent-readiness, per module",
-    body: "Every module answered on one question: does an agent have what it needs before it touches this code? The docs that cover it, the guardrails it has to respect, the flow it should follow - and, where those are missing, a gap you can actually see.",
-  },
-  {
-    dot: "var(--rose)",
-    title: "Guardrails that went stale",
-    body: "Docs are matched to the code they really describe, guardrails quoted verbatim, then glossed in plain English. Any spec still pointing at a file git has since deleted is flagged - that is the one an agent will read and confidently act on.",
-  },
-  {
     dot: "var(--clay)",
-    title: "Modules & dependencies",
-    body: "Every module is a node, every import an edge. Click one to see its fan-in and fan-out - the plain-language version of what would break if you touched it.",
+    title: "The major modules, up front",
+    body: "The top level is a handful of boxes - the feature modules, plus one General-purpose group for the shared code everything imports. You see the spine of the repo before you read a line of it.",
+  },
+  {
+    dot: "var(--plum)",
+    title: "Expand any box",
+    body: "Click a module and it opens in place to the folders and files inside it. Go as deep as you want, collapse it back when you are done. The layout settles around whatever you have open.",
+  },
+  {
+    dot: "var(--olive)",
+    title: "Dependency arrows that follow you",
+    body: "Every import and call, rolled up to whichever level is open. Select a node and the panel tells you exactly what it depends on and what depends on it - the plain-language blast radius.",
   },
   {
     dot: "var(--ochre)",
-    title: "Routes & screens",
-    body: "The navigation tree, laid out like an org chart and boxed by feature. Step-flows like onboarding or checkout show their real order, not a pile of screens.",
+    title: "Parsed, not guessed",
+    body: "Around 25 languages through tree-sitter - JavaScript, Python, Go, Rust, Java, C#, Ruby and more. Deterministic: the same repo always produces the same map, so it diffs cleanly.",
   },
 ];
 
@@ -168,15 +159,15 @@ function WhatItDoes() {
     <Section
       id="what"
       kicker="What it does"
-      title="What an agent knows before it touches your code"
+      title="The first twenty minutes in a new repo, done for you"
       intro={
         <>
           <span className="font-display-italic text-ink">
-            &ldquo;Before this agent edits auth - does it know what auth is wired to,
-            which guardrails apply, and which spec to read first?&rdquo;
+            &ldquo;Where does this live, what does it lean on, and what breaks if I change
+            it?&rdquo;
           </span>{" "}
-          Open the map, click the node, get the answer in five seconds. Every decision in
-          birdsEye was shaped by that one moment.
+          Every time you - or an agent - opens an unfamiliar codebase, that is the question.
+          birdsEye answers it from a picture instead of a grep, offline, in seconds.
         </>
       }
     >
@@ -200,18 +191,17 @@ function WhatItDoes() {
 /* ------------------------------------------------------------------ the map */
 
 const LEGEND = [
-  { shape: "circle", color: "var(--clay)", label: "module" },
+  { shape: "box", color: "var(--ochre)", label: "code root" },
+  { shape: "box", color: "var(--clay)", label: "module" },
+  { shape: "box-sm", color: "var(--plum)", label: "folder" },
   { shape: "circle-sm", color: "var(--olive)", label: "file" },
-  { shape: "box", color: "var(--ochre)", label: "route" },
-  { shape: "box", color: "var(--plum)", label: "screen" },
-  { shape: "diamond", color: "var(--rose)", label: "doc" },
 ];
 
 const VIEWER_NOTES = [
-  "Click any file and it opens where you actually work - VS Code, Cursor, JetBrains.",
+  "Click any file and it opens where you actually work - VS Code, Cursor, JetBrains, Zed.",
   "Self-contained: it opens from file:// with no server and no network at all.",
-  "Shape carries the type as much as colour does, so the map reads without colour vision.",
-  "A repo with no router gets a line saying so, not an empty canvas.",
+  "It remembers what you had expanded, and ships a light and a dark theme.",
+  "Search jumps to any module or file and opens the path down to it.",
 ];
 
 function TheMap() {
@@ -252,19 +242,10 @@ function TheMap() {
 }
 
 function Glyph({ shape, color }: { shape: string; color: string }) {
-  if (shape === "box") {
+  if (shape === "box" || shape === "box-sm") {
     return (
       <span
-        className="inline-block h-3.5 w-8 shrink-0 rounded-[5px]"
-        style={{ background: color }}
-        aria-hidden
-      />
-    );
-  }
-  if (shape === "diamond") {
-    return (
-      <span
-        className="inline-block h-3 w-3 shrink-0 rotate-45 rounded-[3px]"
+        className={`inline-block shrink-0 rounded-[5px] ${shape === "box" ? "h-3.5 w-8" : "h-3.5 w-5"}`}
         style={{ background: color }}
         aria-hidden
       />
@@ -284,44 +265,35 @@ function Glyph({ shape, color }: { shape: string; color: string }) {
 
 const PIPELINE = [
   {
-    name: "imports.mjs",
-    model: false,
-    body: "tsconfig aliases, barrels, comment-stripped parsing. Re-parses only what changed.",
+    name: "structure.mjs scan",
+    body: "Finds the code root and makes a first-pass guess at which folders are features and which are shared infrastructure.",
   },
   {
-    name: "extract-routes",
-    model: true,
-    body: "Reads the router and describes it - the one place judgement is genuinely required.",
+    name: "ast.mjs",
+    body: "Hands every source file to graphify's tree-sitter parser and collapses the symbol graph to a file-level dependency graph.",
   },
   {
-    name: "extract-docs",
-    model: true,
-    body: "Attaches docs to the code they describe. Guardrails quoted verbatim, then glossed.",
+    name: "build.mjs",
+    body: "Rolls that flat graph into the containment tree - root, modules, folders, files - the viewer draws.",
   },
   {
-    name: "extract-flowcharts",
-    model: true,
-    body: "Turns each module's docs into a step-by-step flow, grounded in what the docs say.",
-  },
-  {
-    name: "merge.mjs + render.mjs",
-    model: false,
-    body: "One canonical graph.json, re-checked against git, then a single HTML file.",
+    name: "render.mjs",
+    body: "Inlines the vendored Cytoscape into one self-contained HTML file. No CDN, no server.",
   },
 ];
 
 const LIMITS = [
   {
-    h: "A wrong edge is never guessed",
-    p: "When a navigation target is computed, the edge is skipped, not invented. A missing edge is cheap; a wrong one destroys trust in the whole map.",
+    h: "Python 3.10+ is required",
+    p: "The parser is a Python package (graphify, Apache-2.0) that birdsEye installs into its own virtualenv on the first run. No Python, no map.",
   },
   {
-    h: "Import edges are JS and TS only",
-    p: "Another language still gets module nodes and a full doc map - just no dependency edges between files.",
+    h: "A wrong edge is never guessed",
+    p: "graphify resolves an import to a real file or leaves it out. A missing edge is cheap; a wrong one poisons trust in the whole map.",
   },
   {
     h: "Your source tree is left alone",
-    p: "Nothing is written into it except birdseye.config.json, and only after it asks. The map lives in a gitignored folder.",
+    p: "Nothing is written into it except birdseye.config.json, and only after it asks. The map and its cache live in a gitignored folder.",
   },
 ];
 
@@ -330,16 +302,16 @@ function HowItWorks() {
     <Section
       id="how"
       kicker="How it works"
-      title="Mechanical work is code. Judgement is the model."
-      intro="Anything a script can do exactly is a script, so it is exact and free. The model runs only where a person would have to think - and only once, because the result is cached. Same input, same output, every time."
+      title="No model in the loop. Zero tokens."
+      intro="Extraction is graphify's tree-sitter parse - it runs on your machine and reads nothing back to anyone. Everything else is a few hundred lines of Node. Same repo in, same map out, every time."
     >
-      <ol className="mt-12 grid gap-px overflow-hidden rounded-t-2xl border border-hair bg-hair sm:grid-cols-2 lg:grid-cols-3">
+      <ol className="mt-12 grid gap-px overflow-hidden rounded-t-2xl border border-hair bg-hair sm:grid-cols-2 lg:grid-cols-4">
         {PIPELINE.map((s, i) => (
           <Reveal as="li" key={s.name} delay={i * 0.05} className="bg-canvas p-6 md:p-7">
             <p className="flex items-center gap-2 font-mono text-[0.9rem] text-ink">
               <span
                 className="h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{ background: s.model ? "var(--clay)" : "var(--olive)" }}
+                style={{ background: "var(--olive)" }}
                 aria-hidden
               />
               {s.name}
@@ -349,12 +321,9 @@ function HowItWorks() {
         ))}
       </ol>
 
-      {/* Outside the <ol> on purpose: it is a legend, and inside the list a
-          screen reader announces it as a sixth pipeline stage. */}
       <Reveal className="mt-px rounded-b-2xl border-x border-b border-hair bg-raised/50 p-6 text-[0.95rem] leading-relaxed text-muted md:p-7">
-        <span className="text-clay">&bull;</span> model &nbsp;
-        <span className="text-olive">&bull;</span> plain Node. Later runs take seconds and
-        cost nothing - the model stages are skipped when nothing they read changed.
+        Every stage runs locally with no model call. graphify keeps a per-file content
+        hash, so a re-run only re-parses what changed - usually a second or two.
       </Reveal>
 
       <div className="mt-14 border-t border-hair pt-12">
@@ -378,22 +347,20 @@ function HowItWorks() {
 /* ------------------------------------------------------------------ install */
 
 /* This sits directly under the hero on purpose: the page's first ask is
-   "install the plugin", so the answer should be the next thing on screen, not
-   the last. Everything that is not one of the four commands - updating, the
-   one failure mode worth documenting - is folded into a disclosure, so the
-   default view is four lines and nothing else.
+   "install the plugin", so the answer should be the next thing on screen.
 
-   Step 00 is a real shell command ("$") - it's the only one. Steps 01-03 are
-   typed inside Claude Code's own prompt, never the terminal, so they render
-   with ">" instead. Pasting a "/plugin ..." line into zsh/bash fails with
-   "no such file or directory" because there is no such file - it's a Claude
-   Code slash command, not a program. The two prompts existing side by side is
-   the whole fix: it shows the boundary instead of just stating it. */
+   Step 00 is a real shell command ("$"). Steps 01-03 are typed inside Claude
+   Code's own prompt, never the terminal, so they render with ">". Pasting a
+   "/plugin ..." line into zsh/bash fails - it's a Claude Code slash command,
+   not a program. The prompts side by side show the boundary. Step 04 is a file
+   path, not a command - no prompt glyph, since "how you open a file" is not the
+   same on every OS. */
 const STEPS = [
   { n: "00", label: "Open Claude Code", note: "in your terminal, once", cmd: OPEN_CLAUDE_CODE, prompt: "$" },
   { n: "01", label: "Add the marketplace", note: "once per machine", cmd: MARKETPLACE_ADD, prompt: ">" },
   { n: "02", label: "Install the plugin", note: "once per machine", cmd: PLUGIN_INSTALL, prompt: ">" },
-  { n: "03", label: "Run it", note: "in every repo you want a map of", cmd: MAP_COMMAND, prompt: ">" },
+  { n: "03", label: "Build the map", note: "any repo, zero tokens", cmd: MAP_COMMAND, prompt: ">" },
+  { n: "04", label: "Open the map", note: "self-contained - any browser, no server", cmd: MAP_OPEN, prompt: "" },
 ];
 
 const INSTALL_NOTES = [
@@ -419,20 +386,29 @@ function Install() {
         <Reveal className="mx-auto max-w-2xl text-center">
           <p className="kicker">Install</p>
           <h2 className="font-display mt-5 t-section text-ink">
-            One shell command, then any repo
+            Install once, map any repo
           </h2>
           <p className="mt-5 leading-relaxed text-muted">
-            Step 00 opens Claude Code in your terminal. Everything after that is typed
-            inside Claude Code itself, not your shell - that&rsquo;s why it starts with{" "}
+            Add the marketplace and install the plugin once. After that,{" "}
+            <code className="rounded bg-panel px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
+              /birdseye:map
+            </code>{" "}
+            in any repo parses it with tree-sitter on your machine - no model call, no
+            tokens - and writes one self-contained{" "}
+            <code className="rounded bg-panel px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
+              birdseye/index.html
+            </code>{" "}
+            you open in a browser. Steps marked{" "}
             <code className="rounded bg-panel px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
               &gt;
             </code>{" "}
-            instead of{" "}
+            are typed inside Claude Code;{" "}
             <code className="rounded bg-panel px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
               $
-            </code>
-            . Nothing to download by hand, no npm package. The first run takes a minute
-            or two; every run after that is seconds.
+            </code>{" "}
+            is your terminal. The first run also installs the tree-sitter parser into its
+            own virtualenv - a one-time download of tens of seconds; every run after is a
+            second or two.
           </p>
         </Reveal>
 
@@ -456,9 +432,18 @@ function Install() {
           ))}
         </ol>
 
-        {/* Closed by default. Neither note applies to a first, clean install, and
-            on screen they read as two more steps than there really are. */}
-        <Reveal delay={0.2} className="mx-auto mt-6 max-w-2xl">
+        <Reveal delay={0.16} className="mx-auto mt-6 max-w-2xl">
+          <p className="rounded-2xl border border-hair bg-raised/40 px-5 py-4 text-[0.92rem] leading-relaxed text-muted sm:px-6">
+            <span className="text-ink">Needs Python 3.10+ on the machine</span> (and
+            ideally <code className="font-mono text-[0.9em] text-ink">uv</code>). birdsEye
+            sets up its own virtualenv - point{" "}
+            <code className="font-mono text-[0.9em] text-ink">$BIRDSEYE_PYTHON</code> at an
+            interpreter to skip that.
+          </p>
+        </Reveal>
+
+        {/* Closed by default. Neither note applies to a first, clean install. */}
+        <Reveal delay={0.2} className="mx-auto mt-4 max-w-2xl">
           <details className="group rounded-2xl border border-hair bg-raised/40 open:bg-raised/60">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-[0.95rem] text-muted transition-colors hover:text-ink sm:px-6 [&::-webkit-details-marker]:hidden">
               Updating, and the one thing that can go wrong
@@ -492,19 +477,19 @@ function Install() {
 const FAQ = [
   {
     q: "What does it cost to run?",
-    a: "It runs on your own Claude Code session. The mechanical stages use no model at all. The two extraction stages run once and are cached afterwards, so a refresh is effectively free.",
+    a: "Nothing. There is no model call anywhere in the pipeline - extraction is a local tree-sitter parse. The only network access is a one-time pip install of the parser on the first run.",
   },
   {
     q: "Does my code leave my machine?",
-    a: "Only what Claude reads during the two extraction stages, exactly like any other Claude Code session. There is no birdsEye server - nothing is uploaded to us, because there is no us to upload to.",
+    a: "No. graphify parses everything locally and reports nothing anywhere. There is no birdsEye server - nothing is uploaded to us, because there is no us to upload to.",
   },
   {
-    q: "What if the repo has no router or no docs?",
-    a: "It degrades to what it can see. No router gets a canvas that says so. No docs gets a map of modules and dependencies. One README is a perfectly valid result. A monorepo is treated as a single root today; per-package roots are on the list.",
+    q: "Which languages does it cover?",
+    a: "Whatever graphify's tree-sitter grammars cover: JavaScript/TypeScript, Python, Go, Rust, Java, C/C++, C#, Ruby, PHP, Kotlin, Swift, Scala and more. A file in an unsupported language still counts toward its folder's totals, it just has no dependency edges. A monorepo with several package roots is approximated as one today.",
   },
   {
     q: "How stable is it?",
-    a: "Very early. Expect rough edges, breaking changes between versions, and views that appear or disappear as the design settles.",
+    a: "Very early. Expect rough edges and breaking changes between versions. The earlier readiness, routes and docs views are dormant while the structure map settles.",
   },
 ];
 
@@ -534,9 +519,9 @@ function Faq() {
 /* ------------------------------------------------------------------ footer */
 
 const FOOTER_FACTS = [
-  { n: "0", label: "servers to run", p: "A marketplace is a public GitHub repo. Nothing to host, no npm package." },
+  { n: "0", label: "tokens to run", p: "No model call in the pipeline. The parse is local tree-sitter, start to finish." },
   { n: "1", label: "file to share", p: "One HTML file, everything inlined. It opens from file:// on a plane." },
-  { n: "MIT", label: "all the way down", p: "The plugin and every vendored library - Cytoscape, fcose - are MIT." },
+  { n: "OSS", label: "top to bottom", p: "Plugin MIT, the graphify parser Apache-2.0, vendored Cytoscape and fcose MIT." },
 ];
 
 const FOOTER_NAV = [
@@ -587,9 +572,9 @@ function Footer() {
               birdsEye
             </div>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
-              Find out where your agent will get lost. A Claude Code plugin that audits
-              any repo for stale guardrails, uncovered modules, and the specs to read
-              first.
+              Turn any repo into an interactive flowchart of its structure - the modules,
+              the files inside them, and how they depend on each other. A Claude Code
+              plugin. Local, deterministic, zero tokens.
             </p>
             <div className="mt-6 max-w-xs">
               <CopyCommand command={MAP_COMMAND} prompt=">" />

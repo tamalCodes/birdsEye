@@ -7,3 +7,4 @@ export const PLUGIN_INSTALL = "/plugin install birdseye@birdseye-marketplace";
 export const MARKETPLACE_REMOVE = "/plugin marketplace remove birdseye-marketplace";
 export const MARKETPLACE_UPDATE = "/plugin marketplace update birdseye-marketplace";
 export const MAP_COMMAND = "/birdseye:map";
+export const MAP_OPEN = "birdseye/index.html";

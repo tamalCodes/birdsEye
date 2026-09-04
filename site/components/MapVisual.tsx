@@ -104,7 +104,7 @@ export default function MapVisual() {
         <svg
           viewBox="0 0 1000 640"
           className="block w-full touch-manipulation"
-          aria-label="An interactive birdsEye map of an example app. Select a node to see what depends on it and which specs to read first."
+          aria-label="An interactive birdsEye map of an example app. Select a node to see where it sits and what it depends on."
         >
           <defs>
             <pattern id="be-dots" width={24} height={24} patternUnits="userSpaceOnUse">
@@ -274,7 +274,7 @@ type NodeProps = {
 function Node({ node, index, lit, active, pinned, reduced, onEngage, onSelect }: NodeProps) {
   const { top, bottom } = anchors(node);
   const color = KIND_COLOR[node.kind];
-  const half = node.kind === "route" || node.kind === "screen" ? (node.w ?? 128) / 2 : 46;
+  const half = node.kind === "root" || node.kind === "module" ? (node.w ?? 128) / 2 : 46;
   const kids = CHILDREN[node.id]?.length ?? 0;
 
   return (
@@ -341,7 +341,7 @@ function Shape({
   active: boolean;
   reduced: boolean;
 }) {
-  const boxy = node.kind === "route" || node.kind === "screen";
+  const boxy = node.kind === "root" || node.kind === "module";
   const w = node.w ?? 128;
   const origin = originOf(node);
 
@@ -380,7 +380,7 @@ function Shape({
               <circle
                 cx={node.x}
                 cy={node.y}
-                r={node.kind === "file" ? 19 : 27}
+                r={node.kind === "file" ? 19 : 24}
                 fill="none"
                 stroke={color}
                 strokeWidth={1.5}
@@ -410,18 +410,17 @@ function Shape({
 
       {boxy ? (
         <rect x={node.x - w / 2} y={node.y - 15} width={w} height={30} rx={8} fill={color} />
-      ) : node.kind === "doc" ? (
+      ) : node.kind === "folder" ? (
         <rect
-          x={node.x - 13}
+          x={node.x - 15}
           y={node.y - 13}
-          width={26}
+          width={30}
           height={26}
-          rx={5}
+          rx={7}
           fill={color}
-          transform={`rotate(45 ${node.x} ${node.y})`}
         />
       ) : (
-        <circle cx={node.x} cy={node.y} r={node.kind === "module" ? 19 : 11} fill={color} />
+        <circle cx={node.x} cy={node.y} r={11} fill={color} />
       )}
 
       {boxy ? (
@@ -440,10 +439,10 @@ function Shape({
       ) : (
         <text
           x={node.x}
-          y={node.y + (node.kind === "module" ? 38 : node.kind === "doc" ? 32 : 24)}
+          y={node.y + (node.kind === "folder" ? 32 : 24)}
           textAnchor="middle"
           fontFamily="var(--font-mono)"
-          fontSize={node.kind === "module" ? 13 : 11.5}
+          fontSize={11.5}
           fill={active ? "var(--ink)" : "var(--muted)"}
           pointerEvents="none"
           style={{ transition: "fill 0.25s ease" }}
@@ -466,9 +465,9 @@ function Toolbar({
   total: number;
   reduced: boolean;
 }) {
-  const modules = useCountUp(18, reduced);
-  const screens = useCountUp(9, reduced);
-  const specs = useCountUp(24, reduced);
+  const modules = useCountUp(12, reduced);
+  const files = useCountUp(148, reduced);
+  const langs = useCountUp(6, reduced);
   const done = visited >= total;
   const pct = visited / total;
 
@@ -489,7 +488,7 @@ function Toolbar({
         fontSize={14}
         fill="var(--ink)"
       >
-        perccent-app
+        finch
       </text>
       <motion.text
         data-reveal=""
@@ -502,7 +501,7 @@ function Toolbar({
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.4 }}
       >
-        {modules} modules &middot; {screens} screens &middot; {specs} specs
+        {modules} modules &middot; {files} files &middot; {langs} languages
       </motion.text>
 
       {/* An explored meter. It turns a diagram into something with a finish

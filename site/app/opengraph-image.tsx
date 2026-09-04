@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
-export const alt = "birdsEye - find out where your agent will get lost";
+export const alt = "birdsEye - see how a repo fits together before you touch it";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -28,7 +28,7 @@ const FAINT = "#7d7466";
 const CLAY = "#d97757";
 const CANVAS = "#171512";
 
-const NODE_HUES = ["#d97757", "#a9b764", "#e3a857", "#b58bd4", "#e0708a"];
+const NODE_HUES = ["#e3a857", "#d97757", "#b58bd4", "#a9b764"];
 
 export default async function OgImage() {
   const [fraunces, frauncesItalic, outfit, outfitSemi] = await Promise.all([
@@ -93,7 +93,7 @@ export default async function OgImage() {
                 color: INK,
               }}
             >
-              Find out where your agent
+              See how a repo fits together
             </span>
           </div>
           <div style={{ display: "flex" }}>
@@ -107,15 +107,15 @@ export default async function OgImage() {
                 color: CLAY,
               }}
             >
-              will get lost
+              before you touch it
             </span>
           </div>
           {/* Broken by hand for the same reason as the headline: left to wrap,
               this lands a one- or two-word orphan on the last line. */}
           <div style={{ display: "flex", flexDirection: "column", marginTop: 30 }}>
             {[
-              "One command audits any repo for stale guardrails, uncovered modules,",
-              "and the specs an agent should read before it touches the code.",
+              "One command turns any repo into an interactive flowchart of its",
+              "modules, files, and dependencies. Local parse, no model, zero tokens.",
             ].map((line) => (
               <div key={line} style={{ display: "flex" }}>
                 <span style={{ fontSize: 27, lineHeight: 1.5, color: MUTED }}>{line}</span>

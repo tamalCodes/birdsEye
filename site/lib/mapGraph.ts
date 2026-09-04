@@ -6,9 +6,13 @@
   sits on a numbered row, and every edge drops into a horizontal "bus" gutter
   that no label is allowed to occupy. That rule is what keeps connectors from
   cutting through text.
+
+  It mirrors the real product: a containment tree - code root, then modules,
+  then the folders and files inside them - with the dependency graph rolled up
+  onto whichever level you are looking at.
 */
 
-export type NodeKind = "route" | "screen" | "module" | "file" | "doc";
+export type NodeKind = "root" | "module" | "folder" | "file";
 
 export type MapNode = {
   id: string;
@@ -16,7 +20,7 @@ export type MapNode = {
   label: string;
   x: number;
   y: number;
-  /* Box width, for the route and screen rectangles only. */
+  /* Box width, for the root and module rectangles only. */
   w?: number;
   parent: string | null;
   /* The gutter its own children drop through. Leaves omit it. */
@@ -33,34 +37,34 @@ export type MapNode = {
    Nothing but a connector is ever drawn at a bus height. */
 export const MAP_NODES: MapNode[] = [
   {
-    id: "app",
-    kind: "route",
-    label: "App",
+    id: "src",
+    kind: "root",
+    label: "src",
     x: 500,
     y: 116,
     w: 92,
     parent: null,
     bus: 172,
     card: {
-      body: "The root route. Everything below is reachable from here in **3 hops or fewer**.",
+      body: "The code root. **Three feature modules** hang off it, plus one shared layer everything imports.",
       footLabel: "Entry point",
-      foot: "app/_layout.tsx",
+      foot: "src/main.tsx",
     },
   },
 
   {
-    id: "onboarding",
-    kind: "screen",
-    label: "Onboarding",
+    id: "checkout",
+    kind: "module",
+    label: "checkout",
     x: 196,
     y: 234,
-    w: 140,
-    parent: "app",
+    w: 132,
+    parent: "src",
     bus: 296,
     card: {
-      body: "A **4 step flow**. Step order lives in one file, so a reorder is a one line change.",
-      footLabel: "Read first",
-      foot: "ONBOARDING.md",
+      body: "**6 files**. Imports from `auth` and `ui`, and nothing outside checkout reaches into it.",
+      footLabel: "Depends on",
+      foot: "auth · ui",
     },
   },
   {
@@ -69,42 +73,43 @@ export const MAP_NODES: MapNode[] = [
     label: "auth",
     x: 500,
     y: 234,
-    parent: "app",
+    w: 96,
+    parent: "src",
     bus: 312,
     card: {
-      body: "**12 modules** use code from here. The riskiest file to touch is `session.ts`.",
-      footLabel: "Read first",
-      foot: "AUTH.md · MONEY-MOVEMENT.md",
+      body: "**12 modules** import from here - the highest fan-in in the repo. `session.ts` is the file they all touch.",
+      footLabel: "Used by",
+      foot: "12 modules · 0 outward deps",
     },
   },
   {
-    id: "portfolio",
+    id: "ui",
     kind: "module",
-    label: "portfolio",
+    label: "ui",
     x: 812,
     y: 234,
-    parent: "app",
+    w: 84,
+    parent: "src",
     bus: 320,
     card: {
-      body: "Owns every number the user sees. **No spec covers it**, so an agent will guess here.",
-      footLabel: "Gap",
-      foot: "0 of 2 files documented",
+      body: "General-purpose. Pure components, imported by every feature and importing **nothing back**.",
+      footLabel: "Kind",
+      foot: "shared · 9 files",
     },
   },
 
   {
-    id: "demographic",
-    kind: "screen",
-    label: "Demographic",
+    id: "steps",
+    kind: "folder",
+    label: "steps/",
     x: 196,
     y: 372,
-    w: 142,
-    parent: "onboarding",
+    parent: "checkout",
     bus: 440,
     card: {
-      body: "Collects identity before money. Two later steps **cannot render** until it passes.",
-      footLabel: "Read first",
-      foot: "KYC.md",
+      body: "The checkout wizard, **4 screens**. Each one imports `auth` for the current user and `ui` for the shell.",
+      footLabel: "Contains",
+      foot: "4 files",
     },
   },
   {
@@ -115,9 +120,9 @@ export const MAP_NODES: MapNode[] = [
     y: 372,
     parent: "auth",
     card: {
-      body: "Touched by **9 of the 12** dependents. Changing its shape breaks them all at once.",
-      footLabel: "Blast radius",
-      foot: "High · covered by AUTH.md",
+      body: "Read by **9 of the 12** dependents. Changing an export here ripples to all of them at once.",
+      footLabel: "Fan-in",
+      foot: "High · 9 files import it",
     },
   },
   {
@@ -128,95 +133,91 @@ export const MAP_NODES: MapNode[] = [
     y: 372,
     parent: "auth",
     card: {
-      body: "Route level checks. Read by the router only, so it is **safe to refactor**.",
-      footLabel: "Blast radius",
+      body: "Route-level checks. Imported by the router only, so it is **safe to refactor** in isolation.",
+      footLabel: "Fan-in",
       foot: "Low · 1 dependent",
     },
   },
   {
-    id: "authdoc",
-    kind: "doc",
-    label: "AUTH.md",
+    id: "token",
+    kind: "file",
+    label: "token.ts",
     x: 664,
     y: 372,
     parent: "auth",
     card: {
-      body: "The spec an agent should open first. Last verified against the code **6 days ago**.",
-      footLabel: "Status",
-      foot: "Fresh · covers 2 of 2 files",
+      body: "Signs and verifies JWTs. `session.ts` is its only caller - a tight, one-way pair.",
+      footLabel: "Fan-in",
+      foot: "1 dependent · session.ts",
     },
   },
   {
-    id: "holdings",
+    id: "button",
     kind: "file",
-    label: "holdings.ts",
+    label: "Button.tsx",
     x: 756,
     y: 372,
-    parent: "portfolio",
+    parent: "ui",
     card: {
-      body: "Positions and cost basis. **Undocumented**, and every P&L number reads from it.",
-      footLabel: "Suggested",
-      foot: "Write PORTFOLIO.md",
+      body: "Imported by **21 files** across every feature. A leaf in the graph - it imports nothing itself.",
+      footLabel: "Fan-in",
+      foot: "21 files · 0 outward deps",
     },
   },
   {
-    id: "pnl",
+    id: "modal",
     kind: "file",
-    label: "pnl.ts",
+    label: "Modal.tsx",
     x: 884,
     y: 372,
-    parent: "portfolio",
+    parent: "ui",
     card: {
-      body: "Derives gains from `holdings.ts`. Rounding rules live here and **nowhere else**.",
-      footLabel: "Suggested",
-      foot: "Write PORTFOLIO.md",
+      body: "Pulls in `Button.tsx` and nothing else. The only intra-`ui` edge in the whole module.",
+      footLabel: "Depends on",
+      foot: "ui/Button.tsx",
     },
   },
 
   {
-    id: "bank",
-    kind: "screen",
-    label: "Bank details",
+    id: "address",
+    kind: "file",
+    label: "Address.tsx",
     x: 128,
     y: 496,
-    w: 138,
-    parent: "demographic",
+    parent: "steps",
     card: {
-      body: "Money in and out. Guarded by `guards.ts`, so **auth changes reach it**.",
-      footLabel: "Read first",
-      foot: "MONEY-MOVEMENT.md",
+      body: "Step 2. Imports `session.ts` for the saved address and `Modal.tsx` for the picker.",
+      footLabel: "Depends on",
+      foot: "auth/session.ts · ui/Modal.tsx",
     },
   },
   {
-    id: "nominee",
-    kind: "screen",
-    label: "Nominee",
+    id: "review",
+    kind: "file",
+    label: "Review.tsx",
     x: 290,
     y: 496,
-    w: 116,
-    parent: "demographic",
+    parent: "steps",
     card: {
-      body: "The last step, and the **only optional one**. Skipping it still completes onboarding.",
-      footLabel: "Read first",
-      foot: "ONBOARDING.md",
+      body: "The final step. Reads from every other step's file - the busiest node inside `checkout`.",
+      footLabel: "Depends on",
+      foot: "3 files in steps/",
     },
   },
 ];
 
 export const KIND_LABEL: Record<NodeKind, string> = {
-  route: "route",
-  screen: "screen",
+  root: "code root",
   module: "module",
+  folder: "folder",
   file: "file",
-  doc: "spec",
 };
 
 export const KIND_COLOR: Record<NodeKind, string> = {
-  route: "var(--ochre)",
-  screen: "var(--plum)",
+  root: "var(--ochre)",
   module: "var(--clay)",
+  folder: "var(--plum)",
   file: "var(--olive)",
-  doc: "var(--rose)",
 };
 
 export const NODE_BY_ID: Record<string, MapNode> = Object.fromEntries(
@@ -228,15 +229,13 @@ export const NODE_BY_ID: Record<string, MapNode> = Object.fromEntries(
    used to run straight through their own node's name. */
 export function anchors(n: MapNode): { top: number; bottom: number } {
   switch (n.kind) {
-    case "route":
-    case "screen":
-      return { top: n.y - 15, bottom: n.y + 15 };
+    case "root":
     case "module":
-      return { top: n.y - 19, bottom: n.y + 44 };
+      return { top: n.y - 15, bottom: n.y + 15 };
+    case "folder":
+      return { top: n.y - 15, bottom: n.y + 38 };
     case "file":
       return { top: n.y - 11, bottom: n.y + 32 };
-    case "doc":
-      return { top: n.y - 19, bottom: n.y + 38 };
   }
 }
 
@@ -281,7 +280,7 @@ export const CHILDREN: Record<string, string[]> = MAP_NODES.reduce(
 
 /* The set a selection lights up: the node, the chain of parents that leads to
    it, and its direct children. That is the question the real tool answers -
-   how do I get here, and what does this reach. */
+   where does this sit, and what does it connect to. */
 export function litSet(id: string): Set<string> {
   const lit = new Set<string>([id, ...(CHILDREN[id] ?? [])]);
   let cursor = NODE_BY_ID[id]?.parent;
@@ -293,4 +292,4 @@ export function litSet(id: string): Set<string> {
 }
 
 /* The order the map introduces itself in when nobody has touched it yet. */
-export const TOUR = ["auth", "portfolio", "demographic", "session"];
+export const TOUR = ["auth", "ui", "steps", "session"];
