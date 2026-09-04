@@ -7,8 +7,8 @@
     {
       "source": "./plugins/birdseye",
       "name": "birdseye",
-      "description": "One command, one HTML file: an agent-readiness audit of any repo - stale guardrails, uncovered modules, and the specs to read first."
+      "description": "One command turns any repo into an interactive flowchart of its modules, files, and dependencies. Local tree-sitter parse, no model, zero tokens."
     }
   ],
-  "description": "birdsEye - find out where your agent will get lost."
+  "description": "birdsEye - see how a repo fits together before you touch it."
 }
