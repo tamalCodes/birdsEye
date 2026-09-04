@@ -13,8 +13,9 @@ import { NAME, DISPLAY, OUT_DIR } from './lib/const.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-// Order matters: fcose reads the coseBase global, which reads layoutBase.
-const VENDOR = ['cytoscape.min.js', 'layout-base.min.js', 'cose-base.min.js', 'fcose.min.js'];
+// The viewer positions every node itself (a deterministic neighbourhood layout),
+// so cytoscape is the only library it needs - no force-layout engine.
+const VENDOR = ['cytoscape.min.js'];
 
 /** Neutralise anything that could close the surrounding <script> element. */
 const safeForScript = (s) => s.replace(/<\/(script)/gi, '<\\/$1');

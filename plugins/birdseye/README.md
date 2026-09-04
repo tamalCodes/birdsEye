@@ -10,10 +10,11 @@
 > **Very early stage - work in progress.** Expect rough edges and breaking changes.
 
 One command, one HTML file: an **interactive flowchart of a repo's structure**.
-The top level is a handful of boxes - the major modules. Click one and it expands
-in place to the folders and files inside it. Dependency arrows connect whatever
-is currently open, so you can see which module leans on which without reading a
-line of code.
+A collapsible tree of the whole repo runs down the left. Pick anything - a
+module, a folder, a file - and the canvas draws a focused flowchart of it: its
+contents fanning out below, the things it depends on to the right, the things
+that use it to the left. One node and its neighbours at a time, so it stays
+readable no matter how big the repo is.
 
 `/birdseye:map` runs **entirely on your machine and calls no model. Zero tokens.**
 
@@ -67,18 +68,21 @@ cleanly and bugs reproduce.
 
 ## The view
 
-- **Top level**: the code root as an outer frame, each major module as a box.
-  Modules birdsEye reads as shared infrastructure (`components`, `hooks`, `lib`,
-  `utils`, ...) are grouped under one **General-purpose** frame. Files that sit
-  directly in the code root get a synthetic **core** module so the top level
-  stays a handful of boxes.
-- **Click a box** to expand it in place - its folders, then its files. Click
-  again to collapse. **Expand all** / **Collapse** are in the toolbar.
-- **Dependency arrows** are drawn between whatever is open, rolled up from the
-  file-level import/call graph. Select a node to see exactly what it depends on
-  and what depends on it, and to open a file in your editor.
-- **Search** jumps to a module or file and expands the path to it.
-- Light / dark toggle, warm palette, remembers what you had expanded.
+- **The sidebar** is the whole repo as a collapsible tree: the code root, each
+  major module, then folders and files. Modules birdsEye reads as shared
+  infrastructure (`components`, `hooks`, `lib`, `utils`, ...) are grouped under
+  one **General-purpose** entry; files that sit directly in the code root get a
+  synthetic **core** module. **Expand** / **Collapse** open and close the lot.
+- **Pick anything** - in the sidebar or on the canvas - and the canvas redraws
+  around it: the selected node in the centre, its folders and files below, the
+  modules it **depends on** to the right, the ones that **use it** to the left.
+  Arrow labels are the number of imports. Only ever one node's neighbourhood is
+  drawn, and every position is computed once, so it never lags.
+- **The detail panel** lists exactly what the selection depends on and what
+  depends on it, and opens a file in your editor.
+- **The breadcrumb** above the canvas walks back up the tree.
+- **Search** filters the sidebar to matches and their parents.
+- Light / dark toggle, warm palette, remembers what you had open.
 
 ## Configuration
 
@@ -121,6 +125,7 @@ dependency edges.
 
 ## Third-party
 
-Cytoscape.js and fcose are vendored under `scripts/vendor/` and inlined into the
-output (MIT; see [`scripts/vendor/LICENSES.txt`](scripts/vendor/LICENSES.txt)).
+Cytoscape.js is vendored under `scripts/vendor/` and inlined into the output
+(MIT; see [`scripts/vendor/LICENSES.txt`](scripts/vendor/LICENSES.txt)). The
+viewer places every node itself, so no force-layout engine is bundled.
 graphify (`graphifyy`) is installed at runtime, not vendored (Apache-2.0).

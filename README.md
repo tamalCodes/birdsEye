@@ -174,4 +174,4 @@ site/                              the marketing site (birdseye.tamal.me)
 There is nothing to host and no npm package - a marketplace is just a public
 GitHub repo.
 
-The plugin and every vendored library, Cytoscape and fcose included, are MIT.
+The plugin and its one vendored library, Cytoscape, are MIT.
