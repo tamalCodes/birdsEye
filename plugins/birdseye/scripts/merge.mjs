@@ -9,7 +9,7 @@
 
 import path from 'node:path';
 import fs from 'node:fs';
-import { loadConfig } from './lib/config.mjs';
+import { loadConfig, loadStructure } from './lib/config.mjs';
 import { readCacheJson } from './lib/cache.mjs';
 import { createRefChecker } from './lib/refs.mjs';
 import { GRAPH_VERSION, OUT_DIR } from './lib/const.mjs';
@@ -83,7 +83,16 @@ export function mergeGraph(root) {
       path: m.path,
       module: m.slug,
       summary: null,
-      meta: { fileCount: m.fileCount ?? 0, codeFileCount: m.codeFileCount ?? 0, fanIn: 0, fanOut: 0 },
+      meta: {
+        fileCount: m.fileCount ?? 0,
+        codeFileCount: m.codeFileCount ?? 0,
+        // 'feature' owns screens and flows; 'shared' is general-purpose
+        // infrastructure the features import. Set by the taxonomy pass.
+        kind: m.kind ?? 'feature',
+        sharedKind: m.sharedKind ?? null,
+        fanIn: 0,
+        fanOut: 0,
+      },
     });
   }
   for (const f of imports.files) {
@@ -99,19 +108,53 @@ export function mergeGraph(root) {
   }
 
   // ---- import edges, at both granularities -------------------------------
+  // `approx` marks an edge whose target is namespace-resolved, not file-exact
+  // (C# `using`, Rust `use`) - a real file, coarser than a JS import. For module
+  // edges, one exact file edge is enough to make the whole edge exact, so the
+  // verdict is settled after the fact rather than by write order.
+  const exactModulePair = new Set();
+  const approxModulePair = new Set();
   for (const f of imports.files) {
-    for (const target of f.imports) addEdge(fileId(f.path), fileId(target), 'imports', 1);
+    const approxSet = new Set(f.approxImports ?? []);
+    for (const target of f.imports) {
+      const isApprox = approxSet.has(target);
+      addEdge(fileId(f.path), fileId(target), 'imports', 1, isApprox ? { approx: true } : undefined);
+    }
   }
   const moduleOfFile = new Map(imports.files.map((f) => [f.path, f.module]));
   for (const f of imports.files) {
+    const approxSet = new Set(f.approxImports ?? []);
     for (const target of f.imports) {
       const from = f.module;
       const to = moduleOfFile.get(target) ?? null;
-      if (from && to && from !== to) addEdge(moduleId(from), moduleId(to), 'imports', 1);
+      if (!from || !to || from === to) continue;
+      addEdge(moduleId(from), moduleId(to), 'imports', 1);
+      (approxSet.has(target) ? approxModulePair : exactModulePair).add(`${from} ${to}`);
     }
+  }
+  for (const pair of approxModulePair) {
+    if (exactModulePair.has(pair)) continue;
+    const [from, to] = pair.split(' ');
+    const e = edges.get(`${moduleId(from)} ${moduleId(to)} imports`);
+    if (e) e.approx = true;
   }
 
   // ---- routes ------------------------------------------------------------
+  // The route extractor names the owning module when it can, but often leaves
+  // it null for a screen it read straight off a path. The screen file is a real
+  // path under a real module root - resolving it here is not a guess, and it is
+  // what lets every screen nest under its feature in the Overview.
+  const modulesByPathLen = imports.modules
+    .slice()
+    .sort((a, b) => (b.path?.length ?? 0) - (a.path?.length ?? 0));
+  const moduleOfPath = (rel) => {
+    if (!rel) return null;
+    for (const m of modulesByPathLen) {
+      if (rel === m.path || rel.startsWith(`${m.path}/`)) return m.slug;
+    }
+    return null;
+  };
+
   for (const r of routes.routes ?? []) {
     const type = r.type === 'screen' ? 'screen' : 'route';
     addNode({
@@ -119,7 +162,7 @@ export function mergeGraph(root) {
       type,
       label: r.name ?? r.id,
       path: r.screenFile ?? null,
-      module: r.module ?? null,
+      module: r.module ?? moduleOfPath(r.screenFile),
       summary: clamp(r.summary, 120),
       meta: {
         routePath: r.path ?? null,
@@ -261,6 +304,67 @@ export function mergeGraph(root) {
     flowchartCount++;
   }
 
+  // ---- containment hierarchy -------------------------------------------
+  // The parent/child flowchart: a root node for the code root, every feature
+  // module hanging off it, and one "General-purpose" group holding the shared
+  // infrastructure modules. Screens nest inside the feature that owns them.
+  // `contains` edges are structural, not import edges - the degree pass below
+  // ignores them, and a viewer without hierarchy support just skips them.
+  const structure = loadStructure(root);
+  let hierarchy = false;
+  if (structure) {
+    hierarchy = true;
+    const codeRoot = typeof structure.codeRoot === 'string' ? structure.codeRoot : '';
+    const rootId = `root:${codeRoot || '.'}`;
+    addNode({
+      id: rootId,
+      type: 'root',
+      label: codeRoot ? path.posix.basename(codeRoot) : config.name,
+      path: codeRoot,
+      module: null,
+      summary: null,
+      meta: { entryPoints: [] },
+    });
+
+    for (const rel of structure.entryPoints ?? []) {
+      if (!nodes.has(fileId(rel))) continue;
+      nodes.get(fileId(rel)).meta.entry = true;
+      addEdge(rootId, fileId(rel), 'contains', null, { hierarchy: true });
+      nodes.get(rootId).meta.entryPoints.push(rel);
+    }
+
+    const featureSlugs = new Set(
+      imports.modules.filter((m) => (m.kind ?? 'feature') === 'feature').map((m) => m.slug),
+    );
+    const sharedSlugs = imports.modules.filter((m) => m.kind === 'shared').map((m) => m.slug);
+
+    for (const slug of [...featureSlugs].sort(byString)) {
+      addEdge(rootId, moduleId(slug), 'contains', null, { hierarchy: true });
+    }
+    if (sharedSlugs.length) {
+      const zoneId = 'zone:general';
+      addNode({
+        id: zoneId,
+        type: 'zone',
+        label: 'General-purpose',
+        module: null,
+        summary: null,
+        meta: { moduleCount: sharedSlugs.length },
+      });
+      addEdge(rootId, zoneId, 'contains', null, { hierarchy: true });
+      for (const slug of sharedSlugs.slice().sort(byString)) {
+        addEdge(zoneId, moduleId(slug), 'contains', null, { hierarchy: true });
+      }
+    }
+
+    // Screens (and route nodes) nest inside the feature that owns them.
+    for (const n of nodes.values()) {
+      if ((n.type === 'screen' || n.type === 'route') && n.module && featureSlugs.has(n.module)) {
+        addEdge(moduleId(n.module), n.id, 'contains', null, { hierarchy: true });
+      }
+    }
+  }
+
   // ---- degree ------------------------------------------------------------
   for (const e of edges.values()) {
     if (e.type !== 'imports') continue;
@@ -281,9 +385,14 @@ export function mergeGraph(root) {
     stats: {
       files: count('file'),
       modules: count('module'),
+      featureModules: nodeList.filter((n) => n.type === 'module' && n.meta?.kind === 'feature').length,
+      sharedModules: nodeList.filter((n) => n.type === 'module' && n.meta?.kind === 'shared').length,
       routes: count('route') + count('screen'),
       docs: count('doc'),
       flowcharts: flowchartCount,
+      languages: imports.languages ?? [],
+      approxEdges: edgeList.filter((e) => e.type === 'imports' && e.approx).length,
+      hierarchy,
       unresolved: (imports.unresolved ?? []).length,
       stale: nodeList.filter((n) => n.meta?.stale).length,
       refs: refCounts,
@@ -301,10 +410,15 @@ if (isMain) {
   fs.mkdirSync(path.join(root, OUT_DIR), { recursive: true });
   fs.writeFileSync(path.join(root, OUT_DIR, 'graph.json'), `${JSON.stringify(graph, null, 2)}\n`);
   const s = graph.stats;
+  const modBreakdown = s.hierarchy
+    ? `${s.modules} modules (${s.featureModules} feature, ${s.sharedModules} general-purpose)`
+    : `${s.modules} modules`;
+  const approxNote = s.approxEdges ? ` (${s.approxEdges} namespace-approx)` : '';
   console.log(
-    `graph.json: ${s.modules} modules, ${s.files} files, ${s.routes} routes, ${s.docs} docs, ` +
-      `${s.flowcharts} flowcharts, ${graph.edges.length} edges`,
+    `graph.json: ${modBreakdown}, ${s.files} files, ${s.routes} routes, ${s.docs} docs, ` +
+      `${s.flowcharts} flowcharts, ${graph.edges.length} edges${approxNote}`,
   );
+  if (s.languages?.length) console.log(`languages: ${s.languages.join(', ')}`);
   const r = s.refs;
   console.log(
     `doc refs: ${r.recovered} recovered, ${r.deleted} deleted (${s.stale} docs), ` +

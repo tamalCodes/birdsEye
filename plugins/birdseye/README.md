@@ -64,6 +64,7 @@ written into it.
 
 | Stage | Who does it | Cost |
 |---|---|---|
+| `structure.mjs` + `extract-structure` | a script finds the code root and guesses feature vs shared folders; a skill confirms the unsure ones and asks you when it cannot | seconds, small model call, once |
 | `imports.mjs` | plain Node - tsconfig aliases, barrels, comment-stripped parsing | milliseconds, no model |
 | `extract-routes` | a skill - reads the router and describes it | ~25 files, once |
 | `extract-docs` | a skill - attaches docs to the code they describe, glosses their guardrails in plain English | once |
@@ -89,29 +90,54 @@ listed as exactly that. A warning nobody can verify is worse than no warning.
 
 ## The view
 
-One view ships: the navigation tree, laid out hierarchically and boxed by
-feature. Click a section and, if its docs describe an end-to-end flow, the page
-opens straight to a generated flowchart - already built during extraction, not
-something you wait on or generate yourself.
+The Overview is a filesystem-shaped flowchart: a box for the code root, every
+feature module hanging off it as its own box of screens and folder pills, and
+one "General-purpose" box holding the shared infrastructure modules (components,
+hooks, redux, styles, ...). Click a feature to open it in place; double-click to
+drop into its files. A repo mapped before the taxonomy pass existed, or one
+where the pass could not find a code root, falls back to the flat module cloud.
 
-A repo with no router gets a line saying so, rather than an empty canvas.
+One view ships: a left-to-right flowchart of the repo's structure, built from
+the taxonomy pass.
 
-Overview, Focus and Docs are built and working behind `setView()` but are not
-reachable from the chrome. The toolbar carries what one glance needs and
-nothing else: the repo and its counts on the left, the layout menu and the
-theme toggle on the right, on a pane of glass the map runs underneath.
+```
+src ─┬─→ askEdi ──→ its screens  +  components· / hooks· / utils· folder chips
+     ├─→ transform ─→ ...
+     └─→ General-purpose ─→ components / hooks / redux / styles / ...
+```
+
+`src` (or whatever the code root is) on the left, every feature module one hop
+in, its screens and folders one hop further, and a General-purpose branch for
+the shared infrastructure. Elbow connectors, laid out by the same tidy-tree
+engine the routes view always used - it just gets fed the containment hierarchy
+now instead of only the navigation tree. Orientation (left-to-right / top-down)
+and a "show jumps" toggle for the real screen-to-screen navigations are in the
+layout menu.
+
+Click a feature to open its full page - every file grouped by folder, its
+screens, its docs and guardrails, and what depends on it. Double-click to drop
+into **Focus**, a file explorer over the import graph.
+
+A repo mapped before the taxonomy pass (no code root in its graph) falls back to
+the plain navigation tree this view used to be.
 
 ## Configuration
 
+The folder taxonomy - the code root, and which folders are features versus
+shared infrastructure - lives in `birdseye/.cache/structure.json`, written by
+the `extract-structure` skill on the first run. Re-run with `--force`, or just
+add a new top-level folder, to have it reconsidered.
+
 `birdseye.config.json` is generated from directory shape and is meant to be
-edited. `moduleRoots` is the one worth checking.
+edited. It is the fallback the taxonomy uses when `structure.json` is absent;
+`moduleRoots` is the one field worth checking there.
 
 ```jsonc
 {
   "name": "my-app",
   "moduleRoots": ["src/features/*", "src/components", "src/services"],
   "ignore": ["node_modules", ".git", "dist", "build", "android", "ios"],
-  "extensions": [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"],
+  "extensions": [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"],  // optional - detected per language when omitted
   "docGlobs": ["**/MAP.md", "**/AGENTS.md", "**/specs/*.md", "**/README.md"],
   "editor": "vscode"      // vscode | cursor | idea | none
 }
@@ -121,10 +147,20 @@ edited. `moduleRoots` is the one worth checking.
 file opens it where you actually work. `.gitignore` and an optional
 `.birdseyeignore` are both respected.
 
+## Languages
+
+Import graphs are built for JavaScript/TypeScript, Go, Python, Rust and C#/.NET.
+The active set is detected automatically from the files present - no config. A
+repo in any other language still gets module nodes and a doc map, just no
+dependency edges.
+
+Go and Python edges are file-exact. Rust `mod` edges are file-exact; Rust `use`
+and C# `using` edges are **namespace-granular** - the target is a real file, but
+resolved through the namespace it declares rather than the exact symbol, so they
+are marked approximate.
+
 ## Limitations
 
-- Import parsing is JavaScript and TypeScript only. A repo in another language
-  still gets module nodes and a doc map, but no dependency edges.
 - Monorepos are treated as a single root.
 - A navigation edge is emitted only when its target is a string literal.
   Coverage is high in practice, but a computed target is skipped rather than

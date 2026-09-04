@@ -85,6 +85,27 @@ Common shapes to recognise:
 - A **controller/decorator** style backend: the class prefix plus the method
   path is the full route.
 
+### Backend routers (Go, Python, Rust, .NET)
+
+Same rules, different syntax. Read the file that wires routes, emit one route
+node per registered path, and set `screenFile` to the handler file when the
+handler is a named function you can resolve.
+
+| Stack | What to grep / read |
+|---|---|
+| Go net/http, chi, gin, echo, gorilla/mux | `http.HandleFunc(`, `.HandleFunc(`, `r.Get("/x", h)`, `e.GET("/x", h)`, `mux.HandleFunc` |
+| Python FastAPI | `@app.get("/x")` / `@router.post("/x")`, `APIRouter(prefix=...)` - prefix + method path |
+| Python Flask | `@app.route("/x")`, `add_url_rule`, blueprint `url_prefix` |
+| Python Django | `urlpatterns = [path("x/", view), ...]` in `urls.py`, `include()` for sub-trees |
+| .NET controllers | `[Route("api/[controller]")]` + `[HttpGet("{id}")]` - class route + action route |
+| .NET minimal API | `app.MapGet("/x", handler)` / `app.MapPost(...)` in `Program.cs` |
+| Rust axum | `Router::new().route("/x", get(handler))`, `.nest("/api", sub)` |
+| Rust actix | `App::new().route("/x", web::get().to(h))`, `web::scope("/api")` |
+
+The route id can be the handler function name or the path itself - be
+consistent. A backend with no HTTP surface (a library, a CLI, a worker) has no
+routes: emit `[]`.
+
 ## Step 3 - resolve each screen to a real file
 
 For every route that names a component or handler, resolve the import that

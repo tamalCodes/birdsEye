@@ -2,7 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { CONFIG_FILE, OUT_DIR } from './const.mjs';
+import { CONFIG_FILE, OUT_DIR, CACHE_DIR } from './const.mjs';
 
 /** JSON with comments and trailing commas - what tsconfig.json actually is. */
 export function parseJsonc(text) {
@@ -70,7 +70,13 @@ export const DEFAULT_IGNORE = [
   OUT_DIR,
 ];
 
-export const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
+// Every extension birdsEye can parse an import graph for. Keep in sync with the
+// language modules in scripts/lib/languages/ (kept as a literal here to avoid an
+// import cycle - config <- resolve <- languages/javascript <- config).
+export const DEFAULT_EXTENSIONS = [
+  '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
+  '.py', '.go', '.rs', '.cs',
+];
 
 export const DEFAULT_DOC_GLOBS = [
   '**/MAP.md',
@@ -178,4 +184,54 @@ export function moduleOf(relPath, modules) {
     if (relPath === m.path || relPath.startsWith(`${m.path}/`)) return m.slug;
   }
   return null;
+}
+
+/**
+ * The folder taxonomy the `extract-structure` skill wrote, or null. This is the
+ * new front door: when it exists, it - not `moduleRoots` - decides what the
+ * modules are and which of them are shared infrastructure.
+ */
+export function loadStructure(root) {
+  const s = readJsonc(path.join(root, CACHE_DIR, 'structure.json'));
+  if (!s || !Array.isArray(s.featureModules) || !Array.isArray(s.sharedModules)) return null;
+  return s;
+}
+
+/**
+ * Modules with their kind attached. From `structure.json` when it exists,
+ * otherwise from `moduleRoots` with every module treated as a feature - which
+ * is exactly the old behaviour, so a repo mapped before the taxonomy pass
+ * existed is unaffected until it is re-mapped.
+ *
+ * @returns {{ modules: Array<{slug,path,kind,sharedKind}>, structure: object|null }}
+ */
+export function resolveModulesTagged(root, config) {
+  const structure = loadStructure(root);
+  if (structure) {
+    const raw = [
+      ...structure.featureModules.map((m) => ({ slug: m.slug, path: m.path, kind: 'feature', sharedKind: null })),
+      ...structure.sharedModules.map((m) => ({
+        slug: m.slug,
+        path: m.path,
+        kind: 'shared',
+        sharedKind: m.kind ?? null,
+      })),
+    ];
+    const seen = new Map();
+    for (const m of raw) {
+      if (!isDir(path.join(root, m.path))) continue;
+      if (seen.has(m.slug)) continue;
+      seen.set(m.slug, m);
+    }
+    const modules = [...seen.values()].sort(
+      (a, b) => b.path.length - a.path.length || (a.slug < b.slug ? -1 : 1),
+    );
+    return { modules, structure };
+  }
+  const modules = resolveModules(root, config.moduleRoots).map((m) => ({
+    ...m,
+    kind: 'feature',
+    sharedKind: null,
+  }));
+  return { modules, structure: null };
 }

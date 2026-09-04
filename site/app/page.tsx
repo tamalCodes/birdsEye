@@ -27,10 +27,10 @@ export default function Home() {
       <Nav />
       <main>
         <Hero />
+        <Install />
         <WhatItDoes />
         <TheMap />
         <HowItWorks />
-        <Install />
         <Faq />
       </main>
       <Footer />
@@ -376,10 +376,28 @@ function HowItWorks() {
 
 /* ------------------------------------------------------------------ install */
 
+/* This sits directly under the hero on purpose: the page's first ask is
+   "install the plugin", so the answer should be the next thing on screen, not
+   the last. Everything that is not one of the three commands - updating, the
+   one failure mode worth documenting - is folded into a disclosure, so the
+   default view is three lines and nothing else. */
 const STEPS = [
-  { n: "01", label: "Add the marketplace - once per machine", cmd: MARKETPLACE_ADD },
-  { n: "02", label: "Install the plugin - once per machine", cmd: PLUGIN_INSTALL },
-  { n: "03", label: "Run it, in every repo you want a map of", cmd: MAP_COMMAND },
+  { n: "01", label: "Add the marketplace", note: "once per machine", cmd: MARKETPLACE_ADD },
+  { n: "02", label: "Install the plugin", note: "once per machine", cmd: PLUGIN_INSTALL },
+  { n: "03", label: "Run it", note: "in every repo you want a map of", cmd: MAP_COMMAND },
+];
+
+const INSTALL_NOTES = [
+  {
+    h: "Updating to a new version",
+    p: "Auto-update is off for third-party marketplaces. Pull a new version with this, then run step 02 again.",
+    cmd: MARKETPLACE_UPDATE,
+  },
+  {
+    h: "If step 01 is refused",
+    p: "Marketplace names are global, so adding is refused when birdseye-marketplace is already registered on your machine from another source, usually a local clone. Drop the old registration, then run step 01 again.",
+    cmd: MARKETPLACE_REMOVE,
+  },
 ];
 
 function Install() {
@@ -388,53 +406,63 @@ function Install() {
       id="install"
       className="scroll-mt-24 border-y border-hair-soft bg-panel/60 py-20 md:py-24"
     >
-      {/* No items-start here: the sticky column has to be a full-height grid
-          item for the box inside it to have any room to travel. Shrinking the
-          item to its content, as items-start does, pins it in place and the
-          sticky never fires. */}
-      <div className="shell grid gap-12 lg:grid-cols-[1fr_1.2fr]">
-        <div className="lg:sticky lg:top-24 lg:self-start">
-          <Reveal>
+      <div className="shell">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <p className="kicker">Install</p>
           <h2 className="font-display mt-5 t-section text-ink">
             Three commands, then any repo
           </h2>
           <p className="mt-5 leading-relaxed text-muted">
-            Everything runs inside Claude Code. Nothing to download by hand, no npm package.
-            The first run in a repo asks two questions - whether to write birdseye.config.json
-            and whether to gitignore the output - then takes a minute or two. Every run after
-            that is seconds.
-            </p>
-          </Reveal>
-        </div>
+            Everything runs inside Claude Code - nothing to download by hand, no npm
+            package. The first run takes a minute or two; every run after that is seconds.
+          </p>
+        </Reveal>
 
-        <Reveal delay={0.08} className="space-y-6">
-          {STEPS.map((s) => (
-            <div key={s.n} className="grid gap-3 sm:grid-cols-[3rem_1fr] sm:items-center sm:gap-5">
-              <span className="font-display text-2xl text-faint">{s.n}</span>
-              <div>
-                <p className="mb-2 text-sm text-muted">{s.label}</p>
+        <ol className="mx-auto mt-12 max-w-2xl space-y-3">
+          {STEPS.map((s, i) => (
+            <Reveal
+              as="li"
+              key={s.n}
+              delay={i * 0.06}
+              className="rounded-2xl border border-hair bg-canvas/70 p-5 sm:p-6"
+            >
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-xs tracking-[0.14em] text-clay">{s.n}</span>
+                <span className="text-ink">{s.label}</span>
+                <span className="text-sm text-faint">{s.note}</span>
+              </div>
+              <div className="mt-3.5">
                 <CopyCommand command={s.cmd} />
               </div>
-            </div>
+            </Reveal>
           ))}
-          <div className="space-y-4 rounded-xl border border-hair bg-raised/60 p-5">
-            <p className="text-[0.95rem] leading-relaxed text-muted">
-              <span className="text-ink">Updating.</span> Auto-update is off for third-party
-              marketplaces. Pull a new version with this, then run step 02 again.
-            </p>
-            <CopyCommand command={MARKETPLACE_UPDATE} />
-          </div>
+        </ol>
 
-          <div className="space-y-4 rounded-xl border border-hair bg-raised/60 p-5">
-            <p className="text-[0.95rem] leading-relaxed text-muted">
-              <span className="text-ink">If step 01 fails.</span> Marketplace names are global,
-              so adding is refused when birdseye-marketplace is already registered on your
-              machine from another source, usually a local clone. Drop the old registration,
-              then run step 01 again.
-            </p>
-            <CopyCommand command={MARKETPLACE_REMOVE} />
-          </div>
+        {/* Closed by default. Neither note applies to a first, clean install, and
+            on screen they read as two more steps than there really are. */}
+        <Reveal delay={0.2} className="mx-auto mt-6 max-w-2xl">
+          <details className="group rounded-2xl border border-hair bg-raised/40 open:bg-raised/60">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-[0.95rem] text-muted transition-colors hover:text-ink sm:px-6 [&::-webkit-details-marker]:hidden">
+              Updating, and the one thing that can go wrong
+              <span
+                aria-hidden
+                className="shrink-0 text-clay transition-transform group-open:rotate-45"
+              >
+                +
+              </span>
+            </summary>
+            <div className="space-y-7 border-t border-hair px-5 pb-6 pt-6 sm:px-6">
+              {INSTALL_NOTES.map((note) => (
+                <div key={note.h}>
+                  <p className="text-ink">{note.h}</p>
+                  <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">{note.p}</p>
+                  <div className="mt-3.5">
+                    <CopyCommand command={note.cmd} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
         </Reveal>
       </div>
     </section>

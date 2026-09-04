@@ -43,10 +43,42 @@ export function plan(root, { force = false } = {}) {
   const docs = readCacheJson(root, 'docs.json');
   const flowcharts = readCacheJson(root, 'flowcharts.json');
 
-  const out = { imports: 'run', routes: 'run', docs: 'run', flowcharts: 'run', reasons: {} };
+  const structure = readCacheJson(root, 'structure.json');
+
+  const out = { structure: 'run', imports: 'run', routes: 'run', docs: 'run', flowcharts: 'run', reasons: {} };
   if (force) {
-    out.reasons = { imports: 'forced', routes: 'forced', docs: 'forced', flowcharts: 'forced' };
+    out.reasons = {
+      structure: 'forced', imports: 'forced', routes: 'forced', docs: 'forced', flowcharts: 'forced',
+    };
     return out;
+  }
+
+  // The taxonomy only re-runs when it has never run, or when the code root's
+  // top-level folder list changed - a new feature folder is exactly the kind of
+  // thing it needs to see. Everything else it decided still holds.
+  if (structure) {
+    const topDirs = [
+      ...new Set(
+        all
+          .filter((f) => !structure.codeRoot || f.startsWith(`${structure.codeRoot}/`))
+          .map((f) => {
+            const rest = structure.codeRoot ? f.slice(structure.codeRoot.length + 1) : f;
+            const slash = rest.indexOf('/');
+            return slash === -1 ? null : rest.slice(0, slash);
+          })
+          .filter(Boolean),
+      ),
+    ].sort();
+    const known = [...(structure.featureModules ?? []), ...(structure.sharedModules ?? [])]
+      .map((m) => m.path.split('/').pop())
+      .sort();
+    const isNew = topDirs.filter((d) => !known.includes(d));
+    out.structure = isNew.length ? 'run' : 'skip';
+    out.reasons.structure = isNew.length
+      ? `new top-level folder(s): ${isNew.join(', ')}`
+      : 'structure.json covers every folder';
+  } else {
+    out.reasons.structure = 'no structure.json yet';
   }
 
   const watched = routeWatchSet(all, routes);

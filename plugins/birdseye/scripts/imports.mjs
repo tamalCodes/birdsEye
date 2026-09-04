@@ -4,13 +4,17 @@
 //   node imports.mjs [repoRoot] [--force] [--json]
 //
 // Writes <repo>/birdseye/.cache/imports.json. Same input, same bytes out.
+//
+// Language support is pluggable: scripts/lib/languages/ holds one module per
+// language (JavaScript/TypeScript, Go, Python, Rust, C#). The active set is
+// detected from the files actually present; each file is dispatched to its
+// language's extractor and resolver.
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { loadConfig, resolveModules, moduleOf } from './lib/config.mjs';
+import { loadConfig, resolveModulesTagged, moduleOf } from './lib/config.mjs';
 import { walkFiles } from './lib/walk.mjs';
-import { createResolver } from './lib/resolve.mjs';
-import { extractSpecifiers } from './lib/parse.mjs';
+import { resolveLanguages, languageForFile } from './lib/languages/index.mjs';
 import {
   readCacheJson,
   writeCacheJson,
@@ -25,14 +29,30 @@ const byString = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 export function buildImports(root, { force = false } = {}) {
   const { config } = loadConfig(root);
-  const modules = resolveModules(root, config.moduleRoots);
-  const resolver = createResolver(root, { extensions: config.extensions });
+  const { modules } = resolveModulesTagged(root, config);
 
   const all = walkFiles(root, {
     ignore: config.ignore,
     ignoreFiles: ['.gitignore', IGNORE_FILE],
   });
-  const sources = all.filter((rel) => config.extensions.includes(path.extname(rel)));
+
+  const active = resolveLanguages(root, all);
+  const sources = all.filter((rel) => languageForFile(rel, active));
+
+  const readFile = (rel) => {
+    try {
+      return fs.readFileSync(path.join(root, rel), 'utf8');
+    } catch {
+      return null;
+    }
+  };
+  const resolverCache = new Map();
+  const resolverFor = (mod) => {
+    if (!resolverCache.has(mod.id)) {
+      resolverCache.set(mod.id, mod.createResolver(root, { allFiles: all, readFile }));
+    }
+    return resolverCache.get(mod.id);
+  };
 
   const stamps = buildStamps(root, sources);
   const manifest = readManifest(root);
@@ -52,29 +72,31 @@ export function buildImports(root, { force = false } = {}) {
     const cached = reusable.has(rel) ? cachedByPath.get(rel) : null;
     if (cached) {
       files.push({ ...cached, module: moduleOf(rel, modules) });
-      statements += cached.imports.length + (cached.externalCount ?? 0);
+      statements += cached.statementCount ?? cached.imports.length + (cached.externalCount ?? 0);
       for (const u of previous.unresolved ?? []) if (u.from === rel) unresolved.push(u);
       continue;
     }
 
-    let src;
-    try {
-      src = fs.readFileSync(path.join(root, rel), 'utf8');
-    } catch {
-      continue;
-    }
+    const src = readFile(rel);
+    if (src == null) continue;
+    const lang = languageForFile(rel, active);
     parsed++;
-    const specifiers = extractSpecifiers(src);
+
+    const specifiers = lang.extractImports(src, rel);
     statements += specifiers.length;
+    const resolver = resolverFor(lang);
 
     const imports = new Set();
+    const approx = new Set();
     let externalCount = 0;
-    const absFrom = path.join(root, rel);
-    for (const spec of specifiers) {
-      const hit = resolver.resolve(spec, absFrom);
+    for (const { spec, kind } of specifiers) {
+      const hit = resolver.resolve(spec, rel, kind);
       if (hit.kind === 'file') {
-        const target = path.relative(root, hit.path).split(path.sep).join('/');
-        if (target !== rel) imports.add(target);
+        for (const target of hit.paths ?? []) {
+          if (!target || target === rel) continue;
+          imports.add(target);
+          if (hit.approx) approx.add(target);
+        }
       } else if (hit.kind === 'unresolved') {
         unresolved.push({ from: rel, specifier: spec });
       } else {
@@ -82,12 +104,15 @@ export function buildImports(root, { force = false } = {}) {
       }
     }
 
-    files.push({
+    const record = {
       path: rel,
       module: moduleOf(rel, modules),
       imports: [...imports].sort(byString),
       externalCount,
-    });
+      statementCount: specifiers.length,
+    };
+    if (approx.size) record.approxImports = [...approx].sort(byString);
+    files.push(record);
   }
 
   files.sort((a, b) => byString(a.path, b.path));
@@ -106,10 +131,13 @@ export function buildImports(root, { force = false } = {}) {
   const result = {
     files,
     unresolved,
+    languages: active.map((l) => l.id).sort(byString),
     modules: modules
       .map((m) => ({
         slug: m.slug,
         path: m.path,
+        kind: m.kind ?? 'feature',
+        sharedKind: m.sharedKind ?? null,
         fileCount: counts.get(m.slug).files,
         codeFileCount: counts.get(m.slug).code,
       }))
@@ -130,6 +158,7 @@ export function buildImports(root, { force = false } = {}) {
       reused: files.length - parsed,
       changed: changed.length,
       modules: modules.length,
+      languages: result.languages,
       statements,
       unresolved: unresolved.length,
       unresolvedPct: statements ? (unresolved.length / statements) * 100 : 0,
@@ -151,7 +180,7 @@ if (isMain) {
   } else {
     console.log(
       `${path.basename(root)}: ${stats.files} files (${stats.parsed} parsed, ${stats.reused} cached), ` +
-        `${stats.modules} modules, ${stats.edges} import edges, ` +
+        `${stats.languages.join('+') || 'no languages'}, ${stats.modules} modules, ${stats.edges} import edges, ` +
         `${stats.unresolved}/${stats.statements} unresolved (${stats.unresolvedPct.toFixed(2)}%), ${ms}ms`,
     );
   }

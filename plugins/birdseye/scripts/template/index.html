@@ -956,7 +956,7 @@
 
         // --------------------------------------------------------------- state
         var state = {
-          view: 'overview',
+          view: 'routes',
           focus: null,
           focusPath: [],
           selected: null,
@@ -1119,6 +1119,51 @@
             { selector: 'edge.hot', style: { opacity: 1, width: 'data(hotWidth)', 'line-color': function () { return PAL.textDim; }, 'target-arrow-color': function () { return PAL.textDim; } } },
             { selector: 'node.selected', style: { 'border-width': 3, 'border-color': function () { return PAL.hl; }, 'text-opacity': 1 } },
             { selector: 'node.hover', style: { 'text-opacity': 1, 'border-width': 2, 'border-color': function () { return PAL.hl; } } },
+            // Flowchart hubs: the code-root node, each feature module, and the
+            // General-purpose node. Boxes with the name inside, like the
+            // screens, but tinted with the module colour so a branch point
+            // reads differently from a leaf.
+            {
+              selector: 'node[type="module"][w], node[type="root"][w], node[type="zone"][w]',
+              style: {
+                shape: 'round-rectangle',
+                width: 'data(w)',
+                height: 30,
+                'background-color': function () { return COLOR.module; },
+                'background-opacity': 0.14,
+                'border-width': 1.5,
+                'border-color': function () { return COLOR.module; },
+                'text-valign': 'center',
+                'text-halign': 'center',
+                'text-margin-y': 0,
+                'text-max-width': 220,
+                color: function () { return PAL.text; },
+                'font-size': 12.5,
+                'font-weight': 700,
+                'text-background-opacity': 0,
+              },
+            },
+            {
+              selector: 'node[type="root"][w]',
+              style: { 'border-style': 'dashed', 'background-opacity': 0.06 },
+            },
+            {
+              selector: 'node[?entry]',
+              style: {
+                shape: 'round-rectangle',
+                width: 'data(w)',
+                height: 24,
+                'background-opacity': 0.9,
+                'border-width': 0,
+                'text-valign': 'center',
+                'text-halign': 'center',
+                'text-margin-y': 0,
+                color: function (n) { return inkOn(COLOR[n.data('type')] || PAL.bg); },
+                'font-size': 11,
+                'font-weight': 600,
+                'text-background-opacity': 0,
+              },
+            },
           ],
         });
 
@@ -1512,25 +1557,86 @@
           }
 
           var pos = {}, placed = {}, cursor = 0;
+          var isPill = function (id) { return !!(byId[id] && byId[id].data.modfolder); };
           function place(id) {
             if (placed[id] != null) return placed[id];
             placed[id] = 0;
-            var kidsK = (children[id] || []).filter(function (c) { return placed[c] == null; });
+            var allKids = (children[id] || []).filter(function (c) { return placed[c] == null; });
+            // Folder pills (the components./hooks./utils. drill-in shortcuts) are
+            // not screens. They must never land in a grid cell directly above a
+            // page - a pill stacked on a page with a connector between reads as
+            // "this folder contains that page". Lay the real children out first,
+            // then drop the pills into their own row below everything else.
+            var pillKids = allKids.filter(isPill);
+            var kidsK = allKids.filter(function (c) { return !isPill(c); });
+            if (!kidsK.length && pillKids.length) { kidsK = pillKids; pillKids = []; }
             var cross;
+            var deepestKidAxis = null;
             if (!kidsK.length) {
               var span = dir === 'LR' ? hOf(id) + 18 : wOf(id) + 26;
               cross = cursor + span / 2;
               cursor += span;
+            } else if (kidsK.length > 5 && kidsK.every(function (c) { return !(children[c] || []).length; })) {
+              // A wide fan of leaf children - a module's screens, the shared
+              // modules under General-purpose. Pack them into a grid so the
+              // branch reads as a compact block instead of one very long run,
+              // while every child still gets its own edge from the parent.
+              var maxW = 0, maxH = 0;
+              kidsK.forEach(function (c) { maxW = Math.max(maxW, wOf(c)); maxH = Math.max(maxH, hOf(c)); });
+              var gn = kidsK.length;
+              // Columns span the cross axis, rows step along depth.
+              var cols = dir === 'LR'
+                ? Math.max(1, Math.min(gn, Math.round(Math.sqrt(gn) * 0.62)))
+                : Math.max(1, Math.min(gn, Math.ceil(Math.sqrt(gn) * 1.25)));
+              var rows = Math.ceil(gn / cols);
+              var crossStep = (dir === 'LR' ? maxH + 12 : maxW + 22);
+              var depthStep = (dir === 'LR' ? maxW + 30 : maxH + 26);
+              var base = axis[depth[id] + 1] != null
+                ? axis[depth[id] + 1]
+                : axis[depth[id]] + (dir === 'LR' ? 130 : 100);
+              var start = cursor;
+              kidsK.forEach(function (c, i) {
+                var col = i % cols, row = Math.floor(i / cols);
+                var crossPos = start + col * crossStep + (dir === 'LR' ? maxH : maxW) / 2;
+                var depthPos = base + row * depthStep;
+                placed[c] = crossPos;
+                pos[c] = dir === 'LR' ? { x: depthPos, y: crossPos } : { x: crossPos, y: depthPos };
+              });
+              cursor = start + cols * crossStep + 18;
+              var csg = kidsK.map(function (c) { return placed[c]; });
+              cross = (Math.min.apply(null, csg) + Math.max.apply(null, csg)) / 2;
+              deepestKidAxis = base + (rows - 1) * depthStep;
             } else {
               var cs = kidsK.map(place);
               cross = (Math.min.apply(null, cs) + Math.max.apply(null, cs)) / 2;
               // A parent wider than its subtree still needs its own clearance.
               cursor = Math.max(cursor, cross + (dir === 'LR' ? hOf(id) / 2 + 9 : wOf(id) / 2 + 13));
+              kidsK.forEach(function (c) {
+                var a = pos[c] ? (dir === 'LR' ? pos[c].x : pos[c].y) : null;
+                if (a != null && (deepestKidAxis == null || a > deepestKidAxis)) deepestKidAxis = a;
+              });
             }
             placed[id] = cross;
             pos[id] = dir === 'LR'
               ? { x: axis[depth[id]], y: cross }
               : { x: cross, y: axis[depth[id]] };
+            // Folder pills: a single row, centred under the parent, one clear
+            // step past the deepest real child so nothing sits under them.
+            if (pillKids.length) {
+              var kidAxis = deepestKidAxis != null ? deepestKidAxis
+                : (axis[depth[id] + 1] != null ? axis[depth[id] + 1]
+                  : axis[depth[id]] + (dir === 'LR' ? 130 : 100));
+              var pillAxis = kidAxis + (dir === 'LR' ? 96 : 60);
+              var pStep = 0;
+              pillKids.forEach(function (c) { pStep = Math.max(pStep, (dir === 'LR' ? hOf(c) + 14 : wOf(c) + 16)); });
+              var pStart = cross - (pillKids.length - 1) * pStep / 2;
+              pillKids.forEach(function (c, i) {
+                var cp = pStart + i * pStep;
+                placed[c] = cp;
+                pos[c] = dir === 'LR' ? { x: pillAxis, y: cp } : { x: cp, y: pillAxis };
+              });
+              cursor = Math.max(cursor, pStart + (pillKids.length - 1) * pStep + pStep / 2);
+            }
             return cross;
           }
           roots.sort(function (a, b) {
@@ -1601,7 +1707,19 @@
          * heuristics guess, geometry knows.
          */
         function routesLayout(rawEls, forcedDir) {
+          // The structure flowchart (a `src` root node present) is a pure tree -
+          // no sectionize, no member packing, just the org-chart layout.
+          var isTree = rawEls.some(function (e) { return e.data.type === 'root'; });
           function build(dir) {
+            if (isTree) {
+              var treeEls = cloneEls(rawEls);
+              var treePos = treeLayout(treeEls, dir);
+              var txs = [], tys = [];
+              Object.keys(treePos).forEach(function (k) { txs.push(treePos[k].x); tys.push(treePos[k].y); });
+              var tw = txs.length ? Math.max.apply(null, txs) - Math.min.apply(null, txs) : 1;
+              var th = tys.length ? Math.max.apply(null, tys) - Math.min.apply(null, tys) : 1;
+              return { dir: dir, els: treeEls, pos: treePos, aspect: (tw || 1) / (th || 1) };
+            }
             var els = sectionize(cloneEls(rawEls), dir);
             var pos = placeSectionMembers(els, treeLayout(els, dir));
             var xs = [], ys = [];
@@ -1631,96 +1749,14 @@
           return { key: 'dir:' + dirPath, label: dirPath + '/', ref: null };
         }
 
-        /**
-         * Docs: labelled cluster cards, one per feature or directory. A
-         * cluster with a module hub gets a spoke layout - the module at the
-         * centre, its docs spaced evenly on a ring around it - so every
-         * "documents" edge is a straight line from rim to centre and none of
-         * them cross, or run over an unrelated doc, the way a packed grid did.
-         * Hub-less clusters (stray docs bucketed by directory, or the
-         * "referenced modules" cluster) fall back to a small grid: there is
-         * nothing at their centre to point spokes at.
-         */
-        function docsLayout(els) {
-          var RING_STEP = 170, MIN_RADIUS = 80, RING_MARGIN = 110;
-          var CELL_W = 178, CELL_H = 58, PAD = 16, PAD_TOP = 34, GAP = 100;
-
-          var clusters = {}, order = [];
-          els.forEach(function (e) {
-            var d = e.data;
-            if (d.source != null) return;
-            if (d.cluster) { clusters[d.id] = { hub: null, docs: [] }; order.push(d.id); return; }
-            if (!d.parent) return;
-            var c = clusters[d.parent];
-            if (!c) return;
-            if (d.hub) c.hub = d.id; else c.docs.push(d.id);
-          });
-
-          function docKindOf(id) {
-            var n = nodeById[id];
-            return (n && n.meta && n.meta.docKind) || '';
-          }
-
-          var dims = {}, localPos = {};
-          order.forEach(function (id) {
-            var c = clusters[id];
-            var docs = c.docs.sort(function (a, b) {
-              var ka = docKindOf(a), kb = docKindOf(b);
-              return ka === kb ? (a < b ? -1 : 1) : (ka < kb ? -1 : 1);
-            });
-            var pos = {};
-            if (c.hub && docs.length) {
-              var n = docs.length;
-              var radius = Math.max(MIN_RADIUS, n * RING_STEP / (2 * Math.PI));
-              pos[c.hub] = { x: 0, y: 0 };
-              docs.forEach(function (docId, i) {
-                var angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
-                pos[docId] = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
-              });
-              var half = radius + RING_MARGIN;
-              dims[id] = { w: half * 2, h: half * 2, offX: half, offY: half };
-            } else {
-              var all = (c.hub ? [c.hub] : []).concat(docs);
-              var cols = Math.max(1, Math.min(all.length, Math.round(Math.sqrt(all.length * 2.6))));
-              var rows = Math.ceil(all.length / cols);
-              all.forEach(function (m, i) {
-                pos[m] = {
-                  x: (i % cols) * CELL_W + CELL_W / 2,
-                  y: Math.floor(i / cols) * CELL_H + CELL_H / 2,
-                };
-              });
-              dims[id] = { w: cols * CELL_W + PAD * 2, h: rows * CELL_H + PAD_TOP + PAD, offX: PAD, offY: PAD_TOP };
-            }
-            localPos[id] = pos;
-          });
-
-          order.sort(function (a, b) {
-            return dims[b].w * dims[b].h - dims[a].w * dims[a].h || (a < b ? -1 : 1);
-          });
-
-          var total = 0;
-          order.forEach(function (id) { total += dims[id].w * dims[id].h; });
-          var targetW = Math.max(1200, Math.sqrt(total) * 1.5);
-
-          var pos = {};
-          var x = 0, y = 0, rowH = 0;
-          order.forEach(function (id) {
-            var dm = dims[id];
-            if (x > 0 && x + dm.w > targetW) { x = 0; y += rowH + GAP; rowH = 0; }
-            var baseX = x + dm.offX, baseY = y + dm.offY;
-            Object.keys(localPos[id]).forEach(function (m) {
-              pos[m] = { x: baseX + localPos[id][m].x, y: baseY + localPos[id][m].y };
-            });
-            x += dm.w + GAP;
-            rowH = Math.max(rowH, dm.h);
-          });
-          return pos;
-        }
-
         // -------------------------------------------------------------- views
         function typeAllowed(t) { return !state.hidden[t]; }
 
-        function elementsForOverview() {
+        // The flat module cloud - one node per module, import edges between
+        // them. Still the whole picture for a repo mapped before the taxonomy
+        // pass existed (no `root` node in its graph), and the skeleton the
+        // Focus view builds on.
+        function flatModuleEls() {
           var mods = GRAPH.nodes.filter(function (n) { return n.type === 'module' && typeAllowed('module'); });
           var ids = {};
           mods.forEach(function (m) { ids[m.id] = true; });
@@ -1732,14 +1768,113 @@
           return els;
         }
 
+        var OVERVIEW_ROOT = GRAPH.nodes.filter(function (n) { return n.type === 'root'; })[0] || null;
+
+        /**
+         * The one view: a left-to-right flowchart of the repo's structure.
+         *
+         *   src ->  askEdi   ->  (its screens) + components./hooks./utils. chips
+         *        ->  transform ->  ...
+         *        ->  General-purpose ->  components / hooks / redux / ...
+         *
+         * Built entirely from the `contains` edges the taxonomy pass wrote.
+         * treeLayout() turns it into the org-chart with elbow connectors. No
+         * boxing (sectionize is skipped for this shape) - it is a tree, not a
+         * set of bins.
+         */
+        function elementsForRoutes() {
+          if (!OVERVIEW_ROOT) return legacyRouteEls();
+          var root = OVERVIEW_ROOT;
+
+          var contains = {};
+          GRAPH.edges.forEach(function (e) {
+            if (e.type === 'contains') (contains[e.from] || (contains[e.from] = [])).push(e.to);
+          });
+
+          var els = [];
+          var present = {};
+          function node(d) { els.push({ data: d }); present[d.id] = true; }
+          function hEdge(from, to) {
+            els.push({ data: {
+              id: from + '>' + to + '>h', source: from, target: to,
+              type: 'navigates', hierarchy: true, weight: 1, width: 1.4, hotWidth: 3,
+            } });
+          }
+
+          node({ id: root.id, label: root.label, type: 'root', w: routeBoxWidth(root.label) });
+
+          (contains[root.id] || []).forEach(function (cid) {
+            var n = nodeById[cid];
+            if (!n) return;
+            if (n.type === 'file') {
+              node({ id: n.id, label: n.label, type: n.type, module: n.module, entry: 1, w: routeBoxWidth(n.label) });
+              hEdge(root.id, n.id);
+              return;
+            }
+            if (n.type === 'zone') {
+              node({ id: n.id, label: n.label, type: 'zone', w: routeBoxWidth(n.label) });
+              hEdge(root.id, n.id);
+              (contains[n.id] || []).forEach(function (sid) {
+                var s = nodeById[sid];
+                if (!s || !typeAllowed('module')) return;
+                node(toEl(s).data);
+                hEdge(n.id, sid);
+              });
+              return;
+            }
+            if (n.type === 'module') {
+              node({ id: n.id, label: n.label, type: 'module', module: n.module, ref: n.id, w: routeBoxWidth(n.label) });
+              hEdge(root.id, cid);
+              (contains[cid] || []).forEach(function (x) {
+                var s = nodeById[x];
+                if (!s || (s.type !== 'screen' && s.type !== 'route') || !typeAllowed(s.type)) return;
+                node(toEl(s).data);
+                hEdge(cid, x);
+              });
+              moduleFolderPills(n.module, cid).forEach(function (p) {
+                node(p.data);
+                hEdge(cid, p.data.id);
+              });
+            }
+          });
+
+          // Optional overlay: the real screen-to-screen navigations, dashed and
+          // faint, behind the "Show jumps" toggle.
+          if (state.crossLinks) {
+            GRAPH.edges.forEach(function (e) {
+              if (e.type !== 'navigates' || e.hierarchy) return;
+              if (present[e.from] && present[e.to]) els.push(toEdgeEl(e));
+            });
+          }
+          return els;
+        }
+
+        // Repos mapped before the taxonomy pass (no `root` node) fall back to
+        // the plain navigation tree this view used to be.
+        function legacyRouteEls() {
+          var routes = GRAPH.nodes.filter(function (n) {
+            return (n.type === 'route' || n.type === 'screen') && typeAllowed(n.type);
+          });
+          var ids = {};
+          routes.forEach(function (r) { ids[r.id] = true; });
+          var els = routes.map(function (r) { return toEl(r); });
+          GRAPH.edges.forEach(function (e) {
+            if (e.type !== 'navigates') return;
+            if (!ids[e.from] || !ids[e.to]) return;
+            if (!e.hierarchy && !state.crossLinks) return;
+            els.push(toEdgeEl(e));
+          });
+          return els;
+        }
+
         // Focus is a file explorer over the import graph: the current folder's
         // subfolders and files, everything else collapsed into the modules
         // around it. Click a folder to open it, ../ to go back up.
         function elementsForFocus() {
           var node = nodeById[state.focus];
-          if (!node) return elementsForOverview();
+          if (!node) return flatModuleEls();
           var moduleId = node.type === 'module' ? node.id : node.module ? 'module:' + node.module : null;
-          var els = elementsForOverview();
+          var els = flatModuleEls();
           if (!moduleId || !nodeById[moduleId]) return els;
           var slug = nodeById[moduleId].module;
           var files = moduleFiles[slug] || [];
@@ -1806,96 +1941,15 @@
           return els;
         }
 
-        function elementsForRoutes() {
-          var routes = GRAPH.nodes.filter(function (n) {
-            return (n.type === 'route' || n.type === 'screen') && typeAllowed(n.type);
-          });
-          var ids = {};
-          routes.forEach(function (r) { ids[r.id] = true; });
-          var els = routes.map(function (r) { return toEl(r); });
-          GRAPH.edges.forEach(function (e) {
-            if (e.type !== 'navigates') return;
-            if (!ids[e.from] || !ids[e.to]) return;
-            if (!e.hierarchy && !state.crossLinks) return;
-            els.push(toEdgeEl(e));
-          });
-          return els;
-        }
-
-        // Docs never draws import edges: they answer a different question.
-        function elementsForDocs() {
-          var docs = GRAPH.nodes.filter(function (n) { return n.type === 'doc' && typeAllowed('doc'); });
-          var clusters = {}, clusterOrder = [];
-          docs.forEach(function (d) {
-            var c = docClusterOf(d);
-            if (!clusters[c.key]) {
-              clusters[c.key] = { id: 'dcl:' + c.key, label: c.label, ref: c.ref, docs: [] };
-              clusterOrder.push(c.key);
-            }
-            clusters[c.key].docs.push(d);
-          });
-          clusterOrder.sort();
-
-          var els = [], present = {}, clusterOf = {};
-          clusterOrder.forEach(function (key) {
-            var c = clusters[key];
-            els.push({ data: { id: c.id, label: c.label, cluster: 1, ref: c.ref } });
-          });
-          clusterOrder.forEach(function (key) {
-            var c = clusters[key];
-            if (c.ref && typeAllowed('module')) {
-              els.push(toEl(nodeById[c.ref], { parent: c.id, size: 20, hub: 1 }));
-              present[c.ref] = true;
-              clusterOf[c.ref] = c.id;
-            }
-            c.docs.forEach(function (d) {
-              els.push(toEl(d, { parent: c.id }));
-              present[d.id] = true;
-              clusterOf[d.id] = c.id;
-            });
-          });
-
-          // Modules referenced by these docs but owning none of them.
-          if (typeAllowed('module')) {
-            var refMods = {};
-            GRAPH.edges.forEach(function (e) {
-              if (e.type !== 'documents' || !present[e.from]) return;
-              if (e.to.indexOf('module:') === 0 && !present[e.to] && nodeById[e.to]) refMods[e.to] = true;
-            });
-            var refIds = Object.keys(refMods).sort();
-            if (refIds.length) {
-              var refCl = 'dcl:ref';
-              els.unshift({ data: { id: refCl, label: 'referenced modules', cluster: 1 } });
-              refIds.forEach(function (id) {
-                els.push(toEl(nodeById[id], { parent: refCl, size: 18 }));
-                present[id] = true;
-                clusterOf[id] = refCl;
-              });
-            }
-          }
-
-          GRAPH.edges.forEach(function (e) {
-            if (e.type !== 'documents' && e.type !== 'links') return;
-            if (!present[e.from] || !present[e.to]) return;
-            var el = toEdgeEl(e);
-            if (clusterOf[e.from] !== clusterOf[e.to]) el.classes = 'faint';
-            els.push(el);
-          });
-          return els;
-        }
 
         var EMPTY_COPY = {
-          routes: ['No routes detected', 'This repo has no router that could be read - a library or a service with no UI has nothing to show here.'],
-          docs: ['No docs found', 'Nothing matched the doc globs in the config. Add paths to <code>docGlobs</code> if your docs live elsewhere.'],
-          overview: ['Nothing to show', 'No modules were detected. Check <code>moduleRoots</code> in the config.'],
-          focus: ['Nothing to show', 'Double-click a module in the Overview first.'],
+          routes: ['Nothing to show', 'No modules were detected. Check the taxonomy in <code>birdseye/.cache/structure.json</code>, or <code>moduleRoots</code> in the config.'],
+          focus: ['Nothing to show', 'Double-click a module in the map first.'],
         };
 
         function elementsFor(view) {
-          if (view === 'routes') return elementsForRoutes();
-          if (view === 'docs') return elementsForDocs();
           if (view === 'focus' && state.focus) return elementsForFocus();
-          return elementsForOverview();
+          return elementsForRoutes();
         }
 
         var lastRoutesDir = null;
@@ -1918,7 +1972,7 @@
 
           var empty = document.getElementById('empty');
           if (!nodeCount) {
-            var copy = EMPTY_COPY[view] || EMPTY_COPY.overview;
+            var copy = EMPTY_COPY[view] || EMPTY_COPY.routes;
             empty.innerHTML = '<div><b>' + copy[0] + '</b>' + copy[1] + '</div>';
             empty.classList.add('on');
           } else {
@@ -1933,8 +1987,8 @@
 
           var mine = userMoved[view] || (userMoved[view] = Object.create(null));
 
-          if (view === 'routes' || view === 'docs') {
-            var pos = view === 'routes' ? routePlan.pos : docsLayout(els);
+          if (view === 'routes') {
+            var pos = routePlan.pos;
             computed[view] = pos;
             cy.nodes().forEach(function (n) {
               if (n.isParent()) return;   // compounds derive their box from children
@@ -2028,17 +2082,16 @@
           var n = cy.nodes().filter(function (x) { return !x.isParent(); }).length;
           var e = cy.edges().length;
           var extra = '';
-          if (state.view === 'overview') extra = '  -  double-click a module to open it';
           if (state.view === 'focus' && state.focus && nodeById[state.focus]) {
             var meta = nodeById[state.focus];
             var slug = meta.type === 'module' ? meta.label : meta.module;
             extra = '  -  ' + slug + (state.focusPath.length ? '/' + state.focusPath.join('/') : '')
               + '  -  click a folder to open it';
+          } else if (state.view === 'routes') {
+            extra = OVERVIEW_ROOT
+              ? '  -  click a feature to open it, double-click to explore its files'
+              : '  -  ' + (lastRoutesDir === 'LR' ? 'left to right' : 'top down');
           }
-          if (state.view === 'routes') {
-            extra = '  -  ' + (lastRoutesDir === 'LR' ? 'left to right' : 'top down') + ', boxed by feature';
-          }
-          if (state.view === 'docs') extra = '  -  clustered by feature';
           document.getElementById('hint').textContent = n + ' nodes, ' + e + ' edges' + extra;
         }
 
@@ -4084,8 +4137,7 @@
           // A doc's or module's full page (just opened above by openPanel)
           // replaces the whole screen, so there is nothing left to frame there.
           if (n.type === 'doc' || n.type === 'module') return;
-          var target = n.type === 'route' || n.type === 'screen' ? 'routes' : 'overview';
-          setView(target);
+          setView('routes');
           var el2 = cy.getElementById(id);
           if (el2.nonempty()) { applyDim(); frame(el2); }
         }
@@ -4130,6 +4182,9 @@
             openDocClusterPage({ id: ev.target.data('id'), label: ev.target.data('label'), ref: ev.target.data('ref') });
             return;
           }
+          // In the flowchart the module is a branch node, not a container - a
+          // plain tap opens its full page (this is the "clicking transform did
+          // nothing" fix). Focus-view folder compounds still get swallowed.
           if (ev.target.isParent()) return;
           select(id, false);
         });

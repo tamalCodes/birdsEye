@@ -3,10 +3,10 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { GITHUB_URL } from "@/lib/links";
 
 const links = [
+  { href: "#install", label: "Install" },
   { href: "#what", label: "What it does" },
   { href: "#views", label: "The map" },
   { href: "#how", label: "How it works" },
-  { href: "#install", label: "Install" },
 ];
 
 export default function Nav() {
