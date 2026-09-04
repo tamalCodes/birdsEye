@@ -13,6 +13,7 @@ import {
   GITHUB_URL,
   README_URL,
   ISSUES_URL,
+  OPEN_CLAUDE_CODE,
   MARKETPLACE_ADD,
   PLUGIN_INSTALL,
   MARKETPLACE_REMOVE,
@@ -378,13 +379,21 @@ function HowItWorks() {
 
 /* This sits directly under the hero on purpose: the page's first ask is
    "install the plugin", so the answer should be the next thing on screen, not
-   the last. Everything that is not one of the three commands - updating, the
+   the last. Everything that is not one of the four commands - updating, the
    one failure mode worth documenting - is folded into a disclosure, so the
-   default view is three lines and nothing else. */
+   default view is four lines and nothing else.
+
+   Step 00 is a real shell command ("$") - it's the only one. Steps 01-03 are
+   typed inside Claude Code's own prompt, never the terminal, so they render
+   with ">" instead. Pasting a "/plugin ..." line into zsh/bash fails with
+   "no such file or directory" because there is no such file - it's a Claude
+   Code slash command, not a program. The two prompts existing side by side is
+   the whole fix: it shows the boundary instead of just stating it. */
 const STEPS = [
-  { n: "01", label: "Add the marketplace", note: "once per machine", cmd: MARKETPLACE_ADD },
-  { n: "02", label: "Install the plugin", note: "once per machine", cmd: PLUGIN_INSTALL },
-  { n: "03", label: "Run it", note: "in every repo you want a map of", cmd: MAP_COMMAND },
+  { n: "00", label: "Open Claude Code", note: "in your terminal, once", cmd: OPEN_CLAUDE_CODE, prompt: "$" },
+  { n: "01", label: "Add the marketplace", note: "once per machine", cmd: MARKETPLACE_ADD, prompt: ">" },
+  { n: "02", label: "Install the plugin", note: "once per machine", cmd: PLUGIN_INSTALL, prompt: ">" },
+  { n: "03", label: "Run it", note: "in every repo you want a map of", cmd: MAP_COMMAND, prompt: ">" },
 ];
 
 const INSTALL_NOTES = [
@@ -410,11 +419,20 @@ function Install() {
         <Reveal className="mx-auto max-w-2xl text-center">
           <p className="kicker">Install</p>
           <h2 className="font-display mt-5 t-section text-ink">
-            Three commands, then any repo
+            One shell command, then any repo
           </h2>
           <p className="mt-5 leading-relaxed text-muted">
-            Everything runs inside Claude Code - nothing to download by hand, no npm
-            package. The first run takes a minute or two; every run after that is seconds.
+            Step 00 opens Claude Code in your terminal. Everything after that is typed
+            inside Claude Code itself, not your shell - that&rsquo;s why it starts with{" "}
+            <code className="rounded bg-panel px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
+              &gt;
+            </code>{" "}
+            instead of{" "}
+            <code className="rounded bg-panel px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
+              $
+            </code>
+            . Nothing to download by hand, no npm package. The first run takes a minute
+            or two; every run after that is seconds.
           </p>
         </Reveal>
 
@@ -432,7 +450,7 @@ function Install() {
                 <span className="text-sm text-faint">{s.note}</span>
               </div>
               <div className="mt-3.5">
-                <CopyCommand command={s.cmd} />
+                <CopyCommand command={s.cmd} prompt={s.prompt} />
               </div>
             </Reveal>
           ))}
@@ -457,7 +475,7 @@ function Install() {
                   <p className="text-ink">{note.h}</p>
                   <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">{note.p}</p>
                   <div className="mt-3.5">
-                    <CopyCommand command={note.cmd} />
+                    <CopyCommand command={note.cmd} prompt=">" />
                   </div>
                 </div>
               ))}
@@ -574,7 +592,7 @@ function Footer() {
               first.
             </p>
             <div className="mt-6 max-w-xs">
-              <CopyCommand command={MAP_COMMAND} />
+              <CopyCommand command={MAP_COMMAND} prompt=">" />
             </div>
           </div>
 

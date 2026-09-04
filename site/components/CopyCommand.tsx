@@ -7,9 +7,16 @@ type Props = {
   /** What lands on the clipboard, if different from what is shown. */
   copyText?: string;
   label?: string;
+  /**
+   * The glyph before the command. Default "$" reads as "your shell" - use
+   * that only for a command you actually run in the terminal. A command
+   * typed inside Claude Code's own prompt (a slash command) must use ">"
+   * instead, or people paste it into zsh/bash and it fails to resolve.
+   */
+  prompt?: string;
 };
 
-export default function CopyCommand({ command, copyText, label }: Props) {
+export default function CopyCommand({ command, copyText, label, prompt = "$" }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -25,7 +32,7 @@ export default function CopyCommand({ command, copyText, label }: Props) {
   return (
     <div className="group flex items-center gap-3 rounded-xl border border-hair bg-panel/70 px-4 py-3 font-mono text-[0.92rem]">
       <span aria-hidden className="select-none text-clay">
-        $
+        {prompt}
       </span>
       <code className="flex-1 overflow-x-auto whitespace-nowrap text-ink">
         {command}
