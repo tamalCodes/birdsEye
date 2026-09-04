@@ -64,6 +64,11 @@ const SHARED_NAME_RULES = [
 // screens - a feature, not a bucket.
 const PAGE_DIR_RE = /^(pages?|screens?|views?|scenes?|routes?|features?|modules?|flows?)$/i;
 
+// Top-level folder names that are never the code root even when they hold the
+// most source files - test suites, docs, examples and tooling.
+const NON_SOURCE_ROOT_RE =
+  /^(tests?|__tests__|spec|specs|e2e|cypress|fixtures?|__mocks__|mocks?|docs?|examples?|samples?|demos?|benchmarks?|bench|scripts?|tools?|build|dist|vendor|third[_-]?party|node_modules)$/i;
+
 // Conventional code-root folder names, checked in this order of preference.
 // Deliberately excludes Go's `cmd/ internal/ pkg/` - in a Go repo those are
 // top-level *modules* and the code root is the repo root itself, which the
@@ -225,10 +230,27 @@ export function analyzeStructure(root, { ignore = [], routes = null } = {}) {
   }
   if (!codeRoots.length) {
     const named = CODE_ROOT_NAMES.filter((n) => codeIn(n) >= 3).sort((a, b) => codeIn(b) - codeIn(a));
+    // A Python package dir (holds __init__.py) is a strong code-root signal that
+    // no conventional name covers - `graphify/`, `mypkg/` and the like.
+    const pyPkg = childrenOf('')
+      .filter(
+        (d) =>
+          !d.includes('/') &&
+          codeIn(d) >= 3 &&
+          !NON_SOURCE_ROOT_RE.test(d) &&
+          exists(root, `${d}/__init__.py`),
+      )
+      .sort((a, b) => codeIn(b) - codeIn(a));
     if (named.length) {
       codeRoots = [named[0]];
+    } else if (pyPkg.length) {
+      codeRoots = [pyPkg[0]];
     } else {
-      const top = childrenOf('').slice().sort((a, b) => codeIn(b) - codeIn(a));
+      // Top-level dir with the most code - but never a tests/docs/examples
+      // bucket, which in some repos out-masses the real source tree.
+      const top = childrenOf('')
+        .filter((d) => !NON_SOURCE_ROOT_RE.test(d.split('/').pop()))
+        .sort((a, b) => codeIn(b) - codeIn(a));
       const best = top[0];
       if (best && codeIn(best) >= Math.max(5, codeFiles.length * 0.4)) codeRoots = [best];
       else codeRoots = ['']; // flat repo - modules are the repo-root folders

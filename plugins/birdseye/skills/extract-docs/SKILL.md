@@ -5,6 +5,11 @@ description: Find the spec and doc files an agent should read before touching a 
 
 # Extract docs
 
+> **Dormant as of the zero-token rewrite.** birdsEye's `/birdseye:map` no
+> longer invokes this skill - the map is now a pure local AST parse (graphify)
+> with no model calls. This file is kept for a future opt-in `--with-llm` mode.
+
+
 This is the half of `birdsEye` that answers the question the whole tool exists
 for: *"I need to fix a bug in the auth module - which spec files should I read
 first?"* The import graph says what auth is wired to. You say what has been

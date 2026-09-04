@@ -4,28 +4,18 @@
 
 <h1 align="center">birdsEye</h1>
 
-<p align="center"><em>Find out where your agent will get lost.</em></p>
+<p align="center"><em>See the shape of a codebase in five seconds.</em></p>
 
 > [!WARNING]
-> **Very early stage - work in progress.**
-> Expect rough edges and breaking changes.
-> Only one of the four planned views is wired up so far (see [The view](#the-view)).
+> **Very early stage - work in progress.** Expect rough edges and breaking changes.
 
-One command, one HTML file: an agent-readiness audit of the repo - which docs
-cover each module, which guardrails have gone stale, and which specs an agent
-should read before touching the code - over a map of the modules, dependencies,
-routes and screens that audit is checked against.
+One command, one HTML file: an **interactive flowchart of a repo's structure**.
+The top level is a handful of boxes - the major modules. Click one and it expands
+in place to the folders and files inside it. Dependency arrows connect whatever
+is currently open, so you can see which module leans on which without reading a
+line of code.
 
-> The name lives in exactly one place -
-> [`scripts/lib/const.mjs`](scripts/lib/const.mjs) - so renaming it renames the
-> config file, the output directory and every user-facing string at once.
-
-The use case that shaped every decision here:
-
-> *Before this agent edits the auth module - does it know what auth is wired to,
-> which guardrails apply, and which spec to read first?*
-
-Open the map, click `auth`, get the answer in five seconds.
+`/birdseye:map` runs **entirely on your machine and calls no model. Zero tokens.**
 
 ## Use
 
@@ -34,17 +24,16 @@ Open the map, click `auth`, get the answer in five seconds.
 ```
 
 First run asks two questions - whether to write `birdseye.config.json`, and
-whether to add `birdseye/` to `.gitignore` - then takes a minute or two.
-Subsequent runs take a couple of seconds and cost nothing, because the two
-stages that involve the model are skipped when nothing they read has changed.
+whether to add `birdseye/` to `.gitignore` - then sets up a Python virtualenv for
+the parser (a one-time `pip install`, tens of seconds). After that every run is a
+couple of seconds.
 
 ```
-/birdseye:map --force                 rebuild everything from scratch
-/birdseye:map --only=imports          run one stage, for debugging
+/birdseye:map --force        re-parse everything from scratch
 ```
 
 The output is `birdseye/index.html`. It is self-contained: no CDN, no server, no
-network at all. It opens from `file://` on a plane.
+network. It opens from `file://` on a plane.
 
 ## What it writes
 
@@ -53,120 +42,85 @@ network at all. It opens from `file://` on a plane.
 ├── birdseye.config.json     committed, human-editable, generated on first run
 └── birdseye/                gitignored
     ├── index.html          the deliverable
-    ├── graph.json          the canonical graph
-    └── .cache/             manifest + per-stage output
+    ├── graph.json          the canonical graph (schema v5)
+    └── .cache/             AST cache, taxonomy scan, and the managed py/ venv
 ```
 
-Nothing else in your source tree is ever touched, and no documentation is ever
-written into it.
+Nothing else in your source tree is ever touched.
 
 ## How it works
 
-| Stage | Who does it | Cost |
+| Stage | What it does | Cost |
 |---|---|---|
-| `structure.mjs` + `extract-structure` | a script finds the code root and guesses feature vs shared folders; a skill confirms the unsure ones and asks you when it cannot | seconds, small model call, once |
-| `imports.mjs` | plain Node - tsconfig aliases, barrels, comment-stripped parsing | milliseconds, no model |
-| `extract-routes` | a skill - reads the router and describes it | ~25 files, once |
-| `extract-docs` | a skill - attaches docs to the code they describe, glosses their guardrails in plain English | once |
-| `extract-flowcharts` | a skill - turns each module's docs into a step-by-step flow | once, after docs |
-| `merge.mjs` | plain Node - one canonical `graph.json` | milliseconds |
-| `render.mjs` | plain Node - inlines vendored Cytoscape | milliseconds |
+| `structure.mjs scan` | finds the code root and makes a first-pass feature-vs-infrastructure guess for each top-level folder | milliseconds, no model |
+| `ast.mjs` | hands every source file to [graphify](https://github.com/safishamsi/graphify)'s tree-sitter parser and collapses the symbol graph to a file-level dependency graph | seconds, **no model, no network** (after the one-time install) |
+| `build.mjs` | turns that flat graph into the containment tree (root → modules → folders → files) plus rolled-up dependency edges | milliseconds |
+| `render.mjs` | inlines the vendored Cytoscape and writes `index.html` | milliseconds |
 
-The split is deliberate. Anything mechanical is deterministic code with no model
-involvement, so it is exact and free. The model is used only where judgement is
-genuinely required, which is also the only place a framework-specific adapter
-would otherwise have to live. There is no `if (framework === ...)` anywhere in
-the scripts, and there should never be.
+Extraction is [graphify](https://pypi.org/project/graphifyy/) (`graphifyy` on
+PyPI, Apache-2.0), pinned and installed into `birdseye/.cache/py/` on the first
+run. It parses ~25 languages to a real AST - deterministic, offline, token-free.
+Point `$BIRDSEYE_PYTHON` at your own interpreter to skip the managed venv.
 
-Same input produces byte-identical `graph.json` and `index.html`, so the output
-diffs cleanly and bugs reproduce.
-
-The same rule decides who gets to call a document out of date. The extractor
-hands over the paths it could not place; `merge.mjs` re-checks every one against
-the working tree and against `git log`, and only a path git actually removed is
-reported as stale - with the commit that removed it. A path that resolves after
-all becomes an edge instead of a warning, and one that was never in this repo is
-listed as exactly that. A warning nobody can verify is worse than no warning.
+Same input produces the same `graph.json` and `index.html`, so the output diffs
+cleanly and bugs reproduce.
 
 ## The view
 
-The Overview is a filesystem-shaped flowchart: a box for the code root, every
-feature module hanging off it as its own box of screens and folder pills, and
-one "General-purpose" box holding the shared infrastructure modules (components,
-hooks, redux, styles, ...). Click a feature to open it in place; double-click to
-drop into its files. A repo mapped before the taxonomy pass existed, or one
-where the pass could not find a code root, falls back to the flat module cloud.
-
-One view ships: a left-to-right flowchart of the repo's structure, built from
-the taxonomy pass.
-
-```
-src ─┬─→ askEdi ──→ its screens  +  components· / hooks· / utils· folder chips
-     ├─→ transform ─→ ...
-     └─→ General-purpose ─→ components / hooks / redux / styles / ...
-```
-
-`src` (or whatever the code root is) on the left, every feature module one hop
-in, its screens and folders one hop further, and a General-purpose branch for
-the shared infrastructure. Elbow connectors, laid out by the same tidy-tree
-engine the routes view always used - it just gets fed the containment hierarchy
-now instead of only the navigation tree. Orientation (left-to-right / top-down)
-and a "show jumps" toggle for the real screen-to-screen navigations are in the
-layout menu.
-
-Click a feature to open its full page - every file grouped by folder, its
-screens, its docs and guardrails, and what depends on it. Double-click to drop
-into **Focus**, a file explorer over the import graph.
-
-A repo mapped before the taxonomy pass (no code root in its graph) falls back to
-the plain navigation tree this view used to be.
+- **Top level**: the code root as an outer frame, each major module as a box.
+  Modules birdsEye reads as shared infrastructure (`components`, `hooks`, `lib`,
+  `utils`, ...) are grouped under one **General-purpose** frame. Files that sit
+  directly in the code root get a synthetic **core** module so the top level
+  stays a handful of boxes.
+- **Click a box** to expand it in place - its folders, then its files. Click
+  again to collapse. **Expand all** / **Collapse** are in the toolbar.
+- **Dependency arrows** are drawn between whatever is open, rolled up from the
+  file-level import/call graph. Select a node to see exactly what it depends on
+  and what depends on it, and to open a file in your editor.
+- **Search** jumps to a module or file and expands the path to it.
+- Light / dark toggle, warm palette, remembers what you had expanded.
 
 ## Configuration
 
-The folder taxonomy - the code root, and which folders are features versus
-shared infrastructure - lives in `birdseye/.cache/structure.json`, written by
-the `extract-structure` skill on the first run. Re-run with `--force`, or just
-add a new top-level folder, to have it reconsidered.
-
 `birdseye.config.json` is generated from directory shape and is meant to be
-edited. It is the fallback the taxonomy uses when `structure.json` is absent;
-`moduleRoots` is the one field worth checking there.
+edited:
 
 ```jsonc
 {
   "name": "my-app",
   "moduleRoots": ["src/features/*", "src/components", "src/services"],
-  "ignore": ["node_modules", ".git", "dist", "build", "android", "ios"],
-  "extensions": [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"],  // optional - detected per language when omitted
-  "docGlobs": ["**/MAP.md", "**/AGENTS.md", "**/specs/*.md", "**/README.md"],
-  "editor": "vscode"      // vscode | cursor | idea | none
+  "ignore": ["node_modules", ".git", "dist", "build"],
+  "editor": "vscode"      // vscode | cursor | zed | idea
 }
 ```
 
-`editor` controls the scheme behind every path in the side panel, so clicking a
-file opens it where you actually work. `.gitignore` and an optional
-`.birdseyeignore` are both respected.
+The taxonomy - the code root, and which folders are features versus shared
+infrastructure - is written to `birdseye/.cache/structure.scan.json` by the scan.
+There is no model pass refining it, so a folder birdsEye calls wrong is fixed by
+hand in `birdseye/.cache/structure.json` (same shape as the scan's
+`featureModules`/`sharedModules`, wins when present) or by editing `moduleRoots`.
+
+`.gitignore` and an optional `.birdseyeignore` are both respected.
 
 ## Languages
 
-Import graphs are built for JavaScript/TypeScript, Go, Python, Rust and C#/.NET.
-The active set is detected automatically from the files present - no config. A
-repo in any other language still gets module nodes and a doc map, just no
+Whatever graphify's tree-sitter grammars cover - JavaScript/TypeScript, Python,
+Go, Rust, Java, C/C++, C#, Ruby, PHP, Kotlin, Swift, Scala, Elixir, Lua and more.
+The set that actually appears in a repo is detected automatically. A file in an
+unsupported language still counts toward its folder's totals, it just has no
 dependency edges.
-
-Go and Python edges are file-exact. Rust `mod` edges are file-exact; Rust `use`
-and C# `using` edges are **namespace-granular** - the target is a real file, but
-resolved through the namespace it declares rather than the exact symbol, so they
-are marked approximate.
 
 ## Limitations
 
-- Monorepos are treated as a single root.
-- A navigation edge is emitted only when its target is a string literal.
-  Coverage is high in practice, but a computed target is skipped rather than
-  guessed - a missing edge is cheap, a wrong one destroys trust in the map.
+- Needs Python 3.10+ on the machine (`uv` recommended). Without it there is
+  nothing to run.
+- Monorepos with multiple code roots are approximated as one.
+- The routes / docs / guardrail views from earlier versions are dormant - their
+  code and skills are still in the tree behind a future `--with-llm` flag, but
+  `/birdseye:map` no longer runs them.
 
 ## Third-party
 
 Cytoscape.js and fcose are vendored under `scripts/vendor/` and inlined into the
-output. All MIT; see [`scripts/vendor/LICENSES.txt`](scripts/vendor/LICENSES.txt).
+output (MIT; see [`scripts/vendor/LICENSES.txt`](scripts/vendor/LICENSES.txt)).
+graphify (`graphifyy`) is installed at runtime, not vendored (Apache-2.0).

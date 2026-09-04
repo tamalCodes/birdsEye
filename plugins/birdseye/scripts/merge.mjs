@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// SUPERSEDED by build.mjs (hierarchical graph v5 from ast.json). Kept for
+// reference and for the dormant --with-llm path; not called by /birdseye:map.
+//
 // Combine the deterministic import pass with whatever the two skills produced
 // into a single canonical graph.json.
 //

@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// DORMANT: stage planning for the routes/docs/flowcharts model passes. The
+// zero-token /birdseye:map does not use it - ast.mjs + build.mjs always run and
+// are cheap. Kept for the future --with-llm mode.
+//
 // Decides which stages actually need to run, and records what each one saw.
 //
 //   node stages.mjs plan   [repoRoot] [--force]

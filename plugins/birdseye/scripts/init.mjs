@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadConfig, inferConfig } from './lib/config.mjs';
+import { probePython } from './lib/graphify.mjs';
 import { CONFIG_FILE, OUT_DIR } from './lib/const.mjs';
 
 const IGNORE_LINE = `${OUT_DIR}/`;
@@ -30,6 +31,7 @@ export function status(root) {
     gitignoreExists: fs.existsSync(gitignorePath),
     outputIgnored: ignored,
     isGitRepo: fs.existsSync(path.join(root, '.git')),
+    python: probePython(root),
     inferred: inferConfig(root),
     effective: loadConfig(root).config,
   };

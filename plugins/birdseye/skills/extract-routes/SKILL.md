@@ -5,6 +5,11 @@ description: Extract a repo's route/screen tree and navigation edges into birdse
 
 # Extract routes
 
+> **Dormant as of the zero-token rewrite.** birdsEye's `/birdseye:map` no
+> longer invokes this skill - the map is now a pure local AST parse (graphify)
+> with no model calls. This file is kept for a future opt-in `--with-llm` mode.
+
+
 You are the only part of `birdsEye` that is allowed to use judgement. Everything
 mechanical is already done by scripts. Your job is the one thing a script cannot
 do without growing a per-framework adapter for every router that will ever

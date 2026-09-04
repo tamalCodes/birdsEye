@@ -5,6 +5,11 @@ description: Work out a repo's folder taxonomy - where the code root is, which f
 
 # Extract structure
 
+> **Dormant as of the zero-token rewrite.** birdsEye's `/birdseye:map` no
+> longer invokes this skill - the map is now a pure local AST parse (graphify)
+> with no model calls. This file is kept for a future opt-in `--with-llm` mode.
+
+
 Every other stage of birdsEye now goes through this one. The import graph, the
 routes, the docs and the whole Overview flowchart are all organised around the
 answer you give here: *what are this repo's modules, and which of them are

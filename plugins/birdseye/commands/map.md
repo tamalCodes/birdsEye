@@ -1,19 +1,22 @@
 ---
-description: Build or refresh the interactive code map for this repo
-argument-hint: "[--force] [--only=imports|routes|docs|flowcharts]"
-allowed-tools: Bash, Read, Glob, Grep, Write, Skill
+description: Build or refresh the interactive code-structure map for this repo
+argument-hint: "[--force]"
+allowed-tools: Bash, Read, Glob, Grep, Write
 ---
 
 # Build the code map
 
-Produce a single self-contained HTML map of this repo: its modules and how they
-depend on each other, its routes and screens, and the spec files an agent should
-read before touching any of it.
+Produce a single self-contained HTML map of this repo: an expandable flowchart
+of its modules, the folders and files inside them, and the dependency arrows
+between them.
+
+**This runs entirely locally and calls no model. Zero tokens.** Extraction is
+graphify's tree-sitter AST parse (a Python package birdsEye installs into its
+own managed virtualenv on the first run); everything else is plain Node.
 
 Arguments: `$ARGUMENTS`
 
-- `--force` - ignore every cache and rebuild from scratch
-- `--only=structure|imports|routes|docs|flowcharts` - run one stage, for debugging
+- `--force` - ignore every cache and re-parse from scratch
 
 `${CLAUDE_PLUGIN_ROOT}/scripts` holds the scripts. Refer to it through that
 variable, never a relative path - the plugin is copied to a cache directory on
@@ -26,8 +29,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/init.mjs" status
 ```
 
 If `configExists` is false: show the user the `inferred` block - specifically
-`moduleRoots`, since that is the one they will want to correct - and ask whether
-to write it. Only on a yes:
+`moduleRoots` - and ask whether to write it. Only on a yes:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/init.mjs" write
@@ -42,124 +44,67 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/init.mjs" gitignore
 
 Ask both questions in one message. Never write either file without an answer.
 
-## 2. Show the token estimate
+The `status` output also carries a `python` block. If `python.ready` is false,
+tell the user what the first run will do before you start it: birdsEye needs
+Python 3.10+ and will create a virtualenv under `birdseye/.cache/py/` and
+`pip install graphifyy` into it (a one-time download of tree-sitter grammars,
+tens of seconds). If `python.found` is false entirely, stop and tell the user to
+install Python 3.10+ (and ideally [`uv`](https://docs.astral.sh/uv/)); there is
+nothing to run without it.
 
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/structure.mjs" estimate
-```
-
-Show the user the printed range before any expensive stage runs. Say plainly
-that this is a first-build cost - the routes, docs and flowchart passes read the
-repo's markdown, and a cached re-run is close to free because every stage skips
-when nothing it read has changed. If the plan in step 3 marks the costly stages
-`skip`, say the run will be cheap and move on without dwelling on the number.
-
-## 3. The folder taxonomy
+## 2. The folder taxonomy
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/structure.mjs" scan
 ```
 
-This never fails - it works out the code root (`src/`, `app/`, a monorepo
-`packages/*`, or the repo root itself) and a first guess at which folders are
-features and which are shared infrastructure, and writes
-`birdseye/.cache/structure.scan.json`.
+This never fails. It works out the code root (`src/`, `app/`, a Python package
+dir, a monorepo `packages/*`, or the repo root itself) and a first-pass guess at
+which top-level folders are product features and which are shared infrastructure,
+and writes `birdseye/.cache/structure.scan.json`. `build.mjs` reads that guess
+directly - there is no model pass refining it, so a folder birdsEye calls wrong
+is corrected by hand in `birdseye/.cache/structure.json` (same shape, it wins
+when present) or by adjusting `moduleRoots` in the config.
 
-If step 4's plan says `run` for `structure`, invoke the `extract-structure`
-skill. It reads that scan, applies judgement, asks you about anything genuinely
-ambiguous, and writes `birdseye/.cache/structure.json`. Then:
+## 3. Extraction
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/structure.mjs" check
+node "${CLAUDE_PLUGIN_ROOT}/scripts/ast.mjs"
 ```
 
-If the plan says `skip`, the existing `structure.json` still describes the repo
-correctly - leave it. Everything downstream (`imports.mjs`, `merge.mjs`, the
-Overview) reads `structure.json` when it exists and falls back to `moduleRoots`
-in the config when it does not.
+Pass `--force` through if the user gave it. On the first run this also sets up
+the Python virtualenv described in step 1 - if it prints a message about
+installing graphify, that is expected and happens once. graphify keeps its own
+per-file content-hash cache, so a re-run only re-parses what changed.
 
-## 4. Work out what actually needs to run
+If this step fails with a Python or graphify error, relay the message verbatim
+and stop - the rest of the pipeline has nothing to work with.
 
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/stages.mjs" plan
-```
-
-Add `--force` if the user passed it. The result marks each stage `run` or
-`skip` - including `structure`, which step 3 above already acted on. **Honour
-`skip`.** A skipped stage keeps its existing cache file, which is already
-correct, and skipping is the entire reason a refresh is cheap. If `--only=` was
-passed, run only that stage regardless.
-
-## 5. Imports - always, and cheap
+## 4. Build and render
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/imports.mjs"
-```
-
-Pass `--force` through if given. This re-parses only changed files. It involves
-no model calls at all; do not try to help it. It reads `structure.json` for the
-module list, so it must run after step 3.
-
-## 6. Routes and docs - the two stages that cost something
-
-If the plan says `run` for routes, invoke the `extract-routes` skill. If it says
-`run` for docs, invoke the `extract-docs` skill. After each one completes,
-record what it saw so the next run can skip it:
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/stages.mjs" record routes
-node "${CLAUDE_PLUGIN_ROOT}/scripts/stages.mjs" record docs
-```
-
-Record only for the stages that actually ran.
-
-## 7. Flowcharts - built from what docs.json says
-
-If the plan says `run` for flowcharts, invoke the `extract-flowcharts` skill.
-It reads `birdseye/.cache/docs.json`, so it must run after the docs stage
-above completes, never before or in parallel with it - if docs just ran,
-its cache file is brand new and flowcharts has to read that version, not
-whatever was there before. This is the stage that makes a module's Docs page
-show a finished flowchart the moment the user opens it, instead of asking
-them to generate one themselves - do not skip it when the plan says `run`
-just because it takes longer than the other stages.
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/stages.mjs" record flowcharts
-```
-
-Record only if it actually ran.
-
-## 8. Merge and render
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/merge.mjs"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/build.mjs"
 node "${CLAUDE_PLUGIN_ROOT}/scripts/render.mjs"
 ```
 
-`merge.mjs` tolerates missing `routes.json`, `docs.json`, `flowcharts.json` or
-`structure.json` - a repo with none of them still produces a valid map, just a
-flatter one (no root box, no feature/shared split).
+`build.mjs` turns the flat AST graph into the containment tree (root → modules →
+folders → files) plus file-level dependency edges. `render.mjs` inlines the
+vendored Cytoscape and writes `birdseye/index.html`.
 
-## 9. Report
+## 5. Report
 
-Print the absolute path of the generated HTML, then one short paragraph:
+Print the absolute path of the generated HTML, then one short paragraph from
+`build.mjs`'s own output:
 
-- module count split into feature and general-purpose (from `merge.mjs`'s
-  `featureModules`/`sharedModules` stats), route count, doc count, and how many
-  modules have at least one doc attached
-- which languages got an import graph (`merge.mjs`'s `languages:` line). If any
-  edges are namespace-approximate (C# `using`, Rust `use` - shown as
-  `N namespace-approx`), say so in one clause: the target file is real, the
-  exact symbol is not tracked
-- how many of those modules got a generated flowchart, using `merge.mjs`'s own
-  count - and if any doc-bearing modules did not, that they still get the
-  manual "ask an agent" prompt in the viewer instead
-- how many docs still name a file git has removed, as a single number with a
-  pointer to the side panel. Use `merge.mjs`'s own `doc refs:` line for this and
-  quote nothing else from it - the paths that were never in the repo are not
-  rot, and reporting them as such is how the number stops being trusted
-- which stages were skipped and why, so the user can see the cache working
+- module count split into feature and general-purpose, folder count, file count,
+  dependency-edge count
+- which languages got parsed (`languages:` line) and the graphify version
+- if any modules are marked "unsure", say so in one clause: birdsEye could not
+  tell feature from infrastructure for them and defaulted to feature; the user
+  can fix that in `structure.json`
+- if `unresolved` refs or `failed` files are non-zero, mention the count plainly
+  - an import graphify could not resolve to a file, or a file its grammar could
+  not parse
 
 Do not summarise the architecture. The map is the deliverable; the point is that
 the user opens it rather than reads a description of it.
@@ -168,6 +113,14 @@ the user opens it rather than reads a description of it.
 
 - Write nothing into the user's source tree except `birdseye.config.json` and the
   `birdseye/` directory, and only ever after asking about the former.
-- If a stage fails, say so plainly and continue with the rest. A map missing its
-  routes is still worth having; a run that aborts halfway is not.
+- If a stage fails, say so plainly. A partial map is still worth having; a run
+  that aborts halfway is not.
 - Never fabricate a node or an edge to fill a gap in the output.
+
+<!--
+  The routes / docs / flowcharts stages and their skills (extract-routes,
+  extract-docs, extract-flowcharts, extract-structure) are intentionally not
+  invoked here: birdsEye is currently a zero-token structure map. Their code and
+  skill files are kept in the tree for a later opt-in `--with-llm` mode. Do not
+  wire them back into this command without that flag.
+-->

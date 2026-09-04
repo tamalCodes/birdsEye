@@ -5,6 +5,11 @@ description: Turn each module's docs into a plain-language step-by-step flow a n
 
 # Extract flowcharts
 
+> **Dormant as of the zero-token rewrite.** birdsEye's `/birdseye:map` no
+> longer invokes this skill - the map is now a pure local AST parse (graphify)
+> with no model calls. This file is kept for a future opt-in `--with-llm` mode.
+
+
 This is what the Docs view is *for*. A reader who opens a feature's docs page
 should not have to piece a flow together from prose - they should see it. This
 skill reads what `extract-docs` already found and turns it into a small

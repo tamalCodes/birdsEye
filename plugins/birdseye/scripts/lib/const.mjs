@@ -10,4 +10,4 @@ export const OUT_DIR = NAME;
 export const CACHE_DIR = `${OUT_DIR}/.cache`;
 export const IGNORE_FILE = `.${NAME}ignore`;
 
-export const GRAPH_VERSION = 4;
+export const GRAPH_VERSION = 5;

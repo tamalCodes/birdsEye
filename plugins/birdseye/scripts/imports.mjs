@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// SUPERSEDED by ast.mjs (graphify tree-sitter extraction). Kept for reference
+// and for a possible pure-Node fallback; not called by /birdseye:map any more.
+//
 // Deterministic import graph. No LLM involvement anywhere in this file.
 //
 //   node imports.mjs [repoRoot] [--force] [--json]
