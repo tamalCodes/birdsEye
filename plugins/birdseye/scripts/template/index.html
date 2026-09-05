@@ -105,7 +105,7 @@
       ::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
 
       header {
-        position: fixed; inset: 0 0 auto 0; z-index: 40;
+        position: absolute; inset: 0 0 auto 0; z-index: 40;
         display: flex; align-items: center; gap: 10px; flex-wrap: nowrap;
         height: var(--header-h); padding: 0 12px;
         background: var(--bg-panel);
@@ -321,8 +321,8 @@
         .brand span { display: none; }
         .brand b { max-width: 34vw; white-space: nowrap; }
         .spacer { display: none; }
-        .search { flex: 1 1 auto; }
-        .search input { width: 100%; }
+        .search { flex: 1 1 0; min-width: 0; }
+        .search input { width: 100%; min-width: 0; }
 
         #sidebar {
           position: absolute; inset: 0 auto 0 0; z-index: 45;
@@ -1064,10 +1064,32 @@
           cy.elements().remove();
           cy.add(nb.els);
           cy.layout({ name: 'preset' }).run();
-          cy.animate({ fit: { eles: cy.elements(), padding: fitPad() }, duration: 260, easing: 'ease-out-cubic' });
 
           drawCrumb(id);
           showPanel(id, nb.hiddenKids);
+          applyFit(260);
+        }
+
+        // Fit the neighbourhood into the stage. On desktop the detail panel is
+        // a right rail, so reserve that strip and the diagram never hides
+        // behind it. On a phone the panel is a bottom sheet the reader
+        // dismisses to get back to the map (maps-app style), so fit normally
+        // there - closing the sheet refits to dead centre.
+        function applyFit(dur) {
+          var bb = cy.elements().boundingBox();
+          if (!bb.w || !bb.h) return;
+          var p = fitPad();
+          var coverRight = (!isNarrow() && panel.classList.contains('open')) ? panel.offsetWidth + 24 : 0;
+          var vw = cy.width(), vh = cy.height();
+          var availW = Math.max(60, vw - coverRight - 2 * p);
+          var availH = Math.max(60, vh - 2 * p);
+          var z = Math.max(cy.minZoom(), Math.min(availW / bb.w, availH / bb.h, cy.maxZoom()));
+          var pan = {
+            x: p + availW / 2 - z * (bb.x1 + bb.w / 2),
+            y: p + availH / 2 - z * (bb.y1 + bb.h / 2),
+          };
+          if (dur) cy.animate({ zoom: z, pan: pan, duration: dur, easing: 'ease-out-cubic' });
+          else { cy.zoom(z); cy.pan(pan); }
         }
 
         // Open the side panel for the current focus node and jump straight
@@ -1196,7 +1218,11 @@
               '</div>';
           }).join('') + '</div>';
         }
-        document.querySelector('.p-close').addEventListener('click', function () { panel.classList.remove('open'); });
+        document.querySelector('.p-close').addEventListener('click', function () {
+          panel.classList.remove('open');
+          // The bottom sheet was covering half the map - reclaim it.
+          if (isNarrow()) applyFit(220);
+        });
 
         // ---- editor links --------------------------------------
         function editorHref(n) {
@@ -1223,16 +1249,14 @@
           // On narrow screens the drawer floats over the canvas, so its size
           // never changes - only refit/resize when it actually reflows.
           if (!isNarrow()) {
-            setTimeout(function () { cy.resize(); resizeSketch(); cy.fit(cy.elements(), fitPad()); }, 200);
+            setTimeout(function () { cy.resize(); resizeSketch(); applyFit(220); }, 200);
           }
         }
         document.getElementById('navToggle').addEventListener('click', function () {
           setNav(mainEl.classList.contains('nav-collapsed'));
         });
         document.getElementById('scrim').addEventListener('click', function () { setNav(false); });
-        document.getElementById('fit').addEventListener('click', function () {
-          cy.animate({ fit: { eles: cy.elements(), padding: fitPad() }, duration: 220 });
-        });
+        document.getElementById('fit').addEventListener('click', function () { applyFit(220); });
         document.getElementById('theme').addEventListener('click', function () {
           var light = document.documentElement.getAttribute('data-theme') === 'light';
           if (light) { document.documentElement.removeAttribute('data-theme'); save('theme', 'dark'); }
@@ -1292,13 +1316,17 @@
 
         renderTree();
         focus(ROOT_ID);
-        hint('Pick anything on the left to see how it connects');
+        // On a phone the panel is a bottom sheet covering most of the canvas -
+        // lead with the diagram on first load, let a tap open the detail.
+        if (isNarrow()) { panel.classList.remove('open'); applyFit(0); }
+        hint(isNarrow() ? 'Tap a box, or open the list up top, to see how it connects'
+                        : 'Pick anything on the left to see how it connects');
         // A flowchart that doesn't re-centre when its window changes size
         // reads as broken - refit on every resize / orientation change once
         // things settle.
         window.addEventListener('resize', debounce(function () {
           cy.resize(); resizeSketch();
-          cy.fit(cy.elements(), fitPad());
+          applyFit(0);
           scheduleSketch();
         }, 160));
         // The hand-lettered font is a data: URI so it's available near-
