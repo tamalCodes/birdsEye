@@ -14,9 +14,9 @@ import { NAME, DISPLAY, OUT_DIR } from './lib/const.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 // The viewer positions every node itself (a deterministic neighbourhood layout),
-// so cytoscape is the only layout-adjacent library it needs - no force-layout
-// engine. rough.js draws the hand-sketched overlay on top of it.
-const VENDOR = ['cytoscape.min.js', 'rough.js'];
+// so Cytoscape is the only runtime dependency it needs - no force-layout engine
+// and no separate overlay renderer that could drift on display-scale changes.
+const VENDOR = ['cytoscape.min.js'];
 
 /** Neutralise anything that could close the surrounding <script> element. */
 const safeForScript = (s) => s.replace(/<\/(script)/gi, '<\\/$1');

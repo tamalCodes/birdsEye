@@ -81,10 +81,8 @@
         font-weight: 100 900;
         font-display: swap;
       }
-      /* The canvas diagram (node/edge labels) reads in a hand-lettered
-         face to match the sketchy rough.js overlay; the surrounding UI
-         chrome (header, tree, panel) stays in Outfit for legibility of
-         dense prose. */
+      /* Diagram labels use a hand-lettered face while surrounding UI chrome
+         stays in Outfit for dense prose. */
       @font-face {
         font-family: "Patrick Hand";
         src: url("__FONT_HAND__") format("woff2");
@@ -198,12 +196,21 @@
         background-image: radial-gradient(var(--dot) 1px, transparent 1px);
         background-size: 26px 26px;
       }
-      /* Hand-sketched overlay: rough.js redraws every node border and edge
-         here, in sync with cytoscape's own layout, on top of cytoscape's
-         (otherwise invisible-stroked) canvas beneath it. Never intercepts
-         input - cytoscape's canvas still owns every click/drag/hover. */
-      #sketch { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-
+      /* Cytoscape owns nodes and hit-testing. This SVG only paints the
+         directed import flow above its transparent canvas, so every curve,
+         arrow, and moving dash stays in the same coordinate system as a
+         pan or zoom. */
+      #flowLines { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+      .flow-route { fill: none; stroke-width: 1.35; stroke-linecap: round; opacity: .34; }
+      .flow-route.depends { stroke: var(--edge-out); }
+      .flow-route.used { stroke: var(--edge-in); }
+      .flow-pulse { fill: none; stroke-width: 2.1; stroke-linecap: round; stroke-dasharray: 2 12; opacity: .95; animation: flow-forward 1.35s linear infinite; }
+      .flow-pulse.depends { stroke: var(--edge-out); }
+      .flow-pulse.used { stroke: var(--edge-in); }
+      .flow-arrow.depends { fill: var(--edge-out); }
+      .flow-arrow.used { fill: var(--edge-in); }
+      @keyframes flow-forward { to { stroke-dashoffset: -28px; } }
+      @media (prefers-reduced-motion: reduce) { .flow-pulse { animation: none; stroke-dasharray: none; } }
       .crumb {
         position: absolute; left: 12px; top: 12px; z-index: 20;
         display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
@@ -242,45 +249,92 @@
 
       /* ---- detail panel -------------------------------------------- */
       #panel {
-        position: absolute; top: 12px; right: 12px; bottom: 12px; z-index: 30;
-        width: 330px; max-width: calc(100vw - 24px);
+        position: absolute; top: 12px; right: 12px; bottom: auto; z-index: 30;
+        width: 420px; max-width: calc(100vw - 24px); max-height: calc(100% - 24px);
         display: none; flex-direction: column;
         background: var(--sheet); border: 1px solid var(--line);
         border-radius: 14px; box-shadow: var(--shadow);
         overflow: hidden;
       }
       #panel.open { display: flex; }
-      .p-head { padding: 14px 16px 12px; border-bottom: 1px solid var(--line-soft); }
-      .p-kind { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-dim); }
-      .p-title { font-size: 16px; font-weight: 600; margin: 3px 0 0; word-break: break-word; }
+      .panel-toggle {
+        position: absolute; top: 12px; right: 12px; z-index: 26;
+        display: inline-flex; align-items: center; gap: 6px;
+        height: 32px; padding: 0 11px;
+        background: var(--bg-panel); color: var(--text);
+        border: 1px solid var(--line); border-radius: 8px;
+        box-shadow: var(--shadow); font: 600 12px var(--font); cursor: pointer;
+      }
+      .panel-toggle:hover { border-color: var(--line-strong); }
+      .panel-toggle svg { width: 14px; height: 14px; color: var(--text-dim); }
+      .p-head { padding: 15px 16px 13px; border-bottom: 1px solid var(--line-soft); }
+      .p-kind { font-size: 11px; letter-spacing: .01em; color: var(--text-dim); }
+      .p-title-row { display: flex; align-items: flex-start; gap: 8px; margin: 4px 0 0; }
+      .p-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; word-break: break-word; }
+      /* Opening the file is the commonest thing to do from here, so it sits
+         next to the name rather than at the far end of a scrolling list. */
+      .p-open {
+        flex: none; display: inline-flex; align-items: center; justify-content: center;
+        width: 28px; height: 28px; margin-top: 1px; border-radius: 7px;
+        border: 1px solid var(--line); color: var(--text-dim); text-decoration: none;
+      }
+      .p-open svg { width: 14px; height: 14px; }
+      .p-open:hover { color: var(--text); border-color: var(--line-strong); background: var(--bg-raised); }
       .p-path { font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); margin-top: 4px; word-break: break-all; }
-      .p-body { padding: 12px 16px 16px; overflow-y: auto; flex: 1; min-height: 0; -webkit-overflow-scrolling: touch; }
+      .p-body { padding: 20px 16px 24px; overflow-y: auto; flex: 0 1 auto; min-height: 0; max-height: min(54vh, 560px); -webkit-overflow-scrolling: touch; }
       .p-close {
         position: absolute; top: 10px; right: 10px; width: 26px; height: 26px;
         border: none; background: transparent; color: var(--text-dim); cursor: pointer; font-size: 17px; line-height: 1;
       }
       .p-close:hover { color: var(--text); }
-      .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 2px 0 14px; }
-      .stat { background: var(--bg-panel); border: 1px solid var(--line-soft); border-radius: 9px; padding: 8px 10px; }
-      .stat b { display: block; font-size: 17px; font-weight: 600; }
-      .stat span { font-size: 11px; color: var(--text-dim); }
-      .p-sec { margin-top: 14px; }
-      .p-sec h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); margin: 0 0 6px; }
-      .dep { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; cursor: pointer; border-bottom: 1px solid var(--line-soft); }
-      .dep:hover { color: var(--accent); }
-      .dep .n { font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .dep .w { font-size: 11px; color: var(--text-dim); flex: none; }
-      .dep .w.expandable { cursor: pointer; padding: 2px 6px; border-radius: 5px; }
-      .dep .w.expandable:hover { background: var(--bg-panel); color: var(--accent); }
-      .dep-files { padding: 2px 0 6px 10px; border-bottom: 1px solid var(--line-soft); }
-      .dep-file { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-family: var(--mono); font-size: 11px; }
-      .dep-file .fp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-      .dep-file .fp:hover { color: var(--accent); text-decoration: underline; }
-      .dep-file .arrow { color: var(--text-dim); flex: none; }
-      .dep-file-empty { font-size: 11px; color: var(--text-dim); padding: 3px 0; }
+      .p-summary { margin: 0 0 20px; font-size: 12px; line-height: 1.55; color: var(--text-dim); }
+      .p-sec { margin-top: 22px; }
+      .p-sec h4 { font-size: 12px; font-weight: 700; letter-spacing: .01em; color: var(--text-dim); margin: 0 0 12px; }
+      .dep-row { border-bottom: 1px solid var(--line-soft); }
+      .dep { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 37px; }
+      .dep-target { display: block; min-width: 0; padding: 7px 0; border: 0; background: transparent; color: var(--text); cursor: pointer; font: 600 13px var(--font); text-align: left; }
+      /* Name only - a file is recognised by its name, and a folder path on
+         every row turned the list into a wall of grey. The full path is still
+         one hover away on the row's title. */
+      .dep-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .dep-target:hover .dep-name { color: var(--accent); }
+      .dep-files-toggle { flex: none; padding: 4px 0 4px 8px; border: 0; background: transparent; color: var(--text-dim); font: 11px var(--font); cursor: pointer; }
+      .dep-files-toggle:hover { color: var(--accent); }
+      .dep-files { padding: 2px 0 8px; }
+      .dep-folder { margin: 16px 0 4px; padding-top: 4px; font-size: 11px; font-weight: 700; color: var(--text-dim); }
+      .dep-file { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: baseline; gap: 7px; padding: 8px 0 2px; font-size: 12px; }
+      .dep-file .file-ref { min-width: 0; padding: 0; border: 0; background: transparent; color: var(--text); cursor: pointer; font: 600 12px var(--font); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .dep-file .file-ref:last-child { text-align: right; }
+      .dep-file .file-ref:hover { color: var(--accent); text-decoration: underline; }
+      .dep-file .verb { color: var(--text-dim); font-size: 14px; line-height: 1; }
+      .dep-file-empty, .dep-more { font-size: 11px; color: var(--text-dim); padding: 7px 0 0; }
+      /* A file's own imports are already drawn on the canvas beside it, so the
+         panel keeps them folded away: a count you can open when you want the
+         names, not a wall of rows shouting at every selection. */
+      .dep-accs { margin-top: 20px; border-top: 1px solid var(--line-soft); }
+      .dep-acc { border-bottom: 1px solid var(--line-soft); }
+      .dep-acc > summary {
+        display: flex; align-items: center; gap: 8px; list-style: none; cursor: pointer;
+        padding: 11px 0; font: 700 12px var(--font); color: var(--text-dim);
+      }
+      .dep-acc > summary::-webkit-details-marker { display: none; }
+      .dep-acc > summary::before {
+        content: ''; flex: none; width: 6px; height: 6px; margin-left: 1px;
+        border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+        transform: rotate(-45deg); transition: transform .15s ease;
+      }
+      .dep-acc[open] > summary::before { transform: rotate(45deg) translate(-1px, -1px); }
+      .dep-acc > summary:hover { color: var(--text); }
+      .dep-list { padding: 2px 0 10px; }
+      .file-jump {
+        display: block; width: 100%; padding: 6px 0; border: 0; background: transparent;
+        color: var(--text); cursor: pointer; font: 600 13px var(--font); text-align: left;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .file-jump:hover { color: var(--accent); }
       .tag { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; background: var(--bg-raised); color: var(--text-dim); margin: 0 4px 4px 0; }
       .btn-open {
-        display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+        display: inline-flex; align-items: center; gap: 6px; margin-top: 22px;
         height: 30px; padding: 0 12px; border-radius: 8px;
         background: var(--accent); color: #fff; border: none; font: inherit; cursor: pointer; text-decoration: none;
       }
@@ -295,15 +349,18 @@
 
       .node-tip {
         position: fixed; z-index: 50;
-        max-width: 320px; padding: 5px 9px; border-radius: 7px;
+        width: max-content; max-width: min(260px, calc(100vw - 24px));
+        padding: 6px 9px; border-radius: 7px;
         background: var(--sheet); border: 1px solid var(--line);
         box-shadow: var(--shadow);
-        font-size: 12px; font-family: var(--mono); color: var(--text);
-        word-break: break-all; pointer-events: none;
+        font-size: 12px; font-family: var(--font); color: var(--text);
+        overflow-wrap: anywhere; pointer-events: none;
         display: none;
       }
       .node-tip.show { display: block; }
-      .node-tip.help { font-family: var(--font); word-break: normal; line-height: 1.4; max-width: 240px; }
+      .tip-name { font-weight: 700; }
+      .tip-dir { display: block; margin-top: 2px; font: 400 11px var(--mono); color: var(--text-dim); }
+      .tip-hint { display: block; margin-top: 4px; font-size: 11px; line-height: 1.35; color: var(--text-dim); }
 
       /* ---- responsive ---------------------------------------------------
          The map is a flowchart people open wherever the link lands - a 4K
@@ -349,6 +406,7 @@
           top: auto; left: 8px; right: 8px; bottom: 8px;
           width: auto; max-width: none; max-height: 68vh;
         }
+        .panel-toggle { top: 52px; right: 8px; }
         .legend { display: none; }
         .hint { bottom: auto; top: calc(var(--header-h) + 44px); }
       }
@@ -396,8 +454,12 @@
 
       <section id="stage">
         <div id="cy"></div>
-        <canvas id="sketch"></canvas>
+        <svg id="flowLines" aria-hidden="true"></svg>
         <div class="crumb" id="crumb"></div>
+        <button class="panel-toggle" id="panelToggle" type="button" aria-expanded="false" title="Show details for selected item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>
+          Details
+        </button>
         <div class="legend" id="legend"></div>
         <div class="hint" id="hint"></div>
         <div class="node-tip" id="nodeTip"></div>
@@ -405,7 +467,12 @@
           <button class="p-close" title="Close">&times;</button>
           <div class="p-head">
             <div class="p-kind" id="pKind"></div>
-            <div class="p-title" id="pTitle"></div>
+            <div class="p-title-row">
+              <div class="p-title" id="pTitle"></div>
+              <a class="p-open" id="pOpen" hidden title="Open in editor" aria-label="Open in editor">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+              </a>
+            </div>
             <div class="p-path" id="pPath"></div>
           </div>
           <div class="p-body" id="pBody"></div>
@@ -428,6 +495,10 @@
         // room around it when it fits.
         var isNarrow = function () { return window.matchMedia('(max-width: 760px)').matches; };
         var fitPad = function () { return isNarrow() ? 22 : 60; };
+        // Full-fit made normal desktop maps too small to read. Begin closer
+        // than fit, but well below the reference's roughly 2x enlargement.
+        // Pan and wheel zoom remain available for every map.
+        var DEFAULT_ZOOM_MULTIPLIER = 1.35;
 
         (function initTheme() {
           if (load('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
@@ -605,10 +676,31 @@
         });
 
         // ---- canvas: the selected node and its immediate neighbourhood ----
-        var COLX = 480, ROWY = 148, CHILD_GAP_X = 230, CHILD_CAP = 40, NODE_H = 34, FRAME_PAD = 34;
-        function sizeFor(n, role) {
-          if (role === 'focus') return n.type === 'file' ? 84 : 104;
-          return n.type === 'file' ? 60 : 74;
+        var COLX = 500, ROWY = 96, CHILD_CAP = 40, NODE_H = 36, FRAME_PAD = 34;
+        // A box wide enough for its name. Truncating every label to a uniform
+        // width made the map unreadable on the large screens it usually opens
+        // on, so each box is measured against the text it actually carries.
+        // The cap is a backstop for pathological names; the ellipsis style
+        // still applies past it.
+        var LABEL_CAP = 260, LABEL_PAD = 30;
+        // Extensions are noise here - a map is about which piece of the code
+        // this is, not what the file is written in. Only strip a known code
+        // extension so a name like `v1.2` keeps its tail.
+        var CODE_EXT = /\.(jsx?|tsx?|mjs|cjs|mts|cts|vue|svelte|py|rb|go|rs|java|kt|kts|swift|php|cs|scala|c|h|cc|cpp|hpp|css|scss|sass|less|json|ya?ml|md|sql|sh)$/i;
+        function mapLabel(n, role) {
+          var name = n.type === 'file' ? n.label.replace(CODE_EXT, '') : n.label;
+          // A child folder can share its name with an unrelated sibling
+          // module (both called "utils", say) - the trailing slash marks
+          // it as "a folder living in here", not "the same thing again".
+          return name + (role === 'child' && n.type !== 'file' ? '/' : '');
+        }
+        var measurer = document.createElement('canvas').getContext('2d');
+        function sizeFor(n, role, label) {
+          var focus = role === 'focus';
+          measurer.font = (focus ? '700 15.5px ' : '600 14px ') + cssVal('--font');
+          var text = measurer.measureText(label == null ? mapLabel(n, role) : label).width;
+          var min = focus ? (n.type === 'file' ? 96 : 118) : (n.type === 'file' ? 78 : 90);
+          return Math.round(Math.max(min, Math.min(LABEL_CAP, text + LABEL_PAD)));
         }
         // Small deterministic "noise" keyed off an id, not Math.random() -
         // the same node always lands in the same spot on re-render, but the
@@ -630,13 +722,10 @@
             placed[nid] = 1;
             var n = nodeById[nid];
             var col = cssVal(colorVar(n));
-            // A child folder can share its name with an unrelated sibling
-            // module (both called "utils", say) - the trailing slash marks
-            // it as "a folder living in here", not "the same thing again".
-            var label = n.label + (role === 'child' && n.type !== 'file' ? '/' : '');
+            var label = mapLabel(n, role);
             var data = {
               id: nid, role: role, type: n.type, label: label,
-              col: col, txt: idealText(col), w: sizeFor(n, role),
+              col: col, txt: idealText(col), w: sizeFor(n, role, label),
             };
             if (extra) for (var k in extra) data[k] = extra[k];
             els.push({ data: data, position: { x: x, y: y } });
@@ -661,13 +750,16 @@
 
           put(id, 0, 0, 'focus');
 
-          // Dependency columns left/right of the focus, each headed by a
-          // plain-language label so the arrows don't need a legend to read.
+          // Import flow reads left to right: modules this selection imports
+          // feed it from the left, then modules that import this selection
+          // continue on the right. The graph direction stays factual - only
+          // its staging changes, so a dense neighbourhood reads as a flow
+          // rather than a spider around a centre node.
           var inc = rollDeps(id, 'in');
           var out = rollDeps(id, 'out').filter(function (d) { return !inc.some(function (i) { return i.id === d.id; }); });
           var maxSpreadRows = 0;
-          spread(inc, -COLX, 'in', 'USED BY');
-          spread(out, COLX, 'out', 'DEPENDS ON');
+          spread(out, -COLX, 'out', 'DEPENDS ON');
+          spread(inc, COLX, 'in', 'USED BY');
           function spread(list, x, role, headLabel) {
             var m = Math.min(list.length, 14);
             if (!m) return;
@@ -681,29 +773,16 @@
             rows.forEach(function (r, i) {
               put(r.id, r.x, r.y, role, { frame: frameId });
               var isIn = role === 'in';
-              // The arrow lands on whichever module actually holds the
-              // import statement - the consumer - never on the module
-              // being imported. "Used by" means *this* module's code
-              // travels out to the other one, so the arrowhead belongs
-              // on the other one, not back on this node; "depends on"
-              // is the mirror image (the arrow travels in from what's
-              // depended on). Pointing the arrowhead at "the thing that
-              // gets imported" instead reads backwards to anyone not
-              // already fluent in import-graph convention.
+              // Arrows always travel left to right. A dependency is imported
+              // into the focus node; a consumer imports the focus node. This
+              // says "data/context flows through here" without changing what
+              // any import edge means.
               els.push({ data: {
                 id: (isIn ? 'e:in:' : 'e:out:') + r.id,
                 source: isIn ? id : r.id,
                 target: isIn ? r.id : id,
                 otherEnd: isIn ? 'target' : 'source',
                 kind: role, other: r.id, label: r.weight + ' import' + (r.weight === 1 ? '' : 's'),
-                bend: jitter(r.id + ':bend', 22) + 34,
-                // Where this edge leaves the focus node, as a fraction of
-                // the node's own height (-1 top .. +1 bottom), matching
-                // this row's position in its column - so the whole column
-                // fans out across the focus node's edge instead of every
-                // line leaving from the same pinch-point at its centre.
-                anchor: m > 1 ? (i - (m - 1) / 2) / ((m - 1) / 2) : 0,
-                focusSide: isIn ? 'left' : 'right',
               } });
             });
           }
@@ -720,12 +799,17 @@
             var depClear = (Math.max(maxSpreadRows, 1) - 1) / 2 * ROWY + ROWY * 0.9;
             var boxTop = Math.max(ROWY * 1.3, depClear);
             var boxId = 'box:' + id;
+            // Boxes are now as wide as their names, so the column pitch has
+            // to follow the widest child rather than a fixed guess - a
+            // constant gap would let long names overlap their neighbours.
+            var widths = shown.map(function (cid) { return sizeFor(nodeById[cid], 'child'); });
+            var gapX = Math.max.apply(null, widths) + 44;
             var rows = shown.map(function (cid, i) {
               var r = Math.floor(i / perRow), c = i - r * perRow;
               var rowCount = Math.min(perRow, shown.length - r * perRow);
-              var x = (c - (rowCount - 1) / 2) * CHILD_GAP_X + jitter(cid + ':x', CHILD_GAP_X * 0.08);
+              var x = (c - (rowCount - 1) / 2) * gapX + jitter(cid + ':x', gapX * 0.06);
               var y = boxTop + r * ROWY + jitter(cid + ':y', ROWY * 0.1);
-              return { id: cid, x: x, y: y, w: sizeFor(nodeById[cid], 'child') };
+              return { id: cid, x: x, y: y, w: widths[i] };
             });
             frame(boxId, 'box', 'INSIDE · ' + self.label, rows);
             rows.forEach(function (r) { put(r.id, r.x, r.y, 'child', { frame: boxId }); });
@@ -740,30 +824,27 @@
             // Scoped to node[type] (real graph nodes) so the frame
             // backdrops below are left alone - they have no `type` and
             // size themselves from an explicit data(w)/data(h), not this.
-            // Cytoscape still draws every fill and every label (crisp,
-            // legible canvas text) - the hand-lettered font is the first
-            // half of the sketchy look. Every STROKE (node border, edge
-            // line, arrowhead) is hidden here and repainted by rough.js
-            // on the #sketch canvas layered on top, synced every render;
-            // see drawSketch() below. Splitting it this way means the
-            // existing hit-testing, drag, and label-collision handling
-            // keep working exactly as before - only the paint changes.
+            // One renderer draws fills, labels, borders, and edges. Keeping
+            // every map mark inside Cytoscape prevents a second canvas from
+            // drifting when browser display scale changes.
             { selector: 'node[type]', style: {
               'background-color': 'data(col)', 'background-opacity': 0.92,
               label: 'data(label)', color: 'data(txt)',
-              'font-size': 13, 'font-family': cssVal('--font-hand'),
+              'font-size': 14, 'font-family': cssVal('--font'), 'font-weight': 600,
               'text-valign': 'center', 'text-halign': 'center',
               'text-wrap': 'ellipsis', 'text-max-width': 'data(w)',
               width: 'data(w)', height: 34,
-              shape: 'round-rectangle', 'border-width': 0,
+              shape: 'round-rectangle',
+              'border-width': 1.4, 'border-color': cssVal('--hl'), 'border-opacity': 0.82,
               'transition-property': 'opacity',
               'transition-duration': 120,
             } },
             { selector: 'node[role="focus"]', style: {
-              height: 44, 'font-size': 15.5, 'font-weight': 700,
+              height: 44, 'font-size': 15.5, 'font-weight': 700, 'border-width': 2.2,
               'background-opacity': 1,
             } },
             { selector: 'node[type="file"]', style: { shape: 'round-rectangle' } },
+            { selector: 'node[role="child"]', style: { 'border-style': 'dashed' } },
             { selector: 'node[role="in"], node[role="out"]', style: { 'background-opacity': 0.8 } },
             // Frame backdrops - plain sized rectangles (not compound
             // parents), sized in JS from their members' actual bounding
@@ -776,9 +857,9 @@
             { selector: 'node[role="box"], node[role="colframe"]', style: {
               shape: 'round-rectangle',
               width: 'data(w)', height: 'data(h)',
-              'border-width': 0,
+              'border-width': 1.2, 'border-style': 'dashed', 'border-color': cssVal('--line-strong'),
               label: 'data(label)', 'text-valign': 'top', 'text-halign': 'center', 'text-margin-y': -14,
-              'font-size': 12, 'font-weight': 700, 'font-family': cssVal('--font-hand'),
+              'font-size': 12, 'font-weight': 700, 'font-family': cssVal('--font'),
               events: 'no',
               'transition-property': 'opacity', 'transition-duration': 260,
             } },
@@ -786,199 +867,136 @@
               'background-color': cssVal('--bg-raised'), 'background-opacity': 0.4, color: cssVal('--text-dim'),
             } },
             { selector: 'node[role="colframe"]', style: { 'background-opacity': 0.05 } },
-            { selector: 'node[role="colframe"][kind="in"]', style: { 'background-color': cssVal('--edge-in'), color: cssVal('--edge-in') } },
-            { selector: 'node[role="colframe"][kind="out"]', style: { 'background-color': cssVal('--edge-out'), color: cssVal('--edge-out') } },
+            { selector: 'node[role="colframe"][kind="in"]', style: { 'background-color': cssVal('--edge-in'), 'border-color': cssVal('--edge-in'), color: cssVal('--edge-in') } },
+            { selector: 'node[role="colframe"][kind="out"]', style: { 'background-color': cssVal('--edge-out'), 'border-color': cssVal('--edge-out'), color: cssVal('--edge-out') } },
             { selector: 'node.hover', style: { 'border-width': 2, 'border-color': cssVal('--accent'), 'border-opacity': 1 } },
             { selector: 'edge', style: {
               'curve-style': 'bezier', width: 1.5,
-              'line-opacity': 0, 'target-arrow-shape': 'none',
+              'line-color': cssVal('--edge'), 'line-opacity': 0.78,
+              'target-arrow-shape': 'triangle', 'target-arrow-color': cssVal('--edge'), 'arrow-scale': 0.8,
             } },
             { selector: 'edge[kind="contains"]', style: {
-              'curve-style': 'taxi', 'taxi-direction': 'downward', 'taxi-turn': '30px', width: 1.4,
+              'curve-style': 'taxi', 'taxi-direction': 'downward', 'taxi-turn': '30px', width: 1.2,
+              'line-style': 'dashed', 'target-arrow-shape': 'none',
             } },
-            // Dependency edges curve with a bit of per-edge variety (a
-            // deterministic wobble, not dead-straight/mechanically
-            // identical arcs) so a cluster of them reads as separate,
-            // hand-drawn lines rather than a ruled diagram. The line and
-            // arrowhead themselves are drawn by rough.js; this geometry
-            // exists so cytoscape's hit-testing/hover/tap targets line up
-            // with what's actually on screen. The "N imports" label stays
-            // native (crisp text, existing collision-avoidance offsets).
+            // Cytoscape keeps a generous invisible hit target for each
+            // dependency. The SVG flow layer above paints its visible route,
+            // arrowhead, and moving dashes in one left-to-right lane.
             { selector: 'edge[kind="out"], edge[kind="in"]', style: {
-              'curve-style': 'unbundled-bezier', 'control-point-distances': 'data(bend)', 'control-point-weights': 0.5,
-              width: 10, 'target-arrow-shape': 'none',
-              'font-size': 10, 'font-family': cssVal('--font-hand'), color: cssVal('--text-dim'),
-              'text-background-color': cssVal('--bg'), 'text-background-opacity': 0.9,
-              'text-background-padding': 3, 'text-background-shape': 'roundrectangle',
+              width: 18, 'line-opacity': 0, 'target-arrow-opacity': 0, 'target-arrow-shape': 'none',
+              'text-opacity': 0,
             } },
-            // The import-count label always sits near whichever endpoint is
-            // NOT the focus node, regardless of which end the arrow starts
-            // from - it's a property of that other module, not of focus.
-            // Offset well clear of the arrowhead so the number never
-            // collides with the node it's labelling.
-            { selector: 'edge[otherEnd="source"]', style: { 'source-label': 'data(label)', 'source-text-offset': 42, 'source-text-margin-y': -18 } },
-            { selector: 'edge[otherEnd="target"]', style: { 'target-label': 'data(label)', 'target-text-offset': 42, 'target-text-margin-y': -18 } },
           ];
         }
 
         var cy = cytoscape({
           container: document.getElementById('cy'),
           minZoom: 0.15, maxZoom: 2.2, wheelSensitivity: 0.25,
-          // Cytoscape's own 'auto' pixel ratio under-detects on some
-          // browser/display combinations and rasterises labels at a lower
-          // backing resolution than they're shown at, which reads as blur next
-          // to the crisp DOM text around it. Force a floor of 2x.
-          pixelRatio: Math.min(3, Math.max(2, window.devicePixelRatio || 1)),
+          // Do not set Cytoscape's pixelRatio here. A supplied value becomes
+          // its permanent forced backing scale, so moving a browser window
+          // between displays leaves its canvas in the old coordinate system.
+          // With the default, cy.resize() reads the display's current scale.
           style: styleArr(),
           elements: [],
           layout: { name: 'preset' },
         });
 
-        // ---- hand-sketched overlay -----------------------------------
-        // Cytoscape lays everything out and owns every interaction; this
-        // canvas just repaints the visible border of every node and the
-        // line + arrowhead of every edge as a rough.js sketch, in the
-        // same screen space, every time cytoscape renders a frame. Each
-        // element gets a seed derived from its own id (via `noise`, the
-        // same hash already used for layout jitter) so its wobble is
-        // stable across redraws - panning or dragging moves the sketch,
-        // it doesn't reroll it.
-        var skEl = document.getElementById('sketch');
-        var skCtx = skEl.getContext('2d');
-        var rc = rough.canvas(skEl);
-        var skW = 0, skH = 0;
-        function seedFor(s) { return Math.floor(noise(s) * 2147483646) + 1; }
-        function resizeSketch() {
-          var host = document.getElementById('cy');
-          skW = host.clientWidth; skH = host.clientHeight;
-          var dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
-          skEl.width = Math.round(skW * dpr);
-          skEl.height = Math.round(skH * dpr);
-          skCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // ---- visible import flow -----------------------------------
+        // The lane geometry deliberately uses model positions instead of
+        // Cytoscape's generated edge route. The complete SVG lane then moves
+        // with Cytoscape's pan/zoom transform. This avoids rebuilding every
+        // arrow on each wheel tick, while node dragging only redraws paths.
+        var flowEl = document.getElementById('flowLines');
+        var SVG_NS = 'http://www.w3.org/2000/svg';
+        var flowGroup = document.createElementNS(SVG_NS, 'g');
+        var flowPaths = [];
+        var flowTransformRaf = 0, flowGeometryRaf = 0;
+        var flowWidth = 0, flowHeight = 0;
+        var FLOW_DEFS =
+          '<defs>' +
+            '<marker id="flowArrowDepends" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="flow-arrow depends" d="M0 0L8 4L0 8Z"/></marker>' +
+            '<marker id="flowArrowUsed" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="flow-arrow used" d="M0 0L8 4L0 8Z"/></marker>' +
+          '</defs>';
+        flowEl.innerHTML = FLOW_DEFS;
+        flowEl.appendChild(flowGroup);
+        function makeFlowPath(className) {
+          var path = document.createElementNS(SVG_NS, 'path');
+          path.setAttribute('class', className);
+          return path;
         }
-        // Colour + stroke width for a node's rough outline - kept in one
-        // place so a themed re-read (light/dark toggle) is one call.
-        function frameStroke(n) {
-          if (n.data('role') === 'box') return cssVal('--line-strong');
-          if (n.data('kind') === 'in') return cssVal('--edge-in');
-          if (n.data('kind') === 'out') return cssVal('--edge-out');
-          return cssVal('--line-strong');
+        function flowPathData(edge) {
+          var source = edge.source(), target = edge.target();
+          if (source.empty() || target.empty()) return '';
+          var sp = source.position(), tp = target.position();
+          var sourceWidth = source.outerWidth(), targetWidth = target.outerWidth();
+          var rightward = tp.x >= sp.x;
+          var sx = sp.x + (rightward ? sourceWidth / 2 : -sourceWidth / 2);
+          var tx = tp.x + (rightward ? -targetWidth / 2 : targetWidth / 2);
+          var dx = Math.max(46, Math.abs(tx - sx) * 0.42);
+          var c1x = sx + (rightward ? dx : -dx), c2x = tx + (rightward ? -dx : dx);
+          return 'M' + sx.toFixed(1) + ' ' + sp.y.toFixed(1) +
+            ' C' + c1x.toFixed(1) + ' ' + sp.y.toFixed(1) +
+            ' ' + c2x.toFixed(1) + ' ' + tp.y.toFixed(1) +
+            ' ' + tx.toFixed(1) + ' ' + tp.y.toFixed(1);
         }
-        // Where a straight ray from a rect's own centre, heading in
-        // direction (dx,dy), leaves that rect - so a line can be drawn
-        // up to a node's edge instead of continuing on to its centre
-        // (which used to draw straight through the label).
-        function clipToRect(cx, cy, w, h, dx, dy) {
-          if (!dx && !dy) return { x: cx, y: cy };
-          var hw = w / 2, hh = h / 2;
-          var tx = dx !== 0 ? hw / Math.abs(dx) : Infinity;
-          var ty = dy !== 0 ? hh / Math.abs(dy) : Infinity;
-          var t = Math.min(tx, ty) * 0.97;
-          return { x: cx + dx * t, y: cy + dy * t };
+        function syncFlowViewport() {
+          var width = cy.width(), height = cy.height();
+          if (width === flowWidth && height === flowHeight) return;
+          flowWidth = width; flowHeight = height;
+          flowEl.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
         }
-        function drawSketch() {
-          skCtx.clearRect(0, 0, skW, skH);
-          skCtx.globalAlpha = 1;
-          var zoom = cy.zoom();
-          var edgeColor = { in: cssVal('--edge-in'), out: cssVal('--edge-out'), contains: cssVal('--line-strong') };
-          cy.edges().forEach(function (e) {
-            if (!e.visible()) return;
-            var eOp = e.numericStyle('opacity');
-            if (eOp === 0) return;
-            skCtx.globalAlpha = isNaN(eOp) ? 1 : eOp;
-            var kind = e.data('kind');
-            var srcN = e.source(), tgtN = e.target();
-            var s = srcN.renderedPosition(), t = tgtN.renderedPosition();
-            var sw = srcN.renderedOuterWidth(), sh = srcN.renderedOuterHeight();
-            var tw = tgtN.renderedOuterWidth(), th = tgtN.renderedOuterHeight();
-            var ddx = t.x - s.x, ddy = t.y - s.y;
-            var anchor = e.data('anchor'), side = e.data('focusSide');
-            // Every edge in a "used by"/"depends on" column shares the
-            // same focus node at one end - clipping all of them to the
-            // nearest boundary point still bunches them into one narrow
-            // pinch, which is both the "not spread out" complaint and
-            // the reason they crossed each other so close to the label.
-            // Instead this end's attachment point is fanned across the
-            // node's own edge, in the same top-to-bottom order as its
-            // column, so six lines leave from six different points.
-            var sB = (anchor != null && kind === 'in')
-              ? { x: s.x + (side === 'left' ? -sw / 2 : sw / 2) * 0.96, y: s.y + anchor * sh / 2 * 0.7 }
-              : clipToRect(s.x, s.y, sw, sh, ddx, ddy);
-            var tB = (anchor != null && kind === 'out')
-              ? { x: t.x + (side === 'right' ? tw / 2 : -tw / 2) * 0.96, y: t.y + anchor * th / 2 * 0.7 }
-              : clipToRect(t.x, t.y, tw, th, -ddx, -ddy);
-            var mx = (sB.x + tB.x) / 2, my = (sB.y + tB.y) / 2;
-            var dx = tB.x - sB.x, dy = tB.y - sB.y, len = Math.max(1, Math.hypot(dx, dy));
-            var nx = -dy / len, ny = dx / len;
-            var bend = (e.data('bend') || 0) * zoom;
-            var cx = mx + nx * bend, cy2 = my + ny * bend;
-            var col = edgeColor[kind] || cssVal('--edge');
-            var opts = { stroke: col, strokeWidth: kind === 'contains' ? 1.4 : 2, roughness: kind === 'contains' ? 1 : 1.5, bowing: 1, seed: seedFor(e.id()) };
-            if (kind === 'contains') opts.strokeLineDash = [1, 7];
-            rc.path('M ' + sB.x + ' ' + sB.y + ' Q ' + cx + ' ' + cy2 + ' ' + tB.x + ' ' + tB.y, opts);
-            if (kind === 'in' || kind === 'out') {
-              // Tangent at the target end of the quadratic points back at
-              // the control point - a plain two-stroke V, the same simple
-              // hand-drawn arrowhead an Excalidraw-style sketch uses
-              // instead of a filled triangle.
-              var ang = Math.atan2(tB.y - cy2, tB.x - cx);
-              var ah = 11 * Math.min(1.4, Math.max(0.7, zoom));
-              [ang + Math.PI - 0.4, ang + Math.PI + 0.4].forEach(function (a, i) {
-                rc.line(tB.x, tB.y, tB.x + ah * Math.cos(a), tB.y + ah * Math.sin(a),
-                  { stroke: col, strokeWidth: 2, roughness: 1.3, seed: seedFor(e.id() + ':a' + i) });
-              });
-            }
-          });
-          cy.nodes().forEach(function (n) {
-            if (!n.visible()) return;
-            var nOp = n.numericStyle('opacity');
-            if (nOp === 0) return;
-            skCtx.globalAlpha = isNaN(nOp) ? 1 : nOp;
-            var role = n.data('role');
-            var pos = n.renderedPosition();
-            var w = n.renderedOuterWidth(), h = n.renderedOuterHeight();
-            var isFrame = role === 'box' || role === 'colframe';
-            // Real nodes get a neutral "ink" outline (--hl flips light/dark
-            // with the theme, so it always contrasts against the coloured
-            // fill underneath) rather than matching their own hue, which
-            // would nearly disappear into an already-saturated fill.
-            // Frames and folder-children stay dashed, same meaning as
-            // before ("a boundary, not a hard edge").
-            var dashed = isFrame || role === 'child';
-            var opts = {
-              stroke: isFrame ? frameStroke(n) : cssVal('--hl'),
-              strokeWidth: role === 'focus' ? 2.6 : 1.6,
-              roughness: role === 'focus' ? 1.1 : 1.6,
-              bowing: 1.2,
-              seed: seedFor(n.id()),
-            };
-            if (dashed) opts.strokeLineDash = isFrame ? [7, 6] : [5, 4];
-            rc.rectangle(pos.x - w / 2, pos.y - h / 2, w, h, opts);
+        function syncFlowTransform() {
+          flowTransformRaf = 0;
+          syncFlowViewport();
+          var pan = cy.pan();
+          flowGroup.setAttribute('transform', 'translate(' + pan.x.toFixed(2) + ' ' + pan.y.toFixed(2) + ') scale(' + cy.zoom().toFixed(5) + ')');
+        }
+        function redrawFlowGeometry() {
+          flowGeometryRaf = 0;
+          flowPaths.forEach(function (flow) {
+            var d = flowPathData(flow.edge);
+            flow.route.setAttribute('d', d);
+            flow.pulse.setAttribute('d', d);
           });
         }
-        var skPending = false;
-        function scheduleSketch() {
-          if (skPending) return;
-          skPending = true;
-          requestAnimationFrame(function () { skPending = false; drawSketch(); });
+        function rebuildFlowLines() {
+          flowPaths = [];
+          flowGroup.textContent = '';
+          cy.edges('[kind="in"], [kind="out"]').forEach(function (edge, index) {
+            var isUsed = edge.data('kind') === 'in';
+            var kind = isUsed ? 'used' : 'depends';
+            var marker = isUsed ? 'flowArrowUsed' : 'flowArrowDepends';
+            var route = makeFlowPath('flow-route ' + kind);
+            var pulse = makeFlowPath('flow-pulse ' + kind);
+            pulse.setAttribute('marker-end', 'url(#' + marker + ')');
+            pulse.style.animationDelay = '-' + ((index % 7) * .19).toFixed(2) + 's';
+            flowGroup.appendChild(route);
+            flowGroup.appendChild(pulse);
+            flowPaths.push({ edge: edge, route: route, pulse: pulse });
+          });
+          redrawFlowGeometry();
+          syncFlowTransform();
         }
-        resizeSketch();
-        cy.on('render', scheduleSketch);
+        function scheduleFlowTransform() {
+          if (flowTransformRaf) return;
+          flowTransformRaf = requestAnimationFrame(syncFlowTransform);
+        }
+        function scheduleFlowGeometry() {
+          if (flowGeometryRaf) return;
+          flowGeometryRaf = requestAnimationFrame(redrawFlowGeometry);
+        }
+        cy.on('pan zoom', scheduleFlowTransform);
+        cy.on('position drag', 'node[role="focus"], node[role="in"], node[role="out"]', scheduleFlowGeometry);
+        cy.on('resize', syncFlowViewport);
 
-        // A dependency-column pill ("used by" / "depends on") opens the file
-        // list behind its count on tap rather than jumping the whole canvas
-        // to that node - jumping away is what buried the detail before,
-        // since the "used by transform" framing was lost the moment you
-        // landed on transform's own neighbourhood. Double-tap still jumps,
-        // for anyone who does want to explore from there.
+        // A dependency-column pill explains this specific relationship in the
+        // drawer. It must not replace the current map subject: people chose
+        // this view to understand how its two modules work together.
         cy.on('tap', 'node[role="in"], node[role="out"]', function (ev) {
           showDepDetail(ev.target.id(), ev.target.data('role'));
         });
         cy.on('tap', 'edge[kind="in"], edge[kind="out"]', function (ev) {
           showDepDetail(ev.target.data('other'), ev.target.data('kind'));
-        });
-        cy.on('dbltap', 'node[role="in"], node[role="out"]', function (ev) {
-          focus(ev.target.id());
         });
         cy.on('tap', 'node', function (ev) {
           var id = ev.target.id();
@@ -1016,11 +1034,17 @@
         var nodeTip = document.getElementById('nodeTip');
         var pointerX = 0, pointerY = 0;
         document.getElementById('cy').addEventListener('mousemove', function (e) { pointerX = e.clientX; pointerY = e.clientY; });
+        // Flip to the other side of the cursor when it would overflow, then
+        // clamp - flipping alone still runs off-screen near a corner or when
+        // the tip is taller than the space left below it.
         function placeTip() {
-          var pad = 14, w = nodeTip.offsetWidth || 0, h = nodeTip.offsetHeight || 0;
+          var pad = 14, edge = 8;
+          var r = nodeTip.getBoundingClientRect(), w = r.width, h = r.height;
           var x = pointerX + pad, y = pointerY + pad;
-          if (x + w > window.innerWidth - 8) x = pointerX - w - pad;
-          if (y + h > window.innerHeight - 8) y = pointerY - h - pad;
+          if (x + w > window.innerWidth - edge) x = pointerX - w - pad;
+          if (y + h > window.innerHeight - edge) y = pointerY - h - pad;
+          x = Math.min(Math.max(x, edge), Math.max(edge, window.innerWidth - w - edge));
+          y = Math.min(Math.max(y, edge), Math.max(edge, window.innerHeight - h - edge));
           nodeTip.style.left = x + 'px'; nodeTip.style.top = y + 'px';
         }
         // Frame backdrops (role box/colframe) have events:'no' and never
@@ -1037,15 +1061,15 @@
           if (noHover) return;
           var n = nodeById[id];
           if (!n) return;
-          var tip = n.path || n.label;
           var isDep = ev.target.data('role') === 'in' || ev.target.data('role') === 'out';
-          if (isDep) tip += ' - click to see the specific files, double-click to jump here';
-          nodeTip.classList.toggle('help', isDep);
-          nodeTip.textContent = tip;
+          var p = n.type === 'file' && n.path ? splitPath(n.path) : { name: n.label, dir: '' };
+          nodeTip.innerHTML = '<span class="tip-name">' + esc(p.name) + '</span>' +
+            (p.dir ? '<span class="tip-dir">' + esc(p.dir) + '</span>' : '') +
+            (isDep ? '<span class="tip-hint">Click to see how it connects here</span>' : '');
           nodeTip.classList.add('show');
           placeTip();
         });
-        cy.on('mouseout', 'node', function (ev) { ev.target.removeClass('hover'); nodeTip.classList.remove('show', 'help'); });
+        cy.on('mouseout', 'node', function (ev) { ev.target.removeClass('hover'); nodeTip.classList.remove('show'); });
         cy.on('mousemove', 'node', function () { if (nodeTip.classList.contains('show')) placeTip(); });
         cy.on('pan zoom', function () { nodeTip.classList.remove('show'); });
 
@@ -1063,14 +1087,18 @@
           lastHiddenKids = nb.hiddenKids;
           cy.elements().remove();
           cy.add(nb.els);
-          cy.layout({ name: 'preset' }).run();
+          // fit:false - the preset layout's own auto-fit ignores the detail
+          // panel and, worse, wins whenever applyFit's animation can't run
+          // (a backgrounded tab). applyFit right below is the only framing.
+          cy.layout({ name: 'preset', fit: false }).run();
+          rebuildFlowLines();
 
           drawCrumb(id);
           showPanel(id, nb.hiddenKids);
           applyFit(260);
         }
 
-        // Fit the neighbourhood into the stage. On desktop the detail panel is
+        // Fit the neighbourhood into the stage. When details are open on desktop,
         // a right rail, so reserve that strip and the diagram never hides
         // behind it. On a phone the panel is a bottom sheet the reader
         // dismisses to get back to the map (maps-app style), so fit normally
@@ -1083,27 +1111,54 @@
           var vw = cy.width(), vh = cy.height();
           var availW = Math.max(60, vw - coverRight - 2 * p);
           var availH = Math.max(60, vh - 2 * p);
-          var z = Math.max(cy.minZoom(), Math.min(availW / bb.w, availH / bb.h, cy.maxZoom()));
+          var fitZoom = Math.min(availW / bb.w, availH / bb.h);
+          var z = Math.max(cy.minZoom(), Math.min(fitZoom * DEFAULT_ZOOM_MULTIPLIER, cy.maxZoom()));
           var pan = {
             x: p + availW / 2 - z * (bb.x1 + bb.w / 2),
             y: p + availH / 2 - z * (bb.y1 + bb.h / 2),
           };
-          if (dur) cy.animate({ zoom: z, pan: pan, duration: dur, easing: 'ease-out-cubic' });
-          else { cy.zoom(z); cy.pan(pan); }
+          cy.stop();
+          // A tab that loaded in the background has a frozen rAF, so a
+          // cytoscape animation there silently never starts and the view is
+          // left wherever it was - snap instead whenever we can't animate.
+          if (dur && !document.hidden) {
+            cy.animate({ zoom: z, pan: pan, duration: dur, easing: 'ease-out-cubic' });
+          } else {
+            cy.zoom(z); cy.pan(pan);
+          }
         }
 
-        // Open the side panel for the current focus node and jump straight
-        // to the file-level detail for one dependency pill/arrow, without
-        // moving the canvas - clicking "transform" while looking at
-        // "integrate" should show what transform actually imports from
-        // integrate, not abandon that context to go look at transform's
-        // own neighbourhood instead.
+        // A dependency pill keeps the current subject in place and turns the
+        // drawer into a small, concrete explanation of this one connection.
+        var pOpen = document.getElementById('pOpen');
+        function setOpenLink(href) {
+          if (href) pOpen.setAttribute('href', href); else pOpen.removeAttribute('href');
+          pOpen.hidden = !href;
+        }
         function showDepDetail(otherId, dir) {
-          showPanel(focusId, lastHiddenKids);
-          var w = panel.querySelector('.w.expandable[data-other="' + otherId + '"][data-dir="' + dir + '"]');
-          if (w) { toggleDepFiles(w, focusId); w.scrollIntoView({ block: 'center' }); return; }
-          var row = panel.querySelector('.dep[data-id="' + otherId + '"]');
-          if (row) row.scrollIntoView({ block: 'center' });
+          var current = nodeById[focusId], other = nodeById[otherId];
+          if (!current || !other) return;
+          var files = rollDepsFileList(focusId, otherId, dir);
+          var importCount = files.reduce(function (total, link) { return total + link.weight; }, 0);
+          var isOutgoing = dir === 'out';
+          document.getElementById('pKind').textContent = 'How these modules work together';
+          document.getElementById('pTitle').textContent = current.label + ' & ' + other.label;
+          document.getElementById('pPath').textContent = '';
+          setOpenLink(null);
+          var summary = isOutgoing
+            ? current.label + ' imports ' + importCount + ' connection' + (importCount === 1 ? '' : 's') + ' from ' + other.label + '.'
+            : other.label + ' imports ' + importCount + ' connection' + (importCount === 1 ? '' : 's') + ' from ' + current.label + '.';
+          var h = '<p class="p-summary">' + esc(summary) + ' This map stays on ' + esc(current.label) + '.</p>';
+          h += '<div class="p-sec"><h4>How ' + esc(current.label) + ' uses ' + esc(other.label) + '</h4>' + fileLinkGroups(files) + '</div>';
+          h += '<button class="btn-open relationship-jump" type="button" data-id="' + esc(otherId) + '">Explore ' + esc(other.label) + '</button>';
+          var b = document.getElementById('pBody');
+          b.innerHTML = h;
+          bindFileRefs(b);
+          b.querySelector('.relationship-jump').addEventListener('click', function () {
+            focus(otherId);
+            setPanelOpen(true);
+          });
+          setPanelOpen(true);
         }
 
         function drawCrumb(id) {
@@ -1118,110 +1173,188 @@
 
         // ---- detail panel ---------------------------------------
         var panel = document.getElementById('panel');
+        var panelToggle = document.getElementById('panelToggle');
         var KIND_LABEL = { root: 'Code root', zone: 'Group', module: 'Module', folder: 'Folder', file: 'File' };
+        function setPanelOpen(open) {
+          panel.classList.toggle('open', open);
+          panelToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          panelToggle.title = (open ? 'Hide' : 'Show') + ' details for selected item';
+          if (focusId) applyFit(220);
+        }
         function showPanel(id, hiddenKids) {
           var n = nodeById[id], m = n.meta || {};
           document.getElementById('pKind').textContent =
-            (n.type === 'module' && m.kind === 'shared') ? 'General-purpose module' :
-            (n.type === 'module' && m.ambiguous) ? 'Module (best guess)' : (KIND_LABEL[n.type] || n.type);
+            (n.type === 'module' && m.kind === 'shared') ? 'Selected general-purpose module' :
+            'Selected ' + (KIND_LABEL[n.type] || n.type).toLowerCase();
           document.getElementById('pTitle').textContent = n.label;
-          document.getElementById('pPath').textContent = n.path || '';
+          document.getElementById('pPath').textContent = n.type === 'file' ? (n.path || '') : '';
           var b = document.getElementById('pBody');
           var h = '';
-
-          var stats = [];
+          var outAll = rollDeps(id, 'out'), incAll = rollDeps(id, 'in');
+          var out = labelDeps(outAll), inc = labelDeps(incAll);
+          h += '<p class="p-summary">' + esc(relationSummary(n, outAll.length, incAll.length, hiddenKids)) + '</p>';
           if (n.type === 'file') {
-            if (m.symbolCount != null) stats.push([m.symbolCount, 'functions / classes']);
-            if (m.loc) stats.push([m.loc, 'lines']);
-            if (m.lang) stats.push([m.lang, 'language']);
+            // The canvas already names every neighbour of a file. Repeating them
+            // open in the panel adds nothing, so they fold into two counts the
+            // reader can open when a name is what they actually want.
+            var accs = '';
+            if (out.length) accs += depAccordion('Imports from ' + countPhrase(outAll.length, 'file'), out, outAll.length);
+            if (inc.length) accs += depAccordion('Imported by ' + countPhrase(incAll.length, 'file'), inc, incAll.length);
+            if (accs) h += '<div class="dep-accs">' + accs + '</div>';
           } else {
-            stats.push([m.descendantFiles || 0, 'code files']);
-            if (m.fileCount != null) stats.push([m.fileCount, 'files total']);
-            if (m.codeFileCount != null) stats.push([m.codeFileCount, 'direct code files']);
-            if (m.symbolCount) stats.push([m.symbolCount, 'symbols']);
+            if (out.length) h += depSection(n.label + ' imports from', out, 'out');
+            if (inc.length) h += depSection('Modules that import ' + n.label, inc, 'in');
           }
-          if (stats.length) {
-            h += '<div class="stats">' + stats.map(function (s) {
-              return '<div class="stat"><b>' + esc(String(s[0])) + '</b><span>' + esc(s[1]) + '</span></div>';
-            }).join('') + '</div>';
-          }
-          if (m.entry) h += '<span class="tag">entry point</span>';
-          if (n.type === 'module' && m.sharedKind) h += '<span class="tag">' + esc(m.sharedKind) + '</span>';
-          if (n.type === 'module' && m.ambiguous) h += '<div style="font-size:12px;color:var(--text-dim);margin:6px 0">No screens or clear infrastructure name - birdsEye guessed this is a feature. Correct it in <code>structure.json</code> if wrong.</div>';
-          if (hiddenKids > 0) h += '<div style="font-size:12px;color:var(--text-dim);margin:6px 0">' + hiddenKids + ' more item' + (hiddenKids > 1 ? 's' : '') + ' not drawn - open this folder in the sidebar to see them all.</div>';
+          if (!out.length && !inc.length) h += '<div class="p-sec" style="color:var(--text-dim);font-size:12px">No tracked file imports here.</div>';
 
-          var out = rollDepsLabelled(id, 'out'), inc = rollDepsLabelled(id, 'in');
-          // Rows only aggregate several files into one when the focused
-          // node itself isn't a single file - that's the only case where
-          // there's anything underneath a weight to drill into.
-          var expandable = n.type !== 'file';
-          if (out.length) h += depSection('Depends on', out, id, 'out', expandable);
-          if (inc.length) h += depSection('Used by', inc, id, 'in', expandable);
-          if (!out.length && !inc.length) h += '<div class="p-sec" style="color:var(--text-dim);font-size:12px">No tracked dependencies at this level.</div>';
-
-          if (n.type === 'file') {
-            var href = editorHref(n);
-            if (href) h += '<a class="btn-open" href="' + esc(href) + '">Open in editor</a>';
-          }
+          setOpenLink(n.type === 'file' ? editorHref(n) : null);
           b.innerHTML = h;
-          b.querySelectorAll('.dep').forEach(function (el) {
+          b.querySelectorAll('.dep-target').forEach(function (el) {
+            el.addEventListener('click', function () {
+              var t = el.getAttribute('data-id');
+              var dir = el.getAttribute('data-dir');
+              if (t && nodeById[t]) showDepDetail(t, dir);
+            });
+          });
+          b.querySelectorAll('.dep-files-toggle').forEach(function (el) {
+            el.addEventListener('click', function () { toggleDepFiles(el, id); });
+          });
+          b.querySelectorAll('.file-jump').forEach(function (el) {
             el.addEventListener('click', function () {
               var t = el.getAttribute('data-id');
               if (t && nodeById[t]) focus(t);
             });
           });
-          b.querySelectorAll('.w.expandable').forEach(function (el) {
-            el.addEventListener('click', function (ev) {
-              ev.stopPropagation();
-              toggleDepFiles(el, id);
-            });
-          });
-          panel.classList.add('open');
         }
         function toggleDepFiles(el, id) {
           var otherId = el.getAttribute('data-other'), dir = el.getAttribute('data-dir');
           var box = el.closest('.dep-row').querySelector('.dep-files');
-          if (!box.hidden) { box.hidden = true; return; }
+          if (!box.hidden) { box.hidden = true; el.textContent = 'Show files'; return; }
           if (!box.dataset.filled) {
-            var files = rollDepsFileList(id, otherId, dir).slice(0, 60);
-            box.innerHTML = files.length ? files.map(function (f) {
-              var fromN = nodeById[f.from], toN = nodeById[f.to];
-              return '<div class="dep-file"><span class="fp" data-id="' + esc(f.from) + '">' + esc(fromN ? fromN.path : f.from) + '</span>' +
-                '<span class="arrow">imports &rarr;</span>' +
-                '<span class="fp" data-id="' + esc(f.to) + '">' + esc(toN ? toN.path : f.to) + '</span></div>';
-            }).join('') : '<div class="dep-file-empty">No file-level detail available.</div>';
+            box.innerHTML = fileLinkGroups(rollDepsFileList(id, otherId, dir));
             box.dataset.filled = '1';
-            box.querySelectorAll('.fp').forEach(function (fp) {
-              fp.addEventListener('click', function (ev) {
-                ev.stopPropagation();
-                var t = fp.getAttribute('data-id');
-                if (t && nodeById[t]) focus(t);
-              });
-            });
+            bindFileRefs(box);
           }
           box.hidden = false;
+          el.textContent = 'Hide file links';
         }
-        function rollDepsLabelled(id, dir) {
-          return rollDeps(id, dir).slice(0, 40).map(function (d) {
-            var n = nodeById[d.id];
-            return { id: d.id, label: n ? (n.type === 'file' ? n.path : n.label) : d.id, weight: d.weight };
+        function countPhrase(count, noun) {
+          return count + ' ' + noun + (count === 1 ? '' : 's');
+        }
+        function relationSummary(n, outCount, incCount, hiddenKids) {
+          var own = n.type === 'file' ? 'This file' : n.label;
+          var related = n.type === 'file' ? 'file' : 'module';
+          var parts = [];
+          if (outCount) parts.push('imports from ' + countPhrase(outCount, related));
+          if (incCount) parts.push('is imported by ' + countPhrase(incCount, related));
+          var text = own + (parts.length ? ' ' + parts.join(' and ') + '.' : ' has no tracked file imports.');
+          if (hiddenKids > 0) text += ' ' + hiddenKids + ' contained item' + (hiddenKids === 1 ? '' : 's') + ' not shown on canvas.';
+          return text;
+        }
+        function fileLinkGroups(files) {
+          if (!files.length) return '<div class="dep-file-empty">No file links available.</div>';
+          var shown = files.slice(0, 24), groups = {}, order = [];
+          shown.forEach(function (f) {
+            var fromN = nodeById[f.from];
+            var folder = shortFolder(fromN);
+            if (!groups[folder]) { groups[folder] = []; order.push(folder); }
+            groups[folder].push(f);
+          });
+          // A folder title earns its space only when it ties three or more
+          // import rows together. One or two rows read better as a flat flow.
+          var h = order.map(function (folder) {
+            var links = groups[folder];
+            return links.length >= 3
+              ? '<div class="dep-folder">' + esc(readableFolderName(nodeById[links[0].from])) + '</div>' + fileLinkRows(links)
+              : fileLinkRows(links);
+          }).join('');
+          if (files.length > shown.length) h += '<div class="dep-more">' + (files.length - shown.length) + ' more file links.</div>';
+          return h;
+        }
+        function fileLinkRows(files) {
+          return files.map(function (f) {
+            return '<div class="dep-file"><button class="file-ref" data-id="' + esc(f.from) + '">' + esc(readableFileName(nodeById[f.from], f.from)) + '</button>' +
+              '<span class="verb" aria-hidden="true">→</span>' +
+              '<button class="file-ref" data-id="' + esc(f.to) + '">' + esc(readableFileName(nodeById[f.to], f.to)) + '</button></div>';
+          }).join('');
+        }
+        function shortFolder(n) {
+          var parts = String((n && n.path) || '').split('/');
+          parts.pop();
+          return parts.slice(-2).join('/') || 'root';
+        }
+        function readableFolderName(n) {
+          var parts = String((n && n.path) || '').split('/');
+          parts.pop();
+          return readableName(parts.pop() || 'Shared imports');
+        }
+        function readableFileName(n, fallback) {
+          var path = String((n && n.path) || fallback || '');
+          var base = path.split('/').pop().replace(/\.[^.]+$/, '');
+          if (base.toLowerCase() === 'index') {
+            var module = n && n.module ? nodeById['module:' + n.module] : null;
+            return module ? module.label + ' public API' : 'public API';
+          }
+          return readableName(base);
+        }
+        function readableName(value) {
+          return String(value || '')
+            .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+            .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+            .replace(/[-_]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase()
+            .replace(/\bdata base\b/g, 'database')
+            .replace(/\badditon\b/g, 'addition');
+        }
+        function bindFileRefs(host) {
+          host.querySelectorAll('.file-ref').forEach(function (ref) {
+            ref.addEventListener('click', function () {
+              var t = ref.getAttribute('data-id');
+              if (t && nodeById[t]) focus(t);
+            });
           });
         }
-        function depSection(title, list, id, dir, expandable) {
+        // A file is recognised by its name, not by the path it sits at, so
+        // rows lead with the name and keep the folder as secondary context.
+        function splitPath(path) {
+          var i = String(path).lastIndexOf('/');
+          return i < 0 ? { name: path, dir: '' } : { name: path.slice(i + 1), dir: path.slice(0, i) };
+        }
+        function labelDeps(list) {
+          return list.slice(0, 40).map(function (d) {
+            var n = nodeById[d.id];
+            if (n && n.type === 'file') {
+              var p = splitPath(n.path || n.label);
+              return { id: d.id, label: p.name, dir: p.dir, full: n.path || n.label, weight: d.weight };
+            }
+            return { id: d.id, label: n ? n.label : d.id, dir: '', full: n ? n.label : d.id, weight: d.weight };
+          });
+        }
+        // A folded list: one line while closed, plain jump rows when opened.
+        function depAccordion(title, list, total) {
+          var rows = list.map(function (d) {
+            return '<button class="file-jump" data-id="' + esc(d.id) + '" title="' + esc(d.full) + '">' + esc(d.label) + '</button>';
+          }).join('');
+          if (total > list.length) rows += '<div class="dep-more">' + (total - list.length) + ' more not listed.</div>';
+          return '<details class="dep-acc"><summary>' + esc(title) + '</summary><div class="dep-list">' + rows + '</div></details>';
+        }
+        function depSection(title, list, dir) {
           return '<div class="p-sec"><h4>' + esc(title) + '</h4>' + list.map(function (d) {
             return '<div class="dep-row">' +
-              '<div class="dep" data-id="' + esc(d.id) + '"><span class="n">' + esc(d.label) +
-              '</span><span class="w' + (expandable ? ' expandable' : '') + '"' +
-              (expandable ? ' data-other="' + esc(d.id) + '" data-dir="' + esc(dir) + '" title="Click to see the specific files"' : '') +
-              '>' + d.weight + '</span></div>' +
-              (expandable ? '<div class="dep-files" hidden></div>' : '') +
+              '<div class="dep"><button class="dep-target" data-id="' + esc(d.id) + '" data-dir="' + esc(dir) + '" title="' + esc(d.full) + ' - show how this connects">' +
+              '<span class="dep-name">' + esc(d.label) + '</span>' +
+              '</button><button class="dep-files-toggle" data-other="' + esc(d.id) + '" data-dir="' + esc(dir) + '">Show files</button></div>' +
+              '<div class="dep-files" hidden></div>' +
               '</div>';
           }).join('') + '</div>';
         }
         document.querySelector('.p-close').addEventListener('click', function () {
-          panel.classList.remove('open');
-          // The bottom sheet was covering half the map - reclaim it.
-          if (isNarrow()) applyFit(220);
+          setPanelOpen(false);
+        });
+        panelToggle.addEventListener('click', function () {
+          setPanelOpen(!panel.classList.contains('open'));
         });
 
         // ---- editor links --------------------------------------
@@ -1249,7 +1382,7 @@
           // On narrow screens the drawer floats over the canvas, so its size
           // never changes - only refit/resize when it actually reflows.
           if (!isNarrow()) {
-            setTimeout(function () { cy.resize(); resizeSketch(); applyFit(220); }, 200);
+            setTimeout(function () { cy.resize(); applyFit(220); }, 200);
           }
         }
         document.getElementById('navToggle').addEventListener('click', function () {
@@ -1262,7 +1395,7 @@
           if (light) { document.documentElement.removeAttribute('data-theme'); save('theme', 'dark'); }
           else { document.documentElement.setAttribute('data-theme', 'light'); save('theme', 'light'); }
           cy.style().resetToDefault().fromJson(styleArr()).update();
-          renderTree(); buildLegend(); scheduleSketch();
+          renderTree(); buildLegend();
           if (focusId) { drawCrumb(focusId); }
         });
 
@@ -1316,26 +1449,96 @@
 
         renderTree();
         focus(ROOT_ID);
-        // On a phone the panel is a bottom sheet covering most of the canvas -
-        // lead with the diagram on first load, let a tap open the detail.
-        if (isNarrow()) { panel.classList.remove('open'); applyFit(0); }
+        // Box widths are measured with the real map font. If the vendored
+        // face is still decoding at first paint the measurement falls back to
+        // a system metric, so re-lay the map out once it is actually ready.
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(function () { if (focusId) focus(focusId); });
+        }
+        // Details begin collapsed everywhere so the diagram, not a side rail,
+        // owns the first view. The small top-right control opens them on demand.
+        setPanelOpen(false);
         hint(isNarrow() ? 'Tap a box, or open the list up top, to see how it connects'
                         : 'Pick anything on the left to see how it connects');
-        // A flowchart that doesn't re-centre when its window changes size
-        // reads as broken - refit on every resize / orientation change once
-        // things settle.
-        window.addEventListener('resize', debounce(function () {
-          cy.resize(); resizeSketch();
-          applyFit(0);
-          scheduleSketch();
-        }, 160));
+        // One renderer owns all viewport changes. Window resize alone is not
+        // enough: macOS can move a window to another display without a size
+        // event, while devicePixelRatio changes underneath its canvas.
+        var viewSyncPending = false, viewSyncRefit = false, viewSyncForce = false;
+        function syncViewport(refit, force) {
+          if (!force) return;
+          // Cytoscape reads current DPR here and recreates its own backing
+          // canvas. No second renderer has to be kept in sync.
+          cy.resize();
+          if (refit) applyFit(0);
+        }
+        function scheduleViewportSync(refit, force) {
+          viewSyncRefit = viewSyncRefit || !!refit;
+          viewSyncForce = viewSyncForce || !!force;
+          if (viewSyncPending) return;
+          viewSyncPending = true;
+          var run = function () {
+            var shouldRefit = viewSyncRefit, shouldForce = viewSyncForce;
+            viewSyncPending = false; viewSyncRefit = false; viewSyncForce = false;
+            syncViewport(shouldRefit, shouldForce);
+          };
+          if (document.hidden) setTimeout(run, 32);
+          else requestAnimationFrame(run);
+        }
+        var scheduleSettledViewportSync = debounce(function () {
+          scheduleViewportSync(true, true);
+        }, 160);
+        window.addEventListener('resize', scheduleSettledViewportSync);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', scheduleSettledViewportSync);
+        if (window.ResizeObserver) {
+          new ResizeObserver(scheduleSettledViewportSync).observe(document.getElementById('stage'));
+        }
+        // A resolution media query fires when a window crosses displays even
+        // if the browser keeps the same CSS viewport dimensions. Replace its
+        // query after every change so the next display swap is also observed.
+        var dprQuery = null;
+        function displayPixelRatio() { return window.devicePixelRatio || 1; }
+        function removeDprListener(q) {
+          if (!q) return;
+          if (q.removeEventListener) q.removeEventListener('change', onDprChange);
+          else q.removeListener(onDprChange);
+        }
+        function watchDisplayPixelRatio() {
+          removeDprListener(dprQuery);
+          dprQuery = window.matchMedia('(resolution: ' + displayPixelRatio() + 'dppx)');
+          if (dprQuery.addEventListener) dprQuery.addEventListener('change', onDprChange);
+          else dprQuery.addListener(onDprChange);
+        }
+        function onDprChange() {
+          watchDisplayPixelRatio();
+          scheduleViewportSync(true, true);
+        }
+        watchDisplayPixelRatio();
+        // If map opened behind another tab or display changes while hidden,
+        // settle it only when it first becomes visible. Later tab switches
+        // still repair a changed backing store, but preserve manual pan/zoom
+        // when dimensions and display scale stayed the same.
+        var loadedHidden = document.hidden, settledOnce = false;
+        function resettle() {
+          if (settledOnce) return;
+          settledOnce = true;
+          scheduleViewportSync(true, true);
+        }
+        if (loadedHidden) {
+          document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) resettle();
+          });
+          setTimeout(function () { if (!document.hidden) resettle(); }, 800);
+        }
+        document.addEventListener('visibilitychange', function () {
+          if (!document.hidden) scheduleViewportSync(false, false);
+        });
         // The hand-lettered font is a data: URI so it's available near-
         // instantly, but canvas text painted before the browser finishes
         // parsing it silently falls back to a generic font for that one
         // paint - it won't repaint itself later. Force one more style
         // pass once the font is confirmed ready so that never sticks.
         if (document.fonts && document.fonts.ready) {
-          document.fonts.ready.then(function () { cy.style().update(); scheduleSketch(); });
+          document.fonts.ready.then(function () { cy.style().update(); });
         }
       })();
     </script>

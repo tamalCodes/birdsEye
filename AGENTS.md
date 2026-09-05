@@ -61,6 +61,8 @@ Before changing site code, read `site/AGENTS.md`.
 Next.js 16 behavior may differ from older assumptions, so check local Next docs in `site/node_modules/next/dist/docs/` when changing framework behavior.
 
 Do not start or browse the local site unless the user asks.
+When local UI inspection is requested, use the user's already-running Brave browser.
+Do not use Codex's internal browser for this repository.
 For build verification, prefer `npm run build` from `site/` when site changes are meaningful.
 
 ## Documentation And Memory

@@ -78,8 +78,10 @@ cleanly and bugs reproduce.
   modules it **depends on** to the right, the ones that **use it** to the left.
   Arrow labels are the number of imports. Only ever one node's neighbourhood is
   drawn, and every position is computed once, so it never lags.
-- **The detail panel** lists exactly what the selection depends on and what
-  depends on it, and opens a file in your editor.
+- **The detail panel** stays closed while you choose items, then opens from its
+  control when you want supporting detail. Choosing a dependency explains that
+  relationship without moving away from current map; an explicit button opens
+  dependency's own details.
 - **The breadcrumb** above the canvas walks back up the tree.
 - **Search** filters the sidebar to matches and their parents.
 - Light / dark toggle, warm palette, remembers what you had open.

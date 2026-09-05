@@ -43,13 +43,24 @@ All of this exists; no extraction changes are needed.
 - Panel helpers already exist: `nodeLink(n)` (clickable node buttons via `data-goto`), `listSection(title, items)`, `related(id, type, dir)`.
 - Style tokens are CSS variables at the top of the file. Keep the existing look.
 
+## Interaction contract
+
+- Choosing a module, folder, or file changes only the focused map. It must not open Details unless the reader explicitly asks for it.
+- Choosing a dependency from the focused map or Details must keep the current module and canvas in place.
+  Details should explain the relationship: which module imports from which, the exact file links that create it, and a plain-language summary.
+- Example: with `Visualize` focused, choosing `Hooks` explains the files `Visualize` imports from `Hooks`; it does not focus `Hooks`.
+- Details may offer an explicit `View <module> details` button for readers who want to leave the current story and focus that dependency.
+- A relationship click is not a shortcut to the dependency's page.
+- Relationship content uses readable names such as `visualization composer` and `integrate public API`, never file extensions or raw folder paths. Use a folder heading only when three or more displayed links share it.
+- Details floats at content height. It becomes scrollable only after reaching a sensible viewport-bound maximum height.
+
 ## Constraints and taste
 
 - Keep it lightweight and dependency-free. This project's whole identity is "a couple of prompts and small scripts, no software around it".
 - Deterministic output. Same graph in, same DOM out. No timestamps, no randomness.
 - Plain language for a non-technical reader is a hard requirement, not a nice-to-have. Numbers get a sentence of meaning next to them.
 - Folder grouping should come from file paths relative to the module root, collapsed sensibly (top one or two levels, with counts), not a raw 159-item flat list.
-- Everything clickable: files jump to Focus, screens jump to Routes, docs jump to Docs. The `select(id, true)` path already handles cross-view jumps.
+- The focused map remains stable while someone explores a dependency relationship. Only explicit view-details actions may move focus to another module.
 - Match the existing code style in the template: plain ES5-ish functions, comments only for non-obvious "why".
 
 ## Recent context (already shipped)

@@ -99,7 +99,20 @@ node plugins/birdseye/scripts/render.mjs /Users/tamalcodes/Gh/perccent-app
 That note may be stale because the current active pipeline uses `ast.mjs` and `build.mjs`.
 Confirm script entry points before relying on older task specs.
 
-Do not open browser tabs or visually test local UI unless Tamal asks.
+For requested local UI checks, use Tamal's already-running Brave browser.
+Do not use Codex's internal browser for this repository.
+
+## Viewer Readability
+
+- Keep per-edge import totals out of the canvas. Exact counts belong in the on-demand Details panel, where they do not overlap import lines.
+- Keep Details collapsed on first load behind the small top-right control. Selecting a node updates its detail content without taking canvas space.
+- Canvas node and group labels use the main UI font for legibility. The hand-lettered font is not for dense graph text.
+- Frame the first map view at 1.35x full-fit zoom. This is a deliberate readability baseline, while wheel zoom and re-centre remain available.
+- Keep import-flow SVG paths in model coordinates. Pan and zoom move their group transform, while drag updates only affected path geometry.
+- Never open Details as a side effect of selection changes, including when a module is chosen from the tree or canvas. The reader opens it deliberately from its control.
+- Clicking a dependency while focused on a module opens a relationship story in Details without changing the selected module or canvas. Show the exact file links, then offer an explicit button to view that dependency's own details.
+- Keep file links collapsed where they are supporting context, grouped by source folder, and written as short file-name import relationships.
+- Relationship drawers are floating cards, not a full-height rail. Use human-readable code names without extensions, render `index` as the owning module's public API, and group only folders with three or more relationships.
 
 ## Working Memory Practices
 
