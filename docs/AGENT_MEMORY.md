@@ -72,6 +72,8 @@ It lives under `site/` and has its own generated `site/AGENTS.md` warning.
 The copy should lead with the audit and agent-readiness story first, then explain the structural map as evidence.
 Theme tokens live in `site/app/globals.css`.
 Main page copy lives in arrays and sections inside `site/app/page.tsx`.
+Deployment rules and Vercel verification live in `docs/DEPLOYMENT.md`.
+Release the site explicitly from `site/`; release the plugin marketplace by pushing signed source to `main`.
 
 ## Known Active Spec
 

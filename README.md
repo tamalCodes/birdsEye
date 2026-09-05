@@ -133,6 +133,12 @@ does not arrive on its own. To pull one:
 /plugin install birdseye@birdseye-marketplace
 ```
 
+## Releasing
+
+The plugin marketplace releases from the signed GitHub `main` branch.
+The marketing site is a separate Vercel release from `site/`.
+Follow the [deployment guide](docs/DEPLOYMENT.md) for the exact build, production, verification, and rollback steps.
+
 ## FAQ
 
 **What does it cost to run?**

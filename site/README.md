@@ -26,15 +26,15 @@ npm run build
 
 ## Deploy (Vercel)
 
-This site lives in a subdirectory of a plugin-marketplace repo, so the Vercel
-project must point at it:
+The verified production path is to run Vercel from this `site/` directory:
 
-- **Root Directory**: `site`
-- **Framework preset**: Next.js (auto-detected)
-- **Environment variable**: `NEXT_PUBLIC_SITE_URL` = the production URL
-  (used for canonical URLs, Open Graph, `robots.txt`, and the sitemap).
+```bash
+npm run build
+vercel deploy --prod --yes
+```
 
-Everything else is default.
+This prevents the surrounding plugin marketplace repository from being used as the web app root.
+See the complete [deployment guide](../docs/DEPLOYMENT.md) for project facts, checks, previews, rollback, environment setup, and the separate plugin-marketplace release process.
 
 ## Structure
 
