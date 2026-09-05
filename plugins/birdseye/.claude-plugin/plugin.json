@@ -1,6 +1,6 @@
 {
   "name": "birdseye",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "One command turns any repo into an interactive flowchart: the major modules, the folders and files inside them, and the dependency arrows between them. Local tree-sitter parse, no model call, zero tokens. One self-contained HTML file out.",
   "author": {
     "name": "tamalcodes",
