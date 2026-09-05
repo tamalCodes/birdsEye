@@ -24,10 +24,10 @@ readable no matter how big the repo is.
 /birdseye:map
 ```
 
-First run asks two questions - whether to write `birdseye.config.json`, and
-whether to add `birdseye/` to `.gitignore` - then sets up a Python virtualenv for
-the parser (a one-time `pip install`, tens of seconds). After that every run is a
-couple of seconds.
+First run asks one setup question at a time - first whether to write
+`birdseye.config.json`, then whether to add `birdseye/` to `.gitignore` - then
+sets up a Python virtualenv for the parser (a one-time `pip install`, tens of
+seconds). After that every run is a couple of seconds.
 
 ```
 /birdseye:map --force        re-parse everything from scratch

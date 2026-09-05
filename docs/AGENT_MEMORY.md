@@ -50,6 +50,8 @@ The generated viewer must work from `file://` with no server and no network.
 Runtime dependencies should not be added to the viewer template.
 Same input should produce stable `graph.json` and `index.html` output.
 Do not fabricate graph nodes or dependency edges to fill gaps.
+First-run setup must ask one yes/no question at a time.
+Ask about writing `birdseye.config.json` first, handle that answer, then separately ask about adding `birdseye/` to `.gitignore` if still needed.
 
 ## Generated Files
 

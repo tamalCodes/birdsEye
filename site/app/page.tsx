@@ -304,7 +304,7 @@ const LIMITS = [
   },
   {
     h: "Your source tree is left alone",
-    p: "Nothing is written into it except birdseye.config.json, and only after it asks. The map and its cache live in a gitignored folder.",
+    p: "Nothing is written into it except birdseye.config.json, and only after a direct yes. Setup asks one question at a time. The map and its cache live in a gitignored folder.",
   },
 ];
 
@@ -425,17 +425,6 @@ function Install() {
             Both paths start the same local tree-sitter pipeline and write one
             self-contained map.
           </p>
-          <div className="mt-6 grid gap-3 text-[0.92rem] text-muted sm:grid-cols-3">
-            <div className="border-t border-hair pt-3">
-              <span className="text-ink">No model call.</span> Local parse only.
-            </div>
-            <div className="border-t border-hair pt-3">
-              <span className="text-ink">$</span> means terminal.
-            </div>
-            <div className="border-t border-hair pt-3">
-              <span className="text-ink">&gt;</span> means agent prompt.
-            </div>
-          </div>
         </Reveal>
 
         <Reveal delay={0.08}>

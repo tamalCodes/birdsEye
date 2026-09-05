@@ -29,20 +29,25 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/init.mjs" status
 ```
 
 If `configExists` is false: show the user the `inferred` block - specifically
-`moduleRoots` - and ask whether to write it. Only on a yes:
+`moduleRoots` - and ask only whether to write `birdseye.config.json`.
+Ask this as a single focused yes/no question.
+Only on a yes:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/init.mjs" write
 ```
 
-If `isGitRepo` is true and `outputIgnored` is false, ask whether to add the
-output directory to `.gitignore`. Only on a yes:
+After that answer has been handled, if `isGitRepo` is true and `outputIgnored`
+is false, ask only whether to add the output directory to `.gitignore`.
+Ask this as a separate single focused yes/no question.
+Only on a yes:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/init.mjs" gitignore
 ```
 
-Ask both questions in one message. Never write either file without an answer.
+Never ask both setup questions in one message.
+Never write either file without an answer to its own question.
 
 The `status` output also carries a `python` block. If `python.ready` is false,
 tell the user what the first run will do before you start it: birdsEye needs

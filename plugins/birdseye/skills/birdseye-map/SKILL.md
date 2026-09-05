@@ -39,21 +39,23 @@ The plugin may be installed into a cache directory.
 node "<plugin-root>/scripts/init.mjs" status
 ```
 
-If `configExists` is false, show the inferred `moduleRoots` and ask whether to write `birdseye.config.json`.
+If `configExists` is false, show the inferred `moduleRoots` and ask only whether to write `birdseye.config.json`.
+Ask this as one focused yes/no question.
 Only write it after the user says yes:
 
 ```bash
 node "<plugin-root>/scripts/init.mjs" write
 ```
 
-If `isGitRepo` is true and `outputIgnored` is false, ask whether to add `birdseye/` to `.gitignore`.
+After that answer has been handled, if `isGitRepo` is true and `outputIgnored` is false, ask only whether to add `birdseye/` to `.gitignore`.
+Ask this as a separate focused yes/no question.
 Only write it after the user says yes:
 
 ```bash
 node "<plugin-root>/scripts/init.mjs" gitignore
 ```
 
-Ask both setup questions together when both apply.
+Never ask both setup questions together.
 
 If `python.ready` is false, tell the user the first run needs Python 3.10+ and will create `birdseye/.cache/py/` plus install `graphifyy` once.
 If no Python 3.10+ is found, stop and tell the user to install Python 3.10+.

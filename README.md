@@ -108,7 +108,7 @@ Then, in any repo you want a map of:
 
 Everything runs inside Claude Code.
 There is nothing to download by hand and no npm package.
-The first run in a repo asks two questions - whether to write `birdseye.config.json` and whether to gitignore the output - then takes a minute or two.
+The first run in a repo asks one setup question at a time - first whether to write `birdseye.config.json`, then whether to gitignore the output - then takes a minute or two.
 Every run after that is seconds.
 
 ### If adding the marketplace fails

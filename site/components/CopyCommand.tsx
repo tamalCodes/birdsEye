@@ -7,6 +7,7 @@ type Props = {
   /** What lands on the clipboard, if different from what is shown. */
   copyText?: string;
   label?: string;
+  variant?: "box" | "bare";
   /**
    * The glyph before the command. Default "$" reads as "your shell" - use
    * that only for a command you actually run in the terminal. A command
@@ -18,7 +19,13 @@ type Props = {
   prompt?: string;
 };
 
-export default function CopyCommand({ command, copyText, label, prompt = "$" }: Props) {
+export default function CopyCommand({
+  command,
+  copyText,
+  label,
+  variant = "box",
+  prompt = "$",
+}: Props) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -31,8 +38,13 @@ export default function CopyCommand({ command, copyText, label, prompt = "$" }: 
     }
   }
 
+  const frameClass =
+    variant === "bare"
+      ? "group flex min-w-0 items-center gap-3 font-mono text-[0.92rem]"
+      : "group flex min-w-0 items-center gap-3 rounded-xl border border-hair bg-panel/70 px-4 py-3 font-mono text-[0.92rem]";
+
   return (
-    <div className="group flex min-w-0 items-center gap-3 rounded-xl border border-hair bg-panel/70 px-4 py-3 font-mono text-[0.92rem]">
+    <div className={frameClass}>
       {prompt ? (
         <span aria-hidden className="select-none text-clay">
           {prompt}

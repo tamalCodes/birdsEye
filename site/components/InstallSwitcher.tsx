@@ -35,13 +35,12 @@ export default function InstallSwitcher({ methods, mapOpen }: Props) {
 
   return (
     <div
-      className="mx-auto mt-11 max-w-3xl rounded-2xl border border-hair bg-canvas/70 p-4 sm:p-5"
-      style={{ boxShadow: "var(--shadow-card)" }}
+      className="mx-auto mt-11 max-w-2xl"
     >
       <div
         role="tablist"
         aria-label="Choose install path"
-        className="grid rounded-xl bg-panel/70 p-1 sm:inline-grid sm:grid-cols-2"
+        className="grid rounded-xl border border-hair bg-panel/55 p-1 sm:inline-grid sm:grid-cols-2"
       >
         {methods.map((method) => {
           const selected = method.name === active.name;
@@ -68,39 +67,49 @@ export default function InstallSwitcher({ methods, mapOpen }: Props) {
       </div>
 
       <div id="install-steps" role="tabpanel" className="mt-7">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h3 className="font-display text-2xl text-ink">{active.name}</h3>
-            <p className="mt-2 max-w-xl text-[0.95rem] leading-relaxed text-muted">
-              {active.body}
-            </p>
-          </div>
-          <p className="text-sm text-faint">$ terminal / &gt; agent</p>
+        <div>
+          <h3 className="font-display text-2xl text-ink">{active.name}</h3>
+          <p className="mt-2 max-w-xl text-[0.95rem] leading-relaxed text-muted">
+            {active.body}
+          </p>
         </div>
 
-        <ol className="mt-6 divide-y divide-hair">
+        <ol
+          className="mt-6 overflow-hidden rounded-xl border border-hair bg-canvas/70"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
           {active.steps.map((step) => (
-            <li key={step.n} className="grid gap-3 py-4 sm:grid-cols-[9rem_minmax(0,1fr)]">
-              <div>
-                <p className="font-mono text-xs tracking-[0.14em] text-clay">{step.n}</p>
-                <p className="mt-1 text-ink">{step.label}</p>
-                <p className="text-sm text-faint">{step.note}</p>
+            <li
+              key={step.n}
+              className="grid gap-3 border-b border-hair px-4 py-4 last:border-b-0 sm:grid-cols-[11rem_minmax(0,1fr)] sm:px-5"
+            >
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-3">
+                  <span className="font-mono text-xs tracking-[0.14em] text-clay">
+                    {step.n}
+                  </span>
+                  <span className="text-ink">{step.label}</span>
+                </div>
+                <p className="mt-1 text-sm text-faint">{step.note}</p>
               </div>
-              <CopyCommand command={step.cmd} prompt={step.prompt} />
+              <CopyCommand command={step.cmd} prompt={step.prompt} variant="bare" />
             </li>
           ))}
+          <li className="grid gap-3 border-t border-hair-soft bg-panel/28 px-4 py-4 sm:grid-cols-[11rem_minmax(0,1fr)] sm:px-5">
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-3">
+                <span className="font-mono text-xs tracking-[0.14em] text-clay">
+                  04
+                </span>
+                <span className="text-ink">Open the map</span>
+              </div>
+              <p className="mt-1 text-sm text-faint">any browser, no server</p>
+            </div>
+            <CopyCommand command={mapOpen} prompt="" variant="bare" />
+          </li>
         </ol>
 
-        <div className="mt-2 border-t border-hair pt-5">
-          <div className="grid gap-3 sm:grid-cols-[9rem_minmax(0,1fr)]">
-            <div>
-              <p className="font-mono text-xs tracking-[0.14em] text-clay">04</p>
-              <p className="mt-1 text-ink">Open the map</p>
-              <p className="text-sm text-faint">any browser, no server</p>
-            </div>
-            <CopyCommand command={mapOpen} prompt="" />
-          </div>
-        </div>
+        <p className="mt-4 text-sm text-faint">$ means terminal. &gt; means agent prompt.</p>
       </div>
     </div>
   );
