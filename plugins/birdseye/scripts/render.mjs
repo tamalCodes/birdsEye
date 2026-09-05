@@ -14,16 +14,16 @@ import { NAME, DISPLAY, OUT_DIR } from './lib/const.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 // The viewer positions every node itself (a deterministic neighbourhood layout),
-// so cytoscape is the only library it needs - no force-layout engine.
-const VENDOR = ['cytoscape.min.js'];
+// so cytoscape is the only layout-adjacent library it needs - no force-layout
+// engine. rough.js draws the hand-sketched overlay on top of it.
+const VENDOR = ['cytoscape.min.js', 'rough.js'];
 
 /** Neutralise anything that could close the surrounding <script> element. */
 const safeForScript = (s) => s.replace(/<\/(script)/gi, '<\\/$1');
 
-/** Outfit, base64'd so the map still has its typeface with no network. One
- * variable woff2 covers every weight the UI asks for. */
-const fontDataUri = () => {
-  const woff2 = fs.readFileSync(path.join(here, 'vendor', 'Outfit.woff2'));
+/** A vendored font, base64'd so the map still has it with no network. */
+const fontDataUri = (file) => {
+  const woff2 = fs.readFileSync(path.join(here, 'vendor', file));
   return `data:font/woff2;base64,${woff2.toString('base64')}`;
 };
 
@@ -37,7 +37,8 @@ export function renderHtml(graph) {
   return template
     .replace(/__TITLE__/g, () => title.replace(/[<&]/g, ''))
     .replace('__STORAGE_KEY__', () => storageKey)
-    .replace('__FONT_OUTFIT__', fontDataUri)
+    .replace('__FONT_OUTFIT__', () => fontDataUri('Outfit.woff2'))
+    .replace('__FONT_HAND__', () => fontDataUri('PatrickHand.woff2'))
     .replace('__VENDOR__', () => safeForScript(vendor))
     .replace('__GRAPH__', () => safeForScript(JSON.stringify(graph)));
 }

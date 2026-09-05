@@ -28,17 +28,14 @@ import os
 import sys
 from pathlib import Path
 
-# Relations that mean "A depends on B". Everything else graphify emits
-# (`contains`, `method`, ...) is structure we rebuild ourselves from the folder
-# tree, so it is dropped here.
-DEP_RELATIONS = {
+# Relations that mean a source file imports another source file. Graphify can
+# also emit follow-on `calls`, `references`, and `uses` edges between the same
+# files; those are useful symbol facts, but counting them here makes one import
+# look like several dependencies in the viewer.
+IMPORT_RELATIONS = {
     "imports",
     "imports_from",
-    "calls",
-    "indirect_call",
     "re_exports",
-    "references",
-    "uses",
 }
 
 EXT_LANG = {
@@ -153,7 +150,7 @@ def main() -> None:
 
     for e in raw_edges:
         rel_type = e.get("relation")
-        if rel_type not in DEP_RELATIONS:
+        if rel_type not in IMPORT_RELATIONS:
             continue
         src = node_file.get(e.get("source"))
         if src not in files:
@@ -178,7 +175,7 @@ def main() -> None:
         {
             "from": a,
             "to": b,
-            "weight": sum(kinds.values()),
+            "weight": _import_weight(kinds),
             "kinds": dict(sorted(kinds.items())),
         }
         for (a, b), kinds in sorted(dep.items())
@@ -214,6 +211,16 @@ def _external_name(node_id: object) -> str | None:
             name = node_id[len(prefix):].replace("_", "-")
             return name or None
     return None
+
+
+def _import_weight(kinds: dict[str, int]) -> int:
+    """Human-facing import count for one file pair.
+
+    `imports_from` is the module-specifier edge and `imports` is usually the
+    imported binding count. Taking the max avoids double-counting the same
+    statement while still showing when several bindings come from one file.
+    """
+    return max(1, *(kinds.get(rel, 0) for rel in IMPORT_RELATIONS))
 
 
 if __name__ == "__main__":

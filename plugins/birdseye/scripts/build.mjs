@@ -219,7 +219,7 @@ export function buildGraph(root) {
     add({
       id: coreModuleId,
       type: 'module',
-      label: codeRoot ? codeRoot.split('/').pop() : 'core',
+      label: 'core',
       path: codeRoot,
       parent: rootId,
       module: slug,
