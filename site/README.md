@@ -1,8 +1,8 @@
 # birdsEye - marketing site
 
-The showcase site for [birdsEye](../plugins/birdseye), the Claude Code plugin that
-audits a repository for agent-readiness and hands back a single self-contained
-HTML file.
+The showcase site for [birdsEye](../plugins/birdseye), the agent plugin that
+maps a repository for Claude Code and Codex and hands back a single
+self-contained HTML file.
 
 The landing page leads on that audit - stale guardrails, uncovered modules, the
 specs to read first - and treats the structural map (modules, routes, screens) as

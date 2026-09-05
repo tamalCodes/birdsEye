@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s - birdsEye",
   },
   description:
-    "A Claude Code plugin that turns any repository into an interactive flowchart: the major modules, the folders and files inside them, and the dependency arrows between them. Runs locally on tree-sitter with no model call - zero tokens. One self-contained HTML file out.",
+    "An agent plugin that turns any repository into an interactive flowchart: the major modules, the folders and files inside them, and the dependency arrows between them. Runs from Claude Code or Codex, locally on tree-sitter with no model call - zero tokens. One self-contained HTML file out.",
   keywords: [
     "code structure",
     "codebase map",
@@ -35,6 +35,8 @@ export const metadata: Metadata = {
     "tree-sitter",
     "AST",
     "Claude Code plugin",
+    "Codex plugin",
+    "agent plugin",
     "module map",
     "architecture diagram",
     "repository map",

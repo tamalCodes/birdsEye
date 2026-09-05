@@ -160,6 +160,8 @@ Expect rough edges, breaking changes between versions, and views that appear or 
 
 ```
 .claude-plugin/marketplace.json    the catalog
+AGENTS.md                          repository rules for coding agents
+docs/AGENT_MEMORY.md               durable project memory for agents
 plugins/birdseye/                  the plugin
 ├── .claude-plugin/plugin.json     manifest
 ├── commands/map.md                /birdseye:map

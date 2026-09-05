@@ -1,0 +1,40 @@
+{
+  "name": "birdseye",
+  "version": "0.2.0",
+  "description": "One command turns any repo into an interactive flowchart: the major modules, the folders and files inside them, and the dependency arrows between them. Local tree-sitter parse, no model call, zero tokens. One self-contained HTML file out.",
+  "author": {
+    "name": "tamalcodes",
+    "email": "dev@perccent.com",
+    "url": "https://github.com/tamalCodes"
+  },
+  "homepage": "https://birdseye.tamal.me",
+  "repository": "https://github.com/tamalCodes/birdsEye",
+  "license": "MIT",
+  "keywords": [
+    "codebase",
+    "visualization",
+    "flowchart",
+    "architecture",
+    "dependency-graph",
+    "tree-sitter",
+    "code-map"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "birdsEye",
+    "shortDescription": "Map any repo into one local, zero-token architecture flowchart.",
+    "longDescription": "birdsEye runs local tree-sitter extraction and writes one self-contained HTML map of a repository's modules, files, and dependency arrows. It does not call a model.",
+    "developerName": "tamalcodes",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Code",
+      "Visualization"
+    ],
+    "websiteURL": "https://birdseye.tamal.me",
+    "defaultPrompt": [
+      "Build a birdsEye map for this repo.",
+      "Refresh the birdsEye map with --force."
+    ],
+    "brandColor": "#b04e29"
+  }
+}

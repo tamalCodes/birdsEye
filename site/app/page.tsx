@@ -2,6 +2,7 @@ import Nav from "@/components/Nav";
 import Section from "@/components/Section";
 import MapVisual from "@/components/MapVisual";
 import CopyCommand from "@/components/CopyCommand";
+import InstallSwitcher from "@/components/InstallSwitcher";
 import Reveal from "@/components/Reveal";
 import {
   ClaudeMark,
@@ -14,11 +15,16 @@ import {
   README_URL,
   ISSUES_URL,
   OPEN_CLAUDE_CODE,
+  OPEN_CODEX,
   MARKETPLACE_ADD,
   PLUGIN_INSTALL,
   MARKETPLACE_REMOVE,
   MARKETPLACE_UPDATE,
   MAP_COMMAND,
+  CODEX_MARKETPLACE_ADD,
+  CODEX_PLUGIN_INSTALL,
+  CODEX_MARKETPLACE_UPDATE,
+  CODEX_MAP_COMMAND,
   MAP_OPEN,
 } from "@/lib/links";
 
@@ -42,12 +48,15 @@ export default function Home() {
 
 /* ------------------------------------------------------------------ hero */
 
-/* What actually runs birdsEye, and where the map it produces sends you. Claude
-   Code is the host - the plugin is a set of Claude Code commands. The three
-   editors are the targets of the `editor` config: clicking a file in the
-   finished map opens it there. Both halves are labelled as such, so the row
-   never reads as a claim that the plugin runs inside an editor. */
-const HOST = { name: "Claude Code", Mark: ClaudeMark, size: "h-5 w-5" };
+/* What actually runs birdsEye, and where the map it produces sends you. The
+   host is the agent surface that starts the local scripts. The editors are the
+   targets of the `editor` config: clicking a file in the finished map opens it
+   there. Both halves are labelled as such, so the row never reads as a claim
+   that the plugin runs inside an editor. */
+const HOSTS = [
+  { name: "Claude Code", Mark: ClaudeMark, size: "h-5 w-5" },
+  { name: "Codex", Mark: null, size: "" },
+];
 
 const EDITORS = [
   { name: "VS Code", Mark: VsCodeMark, size: "h-5 w-5" },
@@ -88,7 +97,7 @@ function Hero() {
             </a>
           </div>
           <p className="mt-4 text-sm text-faint">
-            Two commands to install, one to run. Runs on your machine - no model, no tokens.
+            Install from your agent, run on your machine - no model, no tokens.
           </p>
         </div>
 
@@ -108,10 +117,12 @@ function Hero() {
 function ToolRow() {
   return (
     <div className="mt-14 flex flex-wrap items-center justify-center gap-x-7 gap-y-4 text-sm text-faint">
-      <span className="flex items-center gap-2.5 text-muted">
-        <HOST.Mark className={`${HOST.size} text-clay`} />
-        {HOST.name}
-      </span>
+      {HOSTS.map((t) => (
+        <span key={t.name} className="flex items-center gap-2.5 text-muted">
+          {t.Mark ? <t.Mark className={`${t.size} text-clay`} /> : null}
+          {t.name}
+        </span>
+      ))}
 
       <span aria-hidden className="hidden h-4 w-px bg-hair sm:block" />
 
@@ -349,30 +360,51 @@ function HowItWorks() {
 /* This sits directly under the hero on purpose: the page's first ask is
    "install the plugin", so the answer should be the next thing on screen.
 
-   Step 00 is a real shell command ("$"). Steps 01-03 are typed inside Claude
-   Code's own prompt, never the terminal, so they render with ">". Pasting a
-   "/plugin ..." line into zsh/bash fails - it's a Claude Code slash command,
-   not a program. The prompts side by side show the boundary. Step 04 is a file
-   path, not a command - no prompt glyph, since "how you open a file" is not the
-   same on every OS. */
-const STEPS = [
-  { n: "00", label: "Open Claude Code", note: "in your terminal, once", cmd: OPEN_CLAUDE_CODE, prompt: "$" },
-  { n: "01", label: "Add the marketplace", note: "once per machine", cmd: MARKETPLACE_ADD, prompt: ">" },
-  { n: "02", label: "Install the plugin", note: "once per machine", cmd: PLUGIN_INSTALL, prompt: ">" },
-  { n: "03", label: "Build the map", note: "any repo, zero tokens", cmd: MAP_COMMAND, prompt: ">" },
-  { n: "04", label: "Open the map", note: "self-contained - any browser, no server", cmd: MAP_OPEN, prompt: "" },
+   Claude commands with "/" are typed inside Claude Code. Codex install commands
+   are terminal commands, while "$birdseye-map" is typed inside Codex as a skill
+   mention. The final map path has no prompt glyph because opening a file is not
+   the same command on every OS. */
+const INSTALL_METHODS = [
+  {
+    name: "Claude Code",
+    body: "Use the Claude Code plugin marketplace and run the slash command in any repo.",
+    steps: [
+      { n: "00", label: "Open Claude Code", note: "in your terminal", cmd: OPEN_CLAUDE_CODE, prompt: "$" },
+      { n: "01", label: "Add the marketplace", note: "once per machine", cmd: MARKETPLACE_ADD, prompt: ">" },
+      { n: "02", label: "Install the plugin", note: "once per machine", cmd: PLUGIN_INSTALL, prompt: ">" },
+      { n: "03", label: "Build the map", note: "inside any repo", cmd: MAP_COMMAND, prompt: ">" },
+    ],
+  },
+  {
+    name: "Codex",
+    body: "Use the Codex plugin marketplace, then invoke the bundled birdsEye skill in any repo.",
+    steps: [
+      { n: "00", label: "Open Codex", note: "in your terminal", cmd: OPEN_CODEX, prompt: "$" },
+      { n: "01", label: "Add the marketplace", note: "once per machine", cmd: CODEX_MARKETPLACE_ADD, prompt: "$" },
+      { n: "02", label: "Install the plugin", note: "once per machine", cmd: CODEX_PLUGIN_INSTALL, prompt: "$" },
+      { n: "03", label: "Build the map", note: "inside any repo", cmd: CODEX_MAP_COMMAND, prompt: ">" },
+    ],
+  },
 ];
 
 const INSTALL_NOTES = [
   {
-    h: "Updating to a new version",
-    p: "Auto-update is off for third-party marketplaces. Pull a new version with this, then run step 02 again.",
+    h: "Claude update",
+    p: "Auto-update is off for third-party marketplaces. Pull a new version, then install the plugin again.",
     cmd: MARKETPLACE_UPDATE,
+    prompt: ">",
   },
   {
-    h: "If step 01 is refused",
-    p: "Marketplace names are global, so adding is refused when birdseye-marketplace is already registered on your machine from another source, usually a local clone. Drop the old registration, then run step 01 again.",
+    h: "Codex update",
+    p: "Refresh the marketplace snapshot, then install the plugin again if a newer version is available.",
+    cmd: CODEX_MARKETPLACE_UPDATE,
+    prompt: "$",
+  },
+  {
+    h: "If Claude marketplace add is refused",
+    p: "Marketplace names are global, so adding is refused when birdseye-marketplace is already registered on your machine from another source. Drop the old Claude registration, then add it again.",
     cmd: MARKETPLACE_REMOVE,
+    prompt: ">",
   },
 ];
 
@@ -383,56 +415,34 @@ function Install() {
       className="scroll-mt-24 border-y border-hair-soft bg-panel/60 py-20 md:py-24"
     >
       <div className="shell">
-        <Reveal className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-3xl">
           <p className="kicker">Install</p>
           <h2 className="font-display mt-5 t-section text-ink">
             Install once, map any repo
           </h2>
-          <p className="mt-5 leading-relaxed text-muted">
-            Add the marketplace and install the plugin once. After that,{" "}
-            <code className="rounded bg-panel px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
-              /birdseye:map
-            </code>{" "}
-            in any repo parses it with tree-sitter on your machine - no model call, no
-            tokens - and writes one self-contained{" "}
-            <code className="rounded bg-panel px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
-              birdseye/index.html
-            </code>{" "}
-            you open in a browser. Steps marked{" "}
-            <code className="rounded bg-panel px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
-              &gt;
-            </code>{" "}
-            are typed inside Claude Code;{" "}
-            <code className="rounded bg-panel px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
-              $
-            </code>{" "}
-            is your terminal. The first run also installs the tree-sitter parser into its
-            own virtualenv - a one-time download of tens of seconds; every run after is a
-            second or two.
+          <p className="mt-5 max-w-2xl leading-relaxed text-muted">
+            Pick Claude Code or Codex, install birdsEye once, then run it in any repo.
+            Both paths start the same local tree-sitter pipeline and write one
+            self-contained map.
           </p>
+          <div className="mt-6 grid gap-3 text-[0.92rem] text-muted sm:grid-cols-3">
+            <div className="border-t border-hair pt-3">
+              <span className="text-ink">No model call.</span> Local parse only.
+            </div>
+            <div className="border-t border-hair pt-3">
+              <span className="text-ink">$</span> means terminal.
+            </div>
+            <div className="border-t border-hair pt-3">
+              <span className="text-ink">&gt;</span> means agent prompt.
+            </div>
+          </div>
         </Reveal>
 
-        <ol className="mx-auto mt-12 max-w-2xl space-y-3">
-          {STEPS.map((s, i) => (
-            <Reveal
-              as="li"
-              key={s.n}
-              delay={i * 0.06}
-              className="rounded-2xl border border-hair bg-canvas/70 p-5 sm:p-6"
-            >
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-xs tracking-[0.14em] text-clay">{s.n}</span>
-                <span className="text-ink">{s.label}</span>
-                <span className="text-sm text-faint">{s.note}</span>
-              </div>
-              <div className="mt-3.5">
-                <CopyCommand command={s.cmd} prompt={s.prompt} />
-              </div>
-            </Reveal>
-          ))}
-        </ol>
+        <Reveal delay={0.08}>
+          <InstallSwitcher methods={INSTALL_METHODS} mapOpen={MAP_OPEN} />
+        </Reveal>
 
-        <Reveal delay={0.16} className="mx-auto mt-6 max-w-2xl">
+        <Reveal delay={0.18} className="mx-auto mt-6 max-w-3xl">
           <p className="rounded-2xl border border-hair bg-raised/40 px-5 py-4 text-[0.92rem] leading-relaxed text-muted sm:px-6">
             <span className="text-ink">Needs Python 3.10+ on the machine</span> (and
             ideally <code className="font-mono text-[0.9em] text-ink">uv</code>). birdsEye
@@ -443,7 +453,7 @@ function Install() {
         </Reveal>
 
         {/* Closed by default. Neither note applies to a first, clean install. */}
-        <Reveal delay={0.2} className="mx-auto mt-4 max-w-2xl">
+        <Reveal delay={0.22} className="mx-auto mt-4 max-w-3xl">
           <details className="group rounded-2xl border border-hair bg-raised/40 open:bg-raised/60">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-[0.95rem] text-muted transition-colors hover:text-ink sm:px-6 [&::-webkit-details-marker]:hidden">
               Updating, and the one thing that can go wrong
@@ -460,7 +470,7 @@ function Install() {
                   <p className="text-ink">{note.h}</p>
                   <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">{note.p}</p>
                   <div className="mt-3.5">
-                    <CopyCommand command={note.cmd} prompt=">" />
+                    <CopyCommand command={note.cmd} prompt={note.prompt} />
                   </div>
                 </div>
               ))}
@@ -573,8 +583,8 @@ function Footer() {
             </div>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
               Turn any repo into an interactive flowchart of its structure - the modules,
-              the files inside them, and how they depend on each other. A Claude Code
-              plugin. Local, deterministic, zero tokens.
+              the files inside them, and how they depend on each other. Runs from Claude
+              Code or Codex. Local, deterministic, zero tokens.
             </p>
             <div className="mt-6 max-w-xs">
               <CopyCommand command={MAP_COMMAND} prompt=">" />
@@ -604,7 +614,7 @@ function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-hair pt-7 text-sm text-faint sm:flex-row sm:items-center sm:justify-between">
-          <p>MIT licensed. Built by Tamal Das with Claude Code.</p>
+          <p>MIT licensed. Built by Tamal Das.</p>
           <p className="flex items-center gap-2">
             <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-clay" />
             Early preview - expect breaking changes between versions.

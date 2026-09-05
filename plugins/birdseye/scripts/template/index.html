@@ -76,7 +76,7 @@
 
       @font-face {
         font-family: "Outfit";
-        src: url(__FONT_OUTFIT__) format("woff2");
+        src: url("__FONT_OUTFIT__") format("woff2");
         font-weight: 100 900;
         font-display: swap;
       }
@@ -135,6 +135,10 @@
         width: var(--sidebar-w); flex: none;
         display: flex; flex-direction: column;
         background: var(--bg-panel); border-right: 1px solid var(--line);
+        overflow: hidden; transition: width .18s ease, opacity .15s ease;
+      }
+      main.nav-collapsed #sidebar {
+        width: 0; opacity: 0; border-right-color: transparent; pointer-events: none;
       }
       .side-head {
         display: flex; align-items: center; gap: 6px;
@@ -196,12 +200,23 @@
 
       .legend {
         position: absolute; left: 12px; bottom: 12px; z-index: 20;
-        display: flex; flex-wrap: wrap; gap: 4px 12px; max-width: 340px;
-        padding: 9px 11px;
         background: var(--bg-panel); border: 1px solid var(--line);
-        border-radius: 10px; box-shadow: var(--shadow);
-        font-size: 11.5px; color: var(--text-dim);
+        border-radius: 999px; box-shadow: var(--shadow);
+        font-size: 11px; color: var(--text-dim);
+        overflow: hidden; transition: border-radius .15s;
       }
+      .legend > .legend-key {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 5px 10px; cursor: default; user-select: none; color: var(--text-dim);
+      }
+      .legend > .legend-key svg { width: 12px; height: 12px; opacity: .7; }
+      .legend .legend-items {
+        display: none; flex-wrap: wrap; gap: 4px 12px; max-width: 320px;
+        padding: 4px 11px 9px;
+      }
+      .legend:hover { border-radius: 12px; }
+      .legend:hover .legend-key { display: none; }
+      .legend:hover .legend-items { display: flex; }
       .legend i { display: inline-flex; align-items: center; gap: 5px; font-style: normal; }
       .legend i::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--k, var(--text-dim)); }
       .legend .arrow::before { width: 14px; height: 2px; border-radius: 0; }
@@ -251,6 +266,17 @@
       }
       .hint.show { opacity: 1; }
 
+      .node-tip {
+        position: fixed; z-index: 50;
+        max-width: 320px; padding: 5px 9px; border-radius: 7px;
+        background: var(--sheet); border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        font-size: 12px; font-family: var(--mono); color: var(--text);
+        word-break: break-all; pointer-events: none;
+        display: none;
+      }
+      .node-tip.show { display: block; }
+
       @media (max-width: 720px) {
         :root { --sidebar-w: 240px; }
         #panel { width: calc(100vw - 24px); }
@@ -260,6 +286,9 @@
   </head>
   <body>
     <header>
+      <button class="tool icon-only" id="navToggle" title="Show or hide the structure list">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+      </button>
       <span class="brand">
         <svg viewBox="16 19 208 208" aria-hidden="true"><path transform="translate(0 8)" d="M120 52C129 54 133 66 134 82C150 92 186 116 210 146C213 150 211 154 206 153C176 150 150 140 133 128C132 145 128 164 120 178C112 164 108 145 107 128C90 140 64 150 34 153C29 154 27 150 30 146C54 116 90 92 106 82C107 66 111 54 120 52Z" fill="var(--accent)"/></svg>
         <b id="repoName"></b><span id="sub"></span>
@@ -294,6 +323,7 @@
         <div class="crumb" id="crumb"></div>
         <div class="legend" id="legend"></div>
         <div class="hint" id="hint"></div>
+        <div class="node-tip" id="nodeTip"></div>
         <aside id="panel">
           <button class="p-close" title="Close">&times;</button>
           <div class="p-head">
@@ -320,6 +350,11 @@
           if (load('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
         })();
 
+        // Structure list is hidden by default; the header button brings it back.
+        (function initNav() {
+          if (load('nav') !== 'open') document.querySelector('main').classList.add('nav-collapsed');
+        })();
+
         // ---- indexes -------------------------------------------------
         var nodeById = {};
         GRAPH.nodes.forEach(function (n) { nodeById[n.id] = n; });
@@ -340,6 +375,17 @@
           return TYPE_COLOR[n.type] || '--c-file';
         }
         function cssVal(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+        // Node fills run from pale cream to clay; pick a label colour that
+        // actually contrasts with the fill rather than a single global one.
+        function idealText(hex) {
+          var c = String(hex || '').replace('#', '');
+          if (c.length === 3) c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+          if (c.length < 6) return '#faf9f5';
+          var r = parseInt(c.substr(0, 2), 16),
+              g = parseInt(c.substr(2, 2), 16),
+              b = parseInt(c.substr(4, 2), 16);
+          return (r * 299 + g * 587 + b * 114) / 1000 >= 150 ? '#211e19' : '#faf9f5';
+        }
         function hasKids(id) { return (childrenOf[id] || []).length > 0; }
         function isAncestor(a, b) { for (var c = parentOf[b]; c; c = parentOf[c]) if (c === a) return true; return false; }
         function ancestry(id) { var out = []; for (var c = parentOf[id]; c; c = parentOf[c]) out.unshift(c); return out; }
@@ -381,10 +427,10 @@
         var treeEl = document.getElementById('tree');
         var openTree = {};
         (function initOpen() {
+          // Default: fully collapsed - just the root row. The canvas already
+          // shows the top-level spine, so the tree opens only where asked.
           var saved = load('open');
           if (saved) { try { JSON.parse(saved).forEach(function (id) { if (nodeById[id]) openTree[id] = 1; }); } catch (e) {} }
-          else { (childrenOf[ROOT_ID] || []).forEach(function (id) { if (nodeById[id].type === 'zone') openTree[id] = 1; }); }
-          openTree[ROOT_ID] = 1;
         })();
         var persistOpen = debounce(function () {
           save('open', JSON.stringify(Object.keys(openTree).filter(function (id) { return openTree[id]; })));
@@ -455,12 +501,12 @@
           persistOpen(); renderTree(); hint('Every folder open');
         });
         document.getElementById('collapseAll').addEventListener('click', function () {
-          openTree = {}; openTree[ROOT_ID] = 1;
+          openTree = {};
           persistOpen(); renderTree(); hint('Collapsed');
         });
 
         // ---- canvas: the selected node and its immediate neighbourhood ----
-        var COLX = 340, ROWY = 118, CHILD_GAP_X = 200, CHILD_GAP_Y = 92, CHILD_CAP = 60;
+        var COLX = 340, ROWY = 118, CHILD_GAP_X = 200, CHILD_CAP = 40;
         function sizeFor(n, role) {
           if (role === 'focus') return n.type === 'file' ? 84 : 104;
           return n.type === 'file' ? 60 : 74;
@@ -470,60 +516,84 @@
           var self = nodeById[id];
           var els = [];
           var placed = {};
-          function put(nid, x, y, role) {
+          function put(nid, x, y, role, extra) {
             if (placed[nid]) return;
             placed[nid] = 1;
             var n = nodeById[nid];
-            els.push({
-              data: {
-                id: nid, role: role, type: n.type, label: n.label,
-                col: cssVal(colorVar(n)), w: sizeFor(n, role),
-                open: hasKids(nid),
-              },
-              position: { x: x, y: y },
-            });
+            var col = cssVal(colorVar(n));
+            // A child folder can share its name with an unrelated sibling
+            // module (both called "utils", say) - the trailing slash marks
+            // it as "a folder living in here", not "the same thing again".
+            var label = n.label + (role === 'child' && n.type !== 'file' ? '/' : '');
+            var data = {
+              id: nid, role: role, type: n.type, label: label,
+              col: col, txt: idealText(col), w: sizeFor(n, role),
+            };
+            if (extra) for (var k in extra) data[k] = extra[k];
+            els.push({ data: data, position: { x: x, y: y } });
           }
 
           put(id, 0, 0, 'focus');
 
+          // Dependency columns left/right of the focus, each headed by a
+          // plain-language label so the arrows don't need a legend to read.
           var inc = rollDeps(id, 'in');
           var out = rollDeps(id, 'out').filter(function (d) { return !inc.some(function (i) { return i.id === d.id; }); });
-          spread(inc, -COLX);
-          spread(out, COLX);
-          function spread(list, x) {
+          var maxSpreadRows = 0;
+          spread(inc, -COLX, 'in', 'USED BY');
+          spread(out, COLX, 'out', 'DEPENDS ON');
+          function spread(list, x, role, headLabel) {
             var m = Math.min(list.length, 14);
+            if (!m) return;
+            maxSpreadRows = Math.max(maxSpreadRows, m);
             for (var i = 0; i < m; i++) {
               var y = (i - (m - 1) / 2) * ROWY;
-              put(list[i].id, x, y, x < 0 ? 'in' : 'out');
+              put(list[i].id, x, y, role);
               els.push({ data: {
-                id: (x < 0 ? 'e:in:' : 'e:out:') + list[i].id,
-                source: x < 0 ? list[i].id : id,
-                target: x < 0 ? id : list[i].id,
-                kind: x < 0 ? 'in' : 'out', label: String(list[i].weight),
+                id: (role === 'in' ? 'e:in:' : 'e:out:') + list[i].id,
+                source: role === 'in' ? list[i].id : id,
+                target: role === 'in' ? id : list[i].id,
+                kind: role, label: String(list[i].weight),
               } });
             }
+            var topY = (0 - (m - 1) / 2) * ROWY - ROWY * 0.62;
+            els.push({ data: { id: 'h:' + role, role: 'colhead', label: headLabel, w: 150 }, position: { x: x, y: topY } });
           }
 
-          // containment children, in a grid below the focus
+          // Containment children sit in their own labelled, dashed-border
+          // box below the focus - wrapped into a grid, not a single row,
+          // now that a shared edge no longer needs to route past them.
+          // The box is placed clear of the tallest dependency column so no
+          // in/out edge ever cuts through a child node.
           var kids = sortKids(childrenOf[id] || []);
           var shown = kids.slice(0, CHILD_CAP);
-          var cols = Math.max(1, Math.min(shown.length, Math.ceil(Math.sqrt(shown.length * 1.6))));
-          shown.forEach(function (cid, i) {
-            var r = Math.floor(i / cols), c = i % cols;
-            var x = (c - (cols - 1) / 2) * CHILD_GAP_X;
-            var y = ROWY * 1.5 + r * CHILD_GAP_Y;
-            put(cid, x, y, 'child');
-            els.push({ data: { id: 'e:c:' + cid, source: id, target: cid, kind: 'contains' } });
-          });
+          if (shown.length) {
+            var perRow = Math.min(5, Math.max(3, Math.ceil(Math.sqrt(shown.length))));
+            var depClear = (Math.max(maxSpreadRows, 1) - 1) / 2 * ROWY + ROWY * 0.9;
+            var boxTop = Math.max(ROWY * 1.3, depClear);
+            var boxId = 'box:' + id;
+            els.push({ data: { id: boxId, role: 'box', label: 'INSIDE · ' + self.label } });
+            shown.forEach(function (cid, i) {
+              var r = Math.floor(i / perRow), c = i - r * perRow;
+              var rowCount = Math.min(perRow, shown.length - r * perRow);
+              var x = (c - (rowCount - 1) / 2) * CHILD_GAP_X;
+              var y = boxTop + r * ROWY;
+              put(cid, x, y, 'child', { parent: boxId });
+            });
+            els.push({ data: { id: 'e:box:' + id, source: id, target: boxId, kind: 'contains' } });
+          }
 
           return { els: els, hiddenKids: kids.length - shown.length };
         }
 
         function styleArr() {
           return [
-            { selector: 'node', style: {
+            // Scoped to node[type] (real graph nodes) so the compound
+            // "box" wrapper below is left alone - it has no `type` and
+            // needs its width/height to stay auto-computed from children.
+            { selector: 'node[type]', style: {
               'background-color': 'data(col)', 'background-opacity': 0.92,
-              label: 'data(label)', color: cssVal('--text'),
+              label: 'data(label)', color: 'data(txt)',
               'font-size': 11.5, 'font-family': cssVal('--font'),
               'text-valign': 'center', 'text-halign': 'center',
               'text-wrap': 'ellipsis', 'text-max-width': 'data(w)',
@@ -537,6 +607,30 @@
             } },
             { selector: 'node[type="file"]', style: { shape: 'round-rectangle' } },
             { selector: 'node[role="in"], node[role="out"]', style: { 'background-opacity': 0.8 } },
+            { selector: 'node[role="child"]', style: {
+              'border-width': 1.2, 'border-style': 'dashed',
+              'border-color': cssVal('--line-strong'), 'border-opacity': 0.8,
+            } },
+            // The "contents" wrapper: a dashed, mostly-transparent box that
+            // visually says "everything in here lives inside the focus
+            // node" - distinct in kind from the arrow-connected columns.
+            { selector: 'node[role="box"]', style: {
+              shape: 'round-rectangle',
+              'background-color': cssVal('--bg-raised'), 'background-opacity': 0.45,
+              'border-width': 1.5, 'border-style': 'dashed',
+              'border-color': cssVal('--line-strong'), 'border-opacity': 0.85,
+              padding: 26,
+              label: 'data(label)', 'text-valign': 'top', 'text-halign': 'center', 'text-margin-y': -12,
+              'font-size': 10.5, 'font-weight': 700, color: cssVal('--text-dim'),
+              events: 'no',
+            } },
+            { selector: 'node[role="colhead"]', style: {
+              shape: 'round-rectangle', 'background-opacity': 0, 'border-width': 0,
+              label: 'data(label)', width: 'data(w)', height: 20,
+              'font-size': 10.5, 'font-weight': 700, color: cssVal('--text-dim'),
+              'text-valign': 'center', 'text-halign': 'center',
+              events: 'no',
+            } },
             { selector: 'node.hover', style: { 'border-width': 2, 'border-color': cssVal('--accent'), 'border-opacity': 1 } },
             { selector: 'edge', style: {
               'curve-style': 'taxi', 'taxi-direction': 'horizontal', 'taxi-turn': '50%',
@@ -563,6 +657,11 @@
         var cy = cytoscape({
           container: document.getElementById('cy'),
           minZoom: 0.15, maxZoom: 2.2, wheelSensitivity: 0.25,
+          // Cytoscape's own 'auto' pixel ratio under-detects on some
+          // browser/display combinations and rasterises labels at a lower
+          // backing resolution than they're shown at, which reads as blur next
+          // to the crisp DOM text around it. Force a floor of 2x.
+          pixelRatio: Math.min(3, Math.max(2, window.devicePixelRatio || 1)),
           style: styleArr(),
           elements: [],
           layout: { name: 'preset' },
@@ -577,8 +676,30 @@
           var href = editorHref(nodeById[ev.target.id()]);
           if (href) window.location.href = href;
         });
-        cy.on('mouseover', 'node', function (ev) { ev.target.addClass('hover'); });
-        cy.on('mouseout', 'node', function (ev) { ev.target.removeClass('hover'); });
+        // Node labels ellipsize in the fixed-width boxes; a hover tooltip is
+        // the only way to read the full name (or a file's full relative path)
+        // without leaving the canvas.
+        var nodeTip = document.getElementById('nodeTip');
+        var pointerX = 0, pointerY = 0;
+        document.getElementById('cy').addEventListener('mousemove', function (e) { pointerX = e.clientX; pointerY = e.clientY; });
+        function placeTip() {
+          var pad = 14, w = nodeTip.offsetWidth || 0, h = nodeTip.offsetHeight || 0;
+          var x = pointerX + pad, y = pointerY + pad;
+          if (x + w > window.innerWidth - 8) x = pointerX - w - pad;
+          if (y + h > window.innerHeight - 8) y = pointerY - h - pad;
+          nodeTip.style.left = x + 'px'; nodeTip.style.top = y + 'px';
+        }
+        cy.on('mouseover', 'node', function (ev) {
+          ev.target.addClass('hover');
+          var n = nodeById[ev.target.id()];
+          if (!n || ev.target.id().indexOf('e:') === 0) return;
+          nodeTip.textContent = n.path || n.label;
+          nodeTip.classList.add('show');
+          placeTip();
+        });
+        cy.on('mouseout', 'node', function (ev) { ev.target.removeClass('hover'); nodeTip.classList.remove('show'); });
+        cy.on('mousemove', 'node', function () { if (nodeTip.classList.contains('show')) placeTip(); });
+        cy.on('pan zoom', function () { nodeTip.classList.remove('show'); });
 
         // ---- focus: the one function that moves the whole view -----
         var focusId = null;
@@ -693,6 +814,11 @@
         function debounce(fn, ms) { var t; return function () { var a = arguments, x = this; clearTimeout(t); t = setTimeout(function () { fn.apply(x, a); }, ms); }; }
 
         // ---- toolbar ------------------------------------------
+        document.getElementById('navToggle').addEventListener('click', function () {
+          var open = document.querySelector('main').classList.toggle('nav-collapsed') === false;
+          save('nav', open ? 'open' : 'closed');
+          setTimeout(function () { cy.resize(); cy.fit(cy.elements(), 60); }, 200);
+        });
         document.getElementById('fit').addEventListener('click', function () {
           cy.animate({ fit: { eles: cy.elements(), padding: 60 }, duration: 220 });
         });
@@ -730,9 +856,12 @@
         function buildLegend() {
           var L = [['feature', 'module'], ['shared', 'shared'], ['folder', 'folder'], ['file', 'file']];
           document.getElementById('legend').innerHTML =
+            '<span class="legend-key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>Legend</span>' +
+            '<span class="legend-items">' +
             L.map(function (x) { return '<i style="--k:' + cssVal('--c-' + x[0]) + '">' + x[1] + '</i>'; }).join('') +
             '<i class="arrow" style="--k:' + cssVal('--edge-out') + '">depends on</i>' +
-            '<i class="arrow" style="--k:' + cssVal('--edge-in') + '">used by</i>';
+            '<i class="arrow" style="--k:' + cssVal('--edge-in') + '">used by</i>' +
+            '</span>';
         }
         (function () {
           var s = GRAPH.stats || {};
