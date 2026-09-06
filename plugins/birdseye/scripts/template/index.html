@@ -261,6 +261,43 @@
         background: var(--bg-panel); border: 1px solid var(--line);
         font-size: 12px; box-shadow: var(--shadow);
       }
+      /* The landing card. The root view is one box, its children, and the
+         unused frame - which answers "what is in here" and nothing else. A
+         reader arriving cold does not know how big the repo is, what it is
+         written in, or that olive means file, so the map cannot be read yet.
+         This is real content, not padding: every number on it comes from the
+         graph, and the card is absent on every view except the root. */
+      #overview {
+        position: absolute; left: 12px; top: 56px; z-index: 19;
+        width: 316px; max-height: calc(100% - 130px); overflow: auto;
+        padding: 16px 16px 14px; border-radius: 14px;
+        background: var(--sheet); border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+      #overview h2 { margin: 0 0 2px; font-size: 15px; font-weight: 700; color: var(--text); }
+      #overview .ov-sub { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+      #overview .ov-stats { display: flex; gap: 14px; margin: 14px 0 2px; flex-wrap: wrap; }
+      #overview .ov-stat { min-width: 58px; }
+      #overview .ov-num { font-size: 19px; font-weight: 700; color: var(--text); line-height: 1.1; }
+      #overview .ov-cap { font-size: 11px; color: var(--text-dim); }
+      #overview .ov-band {
+        margin-top: 14px; padding: 10px 11px; border-radius: 10px;
+        background: var(--warn-soft); border: 1px solid var(--warn);
+      }
+      #overview .ov-band-h { font-size: 12px; font-weight: 700; color: var(--warn); }
+      #overview .ov-band-p { font-size: 11.5px; color: var(--text-dim); line-height: 1.5; margin-top: 3px; }
+      #overview .ov-key { margin-top: 14px; border-top: 1px solid var(--line-soft); padding-top: 11px; }
+      #overview .ov-key-h {
+        font-size: 10.5px; font-weight: 700; letter-spacing: .07em;
+        text-transform: uppercase; color: var(--text-dim); margin-bottom: 7px;
+      }
+      #overview .ov-keys { display: flex; flex-wrap: wrap; gap: 5px 12px; }
+      #overview .ov-k { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-dim); }
+      #overview .ov-sw { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+      #overview .ov-sw.is-unused { background: transparent; border: 1.5px dashed var(--warn); }
+      /* Under the sidebar breakpoint the canvas is the scarce thing, so the
+         card gives way rather than squeezing the diagram. */
+      @media (max-width: 1180px) { #overview { display: none; } }
       .crumb a { color: var(--text-dim); cursor: pointer; text-decoration: none; padding: 1px 4px; border-radius: 5px; }
       .crumb a:hover { color: var(--text); background: var(--row-hover); }
       .crumb a:last-child { color: var(--text); font-weight: 600; }
@@ -522,6 +559,7 @@
         <div id="cy"></div>
         <svg id="flowLines" aria-hidden="true"></svg>
         <div class="crumb" id="crumb"></div>
+        <aside id="overview" hidden></aside>
         <button class="panel-toggle" id="panelToggle" type="button" aria-expanded="false" title="Show details for selected item">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>
           Details
@@ -765,6 +803,12 @@
         // Chips in the unused frame. Twelve is already more than a reader will
         // act on in one sitting; the panel holds the full list.
         var UNUSED_CAP = 12;
+        // Vertical air between stacked blocks. These were inline fractions of
+        // ROWY before, which is why a wide INSIDE grid could rise into the
+        // USED BY lane beside it: the clearance was measured to the lowest
+        // dependency NODE, not to the bottom of the frame drawn around it.
+        var LANE_CLEAR = 86;   // dependency frame bottom -> INSIDE frame top
+        var BLOCK_GAP = 104;   // INSIDE frame bottom -> NEEDS A LOOK frame top
         // A box wide enough for its name. Truncating every label to a uniform
         // width made the map unreadable on the large screens it usually opens
         // on, so each box is measured against the text it actually carries.
@@ -887,7 +931,12 @@
           // so the next block down can clear it without measuring the canvas.
           var stackBottom = ROWY * 0.9;
           if (shown.length) {
-            var depClear = (Math.max(maxSpreadRows, 1) - 1) / 2 * ROWY + ROWY * 0.9;
+            // The lane frame extends FRAME_PAD past its lowest node, and the
+            // INSIDE frame extends FRAME_PAD above its own first row, so both
+            // paddings have to be paid for or the two frames overlap on a
+            // focus with many dependencies and a wide child grid.
+            var laneBottom = (Math.max(maxSpreadRows, 1) - 1) / 2 * ROWY + NODE_H / 2 + FRAME_PAD;
+            var depClear = laneBottom + LANE_CLEAR + FRAME_PAD + NODE_H / 2;
             var boxTop = Math.max(ROWY * 1.3, depClear);
             var boxId = 'box:' + id;
             var widths = shown.map(function (cid) { return sizeFor(nodeById[cid], 'child'); });
@@ -949,7 +998,11 @@
             var uWidths = unusedKids.map(function (cid, i) { return sizeFor(nodeById[cid], 'child', uLabels[i]); });
             var uPerRow = Math.min(CHILD_PER_ROW, Math.ceil(Math.sqrt(unusedKids.length * 1.6)));
             uPerRow = Math.ceil(unusedKids.length / Math.ceil(unusedKids.length / uPerRow));
-            var uTop = stackBottom + FRAME_PAD + CHILD_ROWY * 0.75;
+            // Deliberately further from INSIDE than INSIDE's own rows are
+            // from each other. It answers a different question, and when the
+            // two blocks nearly touch it reads as a footnote to the grid
+            // rather than as a finding in its own right.
+            var uTop = stackBottom + BLOCK_GAP + FRAME_PAD;
             var uRows = [];
             for (var ui = 0; ui < unusedKids.length; ui += uPerRow) {
               var uLine = unusedKids.slice(ui, ui + uPerRow);
@@ -1017,17 +1070,32 @@
             // fill drops back, the outline turns warn-coloured and dashed.
             // Reassigning the fill to an alarm colour would have broken the
             // one rule the legend depends on.
-            { selector: 'node[dead]', style: {
+            // Dimming is carried by the FILL and the outline, never by the
+            // ink. Dim ink on a dimmed box failed the contrast floor in both
+            // themes - 3.2:1 in the light, where the hues are dark pigments
+            // on cream and the box went almost white, and 2.6:1 in the dark,
+            // which nobody had noticed. Full-strength ink on the same dimmed
+            // fill measures at worst 6.4:1 across every node hue in both
+            // themes, and the state still reads from the wash and the dashes.
+            { selector: 'node[dead][role != "focus"]', style: {
               'background-opacity': 0.34,
-              'border-width': 1.8, 'border-style': 'dashed',
+              'border-width': 2, 'border-style': 'dashed',
               'border-color': cssVal('--warn'), 'border-opacity': 1,
-              color: cssVal('--text-dim'),
+              color: cssVal('--text'),
+              // Nothing reaches it, and on the grid it is not a way in
+              // either: clicking a dead file there was a dead end that looked
+              // like a door. Deliberate routes in stay open - the NEEDS A
+              // LOOK chip for the folder that holds it, and the panel list
+              // that names every one with its path - and a dead file opened
+              // that way is a normal focus node, which is why this excludes
+              // the focus role rather than the node.
+              events: 'no',
             } },
             { selector: 'node[role="unused"]', style: {
               'background-opacity': 0.34,
-              'border-width': 1.6, 'border-style': 'dashed',
+              'border-width': 1.8, 'border-style': 'dashed',
               'border-color': cssVal('--warn'), 'border-opacity': 1,
-              color: cssVal('--text-dim'),
+              color: cssVal('--text'),
             } },
             // Frame backdrops - plain sized rectangles (not compound
             // parents), sized in JS from their members' actual bounding
@@ -1087,6 +1155,43 @@
           elements: [],
           layout: { name: 'preset' },
         });
+
+        // ---- marching ants on flagged nodes ------------------------
+        // A dashed amber outline says "flagged" but sits still, and on a map
+        // full of dashed frames a reader's eye skims past it. Travelling the
+        // dashes reads as attention without touching the label, which is the
+        // line the design system draws: an effect that makes a label harder
+        // to read at a glance loses. It is the same trick the import-flow
+        // pulse already uses, so the viewer only teaches one motion idea.
+        var antsTimer = null;
+        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        function startAnts() {
+          if (antsTimer || (reduceMotion && reduceMotion.matches)) return;
+          var offset = 0;
+          antsTimer = setInterval(function () {
+            // Nothing to animate off-screen, and a background tab should not
+            // be spending frames on decoration.
+            if (document.hidden) return;
+            var flagged = cy.nodes('[?dead], [role="unused"]');
+            if (!flagged.length) return;
+            offset = (offset + 1) % 64;
+            cy.batch(function () { flagged.style('border-dash-offset', -offset); });
+          }, 90);
+        }
+
+        function stopAnts() {
+          if (!antsTimer) return;
+          clearInterval(antsTimer);
+          antsTimer = null;
+        }
+
+        if (reduceMotion && reduceMotion.addEventListener) {
+          reduceMotion.addEventListener('change', function () {
+            if (reduceMotion.matches) stopAnts();
+            else startAnts();
+          });
+        }
 
         // ---- visible import flow -----------------------------------
         // The lane geometry deliberately uses model positions instead of
@@ -1278,6 +1383,11 @@
         function focus(id) {
           if (!nodeById[id]) return;
           focusId = id;
+          // Landing card only on the landing view. Anywhere else the canvas
+          // and the panel already answer what it would say, and it would just
+          // be cover over the diagram.
+          var ov = document.getElementById('overview');
+          if (ov) ov.hidden = id !== ROOT_ID;
           ancestry(id).forEach(function (a) { openTree[a] = 1; });
           persistOpen();
           renderTree();
@@ -1475,6 +1585,16 @@
           return count + ' ' + noun + (count === 1 ? '' : 's');
         }
         function relationSummary(n, outCount, incCount, hiddenKids) {
+          // The root imports nothing, because it is not a file - so the
+          // generic sentence came out as "src has no tracked file imports",
+          // which is true, useless, and the first thing a reader ever saw.
+          // At this level the useful answer is what the repo is made of.
+          if (n.type === 'root' || n.type === 'zone') {
+            var mods = (childrenOf[n.id] || []).length;
+            var bits = [countPhrase(mods, n.type === 'root' ? 'top-level area' : 'module')];
+            if (n.meta && n.meta.descendantFiles) bits.push(countPhrase(n.meta.descendantFiles, 'file'));
+            return 'Holds ' + bits.join(' and ') + '. Open one to see what it depends on.';
+          }
           var own = n.type === 'file' ? 'This file' : n.label;
           var related = n.type === 'file' ? 'file' : 'module';
           var parts = [];
@@ -1657,6 +1777,63 @@
             unusedKey +
             '</span>';
         }
+        // The landing card. Shown on the root view only, because that is the
+        // one view where the canvas cannot answer "how big is this, what is it
+        // written in, and what does the colour mean". Every figure is read off
+        // the graph; nothing here is invented to fill the space.
+        function buildOverview() {
+          var st = GRAPH.stats || {};
+          var root = nodeById[ROOT_ID];
+          var areas = (childrenOf[ROOT_ID] || []).length;
+          var langs = (st.languages || []).slice(0, 4).join(', ');
+          var entries = (root.meta && root.meta.entryPoints) || [];
+
+          var stats = [
+            [areas, areas === 1 ? 'top-level area' : 'top-level areas'],
+            [st.files || 0, 'files'],
+            [st.dependEdges || 0, 'imports'],
+          ];
+          var html =
+            '<h2>' + esc((GRAPH.repo && GRAPH.repo.name) || 'repo') + '</h2>' +
+            '<div class="ov-sub">' + esc(langs || 'no parsed languages') +
+            (entries.length ? ' · starts at ' + esc(splitPath(entries[0]).name) : '') + '</div>' +
+            '<div class="ov-stats">' + stats.map(function (x) {
+              return '<div class="ov-stat"><div class="ov-num">' + x[0] +
+                '</div><div class="ov-cap">' + esc(x[1]) + '</div></div>';
+            }).join('') + '</div>';
+
+          // The count alone reads as an accusation. The doubt ships with it,
+          // the same way the panel callout does, because an import graph
+          // cannot see a dynamic import or a route table built from strings.
+          var dead = deadTotal();
+          if (dead) {
+            var worst = (childrenOf[ROOT_ID] || [])
+              .map(function (cid) { return [nodeById[cid].label, deadCount(cid)]; })
+              .filter(function (x) { return x[1] > 0; })
+              .sort(function (a, b) { return b[1] - a[1]; })
+              .slice(0, 3);
+            html += '<div class="ov-band"><div class="ov-band-h">' +
+              countPhrase(dead, 'file') + ' nothing reaches</div>' +
+              '<div class="ov-band-p">' +
+              (worst.length ? 'Mostly in ' + worst.map(function (w) {
+                return esc(w[0]) + ' (' + w[1] + ')';
+              }).join(', ') + '. ' : '') +
+              'A lead, not a verdict - anything loaded dynamically is invisible here.' +
+              '</div></div>';
+          }
+
+          var keys = [['feature', 'module'], ['folder', 'folder'], ['file', 'file']];
+          html += '<div class="ov-key"><div class="ov-key-h">What the colours mean</div><div class="ov-keys">' +
+            keys.map(function (k) {
+              return '<span class="ov-k"><span class="ov-sw" style="background:' +
+                cssVal('--c-' + k[0]) + '"></span>' + k[1] + '</span>';
+            }).join('') +
+            (dead ? '<span class="ov-k"><span class="ov-sw is-unused"></span>nothing reaches it</span>' : '') +
+            '</div></div>';
+
+          document.getElementById('overview').innerHTML = html;
+        }
+
         (function () {
           var s = GRAPH.stats || {};
           document.getElementById('repoName').textContent = (GRAPH.repo && GRAPH.repo.name) || 'repo';
@@ -1667,6 +1844,7 @@
             (s.deadFiles ? '<b class="sub-warn" title="Files no import path reaches">' +
               s.deadFiles + ' unused</b>' : '');
           buildLegend();
+          buildOverview();
         })();
 
         var hintEl = document.getElementById('hint'), hintT;
@@ -1677,6 +1855,7 @@
 
         renderTree();
         focus(ROOT_ID);
+        startAnts();
         // Box widths are measured with the real map font. If the vendored
         // face is still decoding at first paint the measurement falls back to
         // a system metric, so re-lay the map out once it is actually ready.

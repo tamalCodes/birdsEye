@@ -25,6 +25,7 @@ main
     +-- #cy          Cytoscape canvas, dot grid at 26px
     +-- #flowLines   SVG overlay: import flow curves, arrows, pulses
     +-- .crumb       top-left breadcrumb
+    +-- #overview    landing card, root view only
     +-- .legend      bottom-left, collapsed to a pill until hover
     +-- #panel       top-right detail sheet, 420px
     +-- .hint        bottom-centre transient toast
@@ -49,6 +50,8 @@ All constants live together near the top of the canvas section of the template.
 | `CHILD_ROWY` | `62` | Row pitch inside the INSIDE frame |
 | `CHILD_PER_ROW` | `6` | Upper bound on children per row |
 | `UNUSED_CAP` | `12` | Maximum chips drawn in the NEEDS A LOOK frame |
+| `LANE_CLEAR` | `86` | Air between a dependency lane's frame bottom and the INSIDE frame |
+| `BLOCK_GAP` | `104` | Air between the INSIDE frame and the NEEDS A LOOK frame |
 | `LABEL_CAP` | `260` | Widest a node box may get before its label ellipses |
 | `LABEL_PAD` | `30` | Text width plus this equals box width |
 
@@ -72,6 +75,10 @@ That keeps a member drag a normal free drag with nothing auto-resizing around it
 **The INSIDE frame is a packed, balanced grid.**
 Children sit below the focus, clear of the tallest dependency lane, so no in/out edge cuts through a child node.
 
+Clearance is measured to the **bottom of the lane's frame**, not to its lowest node, and pays for the INSIDE frame's own top padding as well.
+Measuring to the node was a real bug: a focus with nine dependencies and a wide child grid drew the two frames overlapping, because each one extends `FRAME_PAD` past the nodes it wraps and neither padding was accounted for.
+`LANE_CLEAR` is the air on top of that.
+
 The packing contract, which is the fix for the sparse-block problem:
 
 1. Rows are balanced, not greedily filled. `perRow` starts at `min(CHILD_PER_ROW, ceil(sqrt(n * 1.6)))` and is then rounded down to the balanced value, so eight children read as 4 + 4 and never 3 + 3 + 2.
@@ -93,13 +100,30 @@ Its contract:
 2. A child that is itself an unused file is skipped, because the INSIDE grid above already draws it dimmed and warn-outlined. Saying it twice on one screen is worse than saying it once.
 3. A chip is a stand-in, not a node. Its id is `unused:<targetId>`, it carries `jump`, and tapping it focuses the target - which then shows its own NEEDS A LOOK frame, one level down, until the files themselves are the chips.
 4. No connector line runs down to it. The INSIDE edge means containment; this frame is an annotation, and an identical line would have to cross the INSIDE block to reach it and would claim something untrue on arrival.
-5. It uses the same packing rules as INSIDE (balanced rows, real measured widths, `CHILD_GAP`, `CHILD_ROWY`), so the two blocks read as one column.
+5. It uses the same packing rules as INSIDE (balanced rows, real measured widths, `CHILD_GAP`, `CHILD_ROWY`).
+6. It sits `BLOCK_GAP` below INSIDE - deliberately more air than INSIDE's own row pitch. The two blocks answer different questions, and when they nearly touch this one reads as a footnote to the grid rather than as a finding of its own. Earlier it was separated by a fraction of `CHILD_ROWY` and looked stuck to the block above it.
 
 ## 5. Unused Code
 
 Unused is a **state, not a type**, and the viewer's whole colour contract depends on keeping those separate.
-So an unused node keeps its type hue and changes only its treatment: fill drops to `0.34` opacity, the border turns dashed `--warn`, the label ink drops to `--text-dim`.
+So an unused node keeps its type hue and changes only its treatment: fill drops to `0.34` opacity and the border turns dashed `--warn`.
 Recolouring the fill to an alarm colour is forbidden - it would break the one rule the legend rests on.
+
+**The dimming is carried by the fill and the outline, never by the ink.**
+The label stays at full-strength `--text`.
+Dim ink on a dimmed box failed the contrast floor in both themes and was measured at 3.2:1 in the light, where these hues are dark pigments on cream and the box washed out to near-white, and 2.6:1 in the dark.
+Full-strength ink on the same dimmed fill measures at worst 6.4:1 across every node hue in both themes, and the state still reads from the wash, the dashes and the motion.
+Re-check with a contrast calculation, not by eye, if either value is ever touched.
+
+**An unused node is inert on the grid.**
+`events: 'no'`, scoped with `[role != "focus"]`.
+Clicking one was a dead end that looked like a door: it is unreachable by definition, so there is nothing to explore from it.
+The deliberate routes in stay open - the NEEDS A LOOK chip for the folder that holds it, and the panel list that names every unused file with its path - and a file opened that way is a normal focus node.
+
+**Flagged nodes run marching ants.**
+The dashed `--warn` outline travels, at `90ms` per step over a 64-unit cycle, driven by `border-dash-offset` on the flagged nodes only.
+A static dashed outline gets skimmed past on a map that already uses dashes for every frame.
+The animation never touches the label, which is the line the design system draws, and it stops under `prefers-reduced-motion` and while the tab is hidden.
 
 Where the state surfaces, in the order a reader meets it:
 
@@ -110,10 +134,31 @@ Where the state surfaces, in the order a reader meets it:
 | Canvas | dimmed, dashed warn outline on the node; NEEDS A LOOK frame under INSIDE |
 | Detail panel | `.p-warn` callout on an unused file; "Nothing reaches these" section on a container |
 | Legend | dashed warn key, shown only when the repo has unused code |
+| Landing card | count, the three worst areas by count, and the doubt |
 
 **Every verdict ships with its doubt.**
 The panel callout is two lines: what was found, then why it might be wrong (a dynamic import, a route table, a worker loaded by URL).
 An import graph cannot see those, so the finding is a lead, never a licence to delete, and the copy has to say so or the reader will over-trust it.
+
+## 5a. The Landing Card
+
+`#overview` is a 316px card at the top-left of the stage, shown **only** on the root view and hidden on every other focus.
+
+The root view is one box, its children, and the unused frame.
+That answers "what is in here" and nothing else, so a reader arriving cold cannot tell how big the repo is, what it is written in, or that olive means file - the colour language was only in the legend, which is collapsed to a corner pill until hovered.
+
+It carries three bands, in this order:
+
+1. **What this is** - repo name, parsed languages, and the entry point it starts at.
+2. **Shape** - top-level areas, files, import count.
+3. **What needs attention** - the unused count, the three areas holding most of it, and the doubt that ships with every unused verdict.
+4. **What the colours mean** - a permanent key for module, folder, file, and the dashed unused outline.
+
+Every figure is read off the graph.
+This card is the one place the density rule is easy to break, so: it is real content, never padding.
+If a repo has no unused code that band is absent, exactly like the NEEDS A LOOK frame.
+
+It hides below `1180px`, where the canvas becomes the scarce thing and chrome gives way rather than squeezing the diagram.
 
 ## 6. Labels
 

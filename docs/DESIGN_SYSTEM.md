@@ -69,6 +69,8 @@ Node hues carry meaning and must not be reassigned for looks:
 `--warn` is the one accent that is not clay, and it earns that by never competing with clay: clay marks what you selected, amber marks what needs a look.
 It is a **state** colour and must never be used as a node fill.
 An unused node keeps its type hue and is drawn back to `0.34` opacity with a dashed `--warn` border - so the hue still answers "what is this" while the outline answers "does anything reach it".
+The **ink stays full strength**: dimming the label as well failed the contrast floor in both themes (3.2:1 light, 2.6:1 dark) and was measured, not eyeballed.
+Dim a state with fill and outline, never by weakening the text on top of it.
 
 Mapping lives in `colorVar()` in the template.
 Node label ink is computed per node by `idealText()` against the node fill, never hard-coded.
@@ -165,6 +167,7 @@ Motion is short, functional, and used to explain a state change.
 - Theme flip: `340ms`. Color transitions are switched on only for the moment around the flip via the `.theming` class, so ordinary hovers and re-renders stay instant.
 - Theme icon swap: `420ms` on `cubic-bezier(.34, 1.3, .5, 1)`. The sun and moon share one slot and arc past each other, so the switch reads as a state change instead of an icon blinking out.
 - Import flow pulse: `1.35s` linear, infinite, `stroke-dasharray: 2 12`.
+- Marching ants on flagged nodes: `90ms` per step, infinite, driven by `border-dash-offset`. It marks attention on a map that already uses dashes everywhere, and it never touches a label - an effect that makes a label harder to read loses. It also pauses while the tab is hidden.
 
 Every animation must have a `prefers-reduced-motion: reduce` escape, and the viewer already gates the theme swap, the color transition, the canvas fade, and the flow pulse.
 Nothing may animate layout size on a per-frame basis; the canvas repositions in one step.
