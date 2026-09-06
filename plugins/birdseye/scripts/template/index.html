@@ -295,6 +295,7 @@
       #overview .ov-k { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-dim); }
       #overview .ov-sw { width: 11px; height: 11px; border-radius: 3px; flex: none; }
       #overview .ov-sw.is-unused { background: transparent; border: 1.5px dashed var(--warn); }
+      #overview .ov-sw.is-line { width: 14px; height: 2px; border-radius: 0; }
       /* Under the sidebar breakpoint the canvas is the scarce thing, so the
          card gives way rather than squeezing the diagram. */
       @media (max-width: 1180px) { #overview { display: none; } }
@@ -302,30 +303,6 @@
       .crumb a:hover { color: var(--text); background: var(--row-hover); }
       .crumb a:last-child { color: var(--text); font-weight: 600; }
       .crumb i { color: var(--line-strong); font-style: normal; }
-
-      .legend {
-        position: absolute; left: 12px; bottom: 12px; z-index: 20;
-        background: var(--bg-panel); border: 1px solid var(--line);
-        border-radius: 999px; box-shadow: var(--shadow);
-        font-size: 11px; color: var(--text-dim);
-        overflow: hidden; transition: border-radius .15s;
-      }
-      .legend > .legend-key {
-        display: inline-flex; align-items: center; gap: 5px;
-        padding: 5px 10px; cursor: default; user-select: none; color: var(--text-dim);
-      }
-      .legend > .legend-key svg { width: 12px; height: 12px; opacity: .7; }
-      .legend .legend-items {
-        display: none; flex-wrap: wrap; gap: 4px 12px; max-width: 320px;
-        padding: 4px 11px 9px;
-      }
-      .legend:hover { border-radius: 12px; }
-      .legend:hover .legend-key { display: none; }
-      .legend:hover .legend-items { display: flex; }
-      .legend i { display: inline-flex; align-items: center; gap: 5px; font-style: normal; }
-      .legend i::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--k, var(--text-dim)); }
-      .legend .arrow::before { width: 14px; height: 2px; border-radius: 0; }
-      .legend .warn::before { background: transparent; border: 1.5px dashed var(--warn); }
 
       /* ---- detail panel -------------------------------------------- */
       #panel {
@@ -514,7 +491,6 @@
           width: auto; max-width: none; max-height: 68vh;
         }
         .panel-toggle { top: 52px; right: 8px; }
-        .legend { display: none; }
         .hint { bottom: auto; top: calc(var(--header-h) + 44px); }
       }
 
@@ -564,7 +540,6 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>
           Details
         </button>
-        <div class="legend" id="legend"></div>
         <div class="hint" id="hint"></div>
         <div class="node-tip" id="nodeTip"></div>
         <aside id="panel">
@@ -1069,7 +1044,7 @@
             // thing is and only the treatment says nothing reaches it: the
             // fill drops back, the outline turns warn-coloured and dashed.
             // Reassigning the fill to an alarm colour would have broken the
-            // one rule the legend depends on.
+            // one rule the colour key depends on.
             // Dimming is carried by the FILL and the outline, never by the
             // ink. Dim ink on a dimmed box failed the contrast floor in both
             // themes - 3.2:1 in the light, where the hues are dark pigments
@@ -1756,7 +1731,7 @@
           else { root.setAttribute('data-theme', 'light'); save('theme', 'light'); }
           setTimeout(function () {
             cy.style().resetToDefault().fromJson(styleArr()).update();
-            renderTree(); buildLegend();
+            renderTree(); buildOverview();
             if (focusId) { drawCrumb(focusId); }
             stage.classList.remove('theming-fade');
           }, 180);
@@ -1764,19 +1739,7 @@
           themeT = setTimeout(function () { root.classList.remove('theming'); }, 480);
         });
 
-        // ---- legend + subtitle -------------------------------
-        function buildLegend() {
-          var L = [['feature', 'module'], ['shared', 'shared'], ['folder', 'folder'], ['file', 'file']];
-          var unusedKey = deadTotal() ? '<i class="warn">unused</i>' : '';
-          document.getElementById('legend').innerHTML =
-            '<span class="legend-key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>Legend</span>' +
-            '<span class="legend-items">' +
-            L.map(function (x) { return '<i style="--k:' + cssVal('--c-' + x[0]) + '">' + x[1] + '</i>'; }).join('') +
-            '<i class="arrow" style="--k:' + cssVal('--edge-out') + '">depends on</i>' +
-            '<i class="arrow" style="--k:' + cssVal('--edge-in') + '">used by</i>' +
-            unusedKey +
-            '</span>';
-        }
+        // ---- subtitle + landing card -------------------------
         // The landing card. Shown on the root view only, because that is the
         // one view where the canvas cannot answer "how big is this, what is it
         // written in, and what does the colour mean". Every figure is read off
@@ -1822,11 +1785,20 @@
               '</div></div>';
           }
 
-          var keys = [['feature', 'module'], ['folder', 'folder'], ['file', 'file']];
+          // This is the only colour key in the viewer now, so it carries the
+          // whole language - node hues and both flow directions. The corner
+          // legend that used to hold the arrows and the shared hue is gone;
+          // two keys on one screen said the same thing twice.
+          var keys = [['feature', 'module'], ['shared', 'shared'], ['folder', 'folder'], ['file', 'file']];
+          var arrows = [['--edge-out', 'depends on'], ['--edge-in', 'used by']];
           html += '<div class="ov-key"><div class="ov-key-h">What the colours mean</div><div class="ov-keys">' +
             keys.map(function (k) {
               return '<span class="ov-k"><span class="ov-sw" style="background:' +
                 cssVal('--c-' + k[0]) + '"></span>' + k[1] + '</span>';
+            }).join('') +
+            arrows.map(function (a) {
+              return '<span class="ov-k"><span class="ov-sw is-line" style="background:' +
+                cssVal(a[0]) + '"></span>' + a[1] + '</span>';
             }).join('') +
             (dead ? '<span class="ov-k"><span class="ov-sw is-unused"></span>nothing reaches it</span>' : '') +
             '</div></div>';
@@ -1843,7 +1815,6 @@
               (s.languages || []).slice(0, 6).join(', ')) +
             (s.deadFiles ? '<b class="sub-warn" title="Files no import path reaches">' +
               s.deadFiles + ' unused</b>' : '');
-          buildLegend();
           buildOverview();
         })();
 

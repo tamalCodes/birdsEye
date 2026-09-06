@@ -124,7 +124,7 @@ Viewer type scale, as shipped:
 - Panel title: `18px / 700`.
 - Tree row label: `13px`; module rows go `600`.
 - Section heads, panel meta, dep rows: `12px`.
-- Section eyebrows, counts, legend, path: `10.5px` to `11px`, uppercase eyebrows get `.07em` letter-spacing.
+- Section eyebrows, counts, colour key, path: `10.5px` to `11px`, uppercase eyebrows get `.07em` letter-spacing.
 - Canvas node label: `14px / 600`; the focus node gets `15.5px / 700`.
 
 Rules:
@@ -141,7 +141,7 @@ Radii, as shipped:
 - `6px` mini buttons and tree affordances.
 - `8px` to `9px` toolbar buttons, chips, breadcrumb.
 - `14px` detail panel.
-- `999px` pills: hint toast, legend, tags.
+- `999px` pills: hint toast, tags.
 
 Spacing uses a 4px base.
 Common steps are 4, 6, 8, 10, 12, 16, 20, 22.
@@ -150,7 +150,7 @@ Borders are 1px hairlines at `--line`, moving to `--line-strong` on hover.
 Containment frames on the canvas use a 1.2px dashed `--line-strong`.
 
 Elevation is a single token, `--shadow`.
-Anything floating over the canvas (panel, breadcrumb, legend, tooltip, hint) gets exactly that shadow and a `--line` hairline.
+Anything floating over the canvas (panel, breadcrumb, landing card, tooltip, hint) gets exactly that shadow and a `--line` hairline.
 There is no second elevation level.
 
 Control sizing in the viewer header:

@@ -26,7 +26,6 @@ main
     +-- #flowLines   SVG overlay: import flow curves, arrows, pulses
     +-- .crumb       top-left breadcrumb
     +-- #overview    landing card, root view only
-    +-- .legend      bottom-left, collapsed to a pill until hover
     +-- #panel       top-right detail sheet, 420px
     +-- .hint        bottom-centre transient toast
 ```
@@ -107,7 +106,7 @@ Its contract:
 
 Unused is a **state, not a type**, and the viewer's whole colour contract depends on keeping those separate.
 So an unused node keeps its type hue and changes only its treatment: fill drops to `0.34` opacity and the border turns dashed `--warn`.
-Recolouring the fill to an alarm colour is forbidden - it would break the one rule the legend rests on.
+Recolouring the fill to an alarm colour is forbidden - it would break the one rule the colour key rests on.
 
 **The dimming is carried by the fill and the outline, never by the ink.**
 The label stays at full-strength `--text`.
@@ -133,7 +132,6 @@ Where the state surfaces, in the order a reader meets it:
 | Sidebar row | `--warn` count badge on any container; strikethrough label on an unused file |
 | Canvas | dimmed, dashed warn outline on the node; NEEDS A LOOK frame under INSIDE |
 | Detail panel | `.p-warn` callout on an unused file; "Nothing reaches these" section on a container |
-| Legend | dashed warn key, shown only when the repo has unused code |
 | Landing card | count, the three worst areas by count, and the doubt |
 
 **Every verdict ships with its doubt.**
@@ -145,14 +143,20 @@ An import graph cannot see those, so the finding is a lead, never a licence to d
 `#overview` is a 316px card at the top-left of the stage, shown **only** on the root view and hidden on every other focus.
 
 The root view is one box, its children, and the unused frame.
-That answers "what is in here" and nothing else, so a reader arriving cold cannot tell how big the repo is, what it is written in, or that olive means file - the colour language was only in the legend, which is collapsed to a corner pill until hovered.
+That answers "what is in here" and nothing else, so a reader arriving cold cannot tell how big the repo is, what it is written in, or that olive means file.
+The colour language used to live in a corner legend pill that stayed collapsed until hovered, which meant most readers never saw it.
 
 It carries three bands, in this order:
 
 1. **What this is** - repo name, parsed languages, and the entry point it starts at.
 2. **Shape** - top-level areas, files, import count.
 3. **What needs attention** - the unused count, the three areas holding most of it, and the doubt that ships with every unused verdict.
-4. **What the colours mean** - a permanent key for module, folder, file, and the dashed unused outline.
+4. **What the colours mean** - the whole language in one place: module, shared, folder and file hues, both flow directions, and the dashed unused outline.
+
+This card holds **the only colour key in the viewer**.
+The bottom-left legend was removed on 6 September 2026: once the card carried a permanent key, two keys on one screen said the same thing twice, and the legend was the one a reader had to discover and hover.
+Anything added to the colour language has to be added here, or it goes unexplained.
+The trade is that a reader who drills into a module no longer has a key on screen; they have come through the root view to get there, and the design system's rule that hue is never the only signal still holds - every node carries its label and its position.
 
 Every figure is read off the graph.
 This card is the one place the density rule is easy to break, so: it is real content, never padding.
@@ -182,7 +186,7 @@ Three progressive steps, in this order:
 | Breakpoint | Change |
 | --- | --- |
 | `<= 1040px` | Sidebar narrows to 260px; breadcrumb width tightens |
-| `<= 760px` | Header tightens; sidebar floats over the canvas as a drawer with a scrim; detail panel drops to a bottom sheet at `max-height: 68vh`; legend hides; hint moves under the header |
+| `<= 760px` | Header tightens; sidebar floats over the canvas as a drawer with a scrim; detail panel drops to a bottom sheet at `max-height: 68vh`; hint moves under the header |
 | `<= 420px` | Header shrinks to 52px; brand text hides, mark stays |
 
 The rule behind the tiers: never squeeze the diagram to keep chrome in place.
