@@ -3,7 +3,6 @@
 // from the importing file's package. Edges are exact files.
 
 import path from 'node:path';
-import { stripHashComments } from '../comments.mjs';
 
 const dir = (rel) => path.posix.dirname(rel);
 const join = (...p) => path.posix.join(...p).replace(/^\.\//, '');
@@ -14,49 +13,9 @@ const join = (...p) => path.posix.join(...p).replace(/^\.\//, '');
 
 export default {
   id: 'python',
+  langs: ['python'],
   extensions: ['.py'],
   detect: () => true,
-
-  extractImports(src) {
-    const code = stripHashComments(src).replace(/\\\n/g, ' ');
-    const out = [];
-    const seen = new Set();
-    // `weak` = a `from X import name` candidate where `name` might be a
-    // submodule or might just be a symbol. If it does not resolve to a file it
-    // is a symbol, not a broken import - never reported as unresolved.
-    const add = (spec, weak) => {
-      if (spec && !seen.has(spec)) {
-        seen.add(spec);
-        const kind = weak ? 'weak' : spec.startsWith('.') ? 'relative' : 'absolute';
-        out.push({ spec, kind });
-      }
-    };
-
-    for (const raw of code.split('\n')) {
-      const line = raw.trim();
-      let m = line.match(/^import\s+(.+)$/);
-      if (m) {
-        for (const part of m[1].split(',')) {
-          const name = part.trim().split(/\s+as\s+/)[0].trim();
-          if (/^[\w.]+$/.test(name)) add(name);
-        }
-        continue;
-      }
-      m = line.match(/^from\s+(\.*[\w.]*)\s+import\s+(.+)$/);
-      if (m) {
-        const base = m[1];
-        add(base);
-        const tail = m[2].replace(/[()]/g, '');
-        for (const part of tail.split(',')) {
-          const name = part.trim().split(/\s+as\s+/)[0].trim();
-          if (name && name !== '*' && /^\w+$/.test(name)) {
-            add(base.endsWith('.') || base === '' ? `${base}${name}` : `${base}.${name}`, true);
-          }
-        }
-      }
-    }
-    return out;
-  },
 
   createResolver(root, { allFiles }) {
     const pySet = new Set(allFiles.filter((f) => f.endsWith('.py')));

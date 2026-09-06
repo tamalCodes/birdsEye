@@ -7,7 +7,7 @@ description: Build or refresh a birdsEye repository map from Codex. Use when the
 
 Build or refresh the interactive code-structure map for the current repository.
 This runs entirely locally and calls no model.
-Extraction is graphify's tree-sitter AST parse through the birdsEye scripts.
+Extraction is birdsEye's own tree-sitter parse, through the birdsEye scripts.
 
 ## Inputs
 
@@ -57,7 +57,7 @@ node "<plugin-root>/scripts/init.mjs" gitignore
 
 Never ask both setup questions together.
 
-If `python.ready` is false, tell the user the first run needs Python 3.10+ and will create `birdseye/.cache/py/` plus install `graphifyy` once.
+If `python.ready` is false, tell the user the first run needs Python 3.10+ and will create `birdseye/.cache/py/` plus install tree-sitter and its language grammars once.
 If no Python 3.10+ is found, stop and tell the user to install Python 3.10+.
 
 2. Scan folder taxonomy:
@@ -73,7 +73,7 @@ node "<plugin-root>/scripts/ast.mjs"
 ```
 
 Add `--force` if requested.
-If this fails with a Python or graphify error, relay the message and stop.
+If this fails with a Python or tree-sitter error, relay the message and stop.
 
 4. Build and render:
 
@@ -85,5 +85,5 @@ node "<plugin-root>/scripts/render.mjs"
 ## Report
 
 Print the absolute path to `birdseye/index.html`.
-Then summarize the key `build.mjs` output: module count, folder count, file count, dependency edge count, parsed languages, graphify version, and any unresolved or failed counts.
+Then summarize the key `build.mjs` output: module count, folder count, file count, dependency edge count, parsed languages, extractor version, and any unresolved or failed counts.
 Do not invent nodes, edges, route data, docs, or model-backed analysis.

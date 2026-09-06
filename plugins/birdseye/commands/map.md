@@ -11,8 +11,8 @@ of its modules, the folders and files inside them, and the dependency arrows
 between them.
 
 **This runs entirely locally and calls no model. Zero tokens.** Extraction is
-graphify's tree-sitter AST parse (a Python package birdsEye installs into its
-own managed virtualenv on the first run); everything else is plain Node.
+birdsEye's own tree-sitter parse (Python, installed into a managed virtualenv on
+the first run); everything else is plain Node.
 
 Arguments: `$ARGUMENTS`
 
@@ -51,9 +51,9 @@ Never write either file without an answer to its own question.
 
 The `status` output also carries a `python` block. If `python.ready` is false,
 tell the user what the first run will do before you start it: birdsEye needs
-Python 3.10+ and will create a virtualenv under `birdseye/.cache/py/` and
-`pip install graphifyy` into it (a one-time download of tree-sitter grammars,
-tens of seconds). If `python.found` is false entirely, stop and tell the user to
+Python 3.10+ and will create a virtualenv under `birdseye/.cache/py/` and install
+tree-sitter plus one grammar per language into it (a one-time download, tens of
+seconds). If `python.found` is false entirely, stop and tell the user to
 install Python 3.10+ (and ideally [`uv`](https://docs.astral.sh/uv/)); there is
 nothing to run without it.
 
@@ -79,10 +79,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/ast.mjs"
 
 Pass `--force` through if the user gave it. On the first run this also sets up
 the Python virtualenv described in step 1 - if it prints a message about
-installing graphify, that is expected and happens once. graphify keeps its own
+installing tree-sitter, that is expected and happens once. The extractor keeps a
 per-file content-hash cache, so a re-run only re-parses what changed.
 
-If this step fails with a Python or graphify error, relay the message verbatim
+If this step fails with a Python or tree-sitter error, relay the message verbatim
 and stop - the rest of the pipeline has nothing to work with.
 
 ## 4. Build and render
@@ -103,13 +103,12 @@ Print the absolute path of the generated HTML, then one short paragraph from
 
 - module count split into feature and general-purpose, folder count, file count,
   dependency-edge count
-- which languages got parsed (`languages:` line) and the graphify version
+- which languages got parsed (`languages:` line) and the extractor version
 - if any modules are marked "unsure", say so in one clause: birdsEye could not
   tell feature from infrastructure for them and defaulted to feature; the user
   can fix that in `structure.json`
 - if `unresolved` refs or `failed` files are non-zero, mention the count plainly
-  - an import graphify could not resolve to a file, or a file its grammar could
-  not parse
+  - an import that resolved to no file, or a file the parser could not read
 
 Do not summarise the architecture. The map is the deliverable; the point is that
 the user opens it rather than reads a description of it.

@@ -10,12 +10,9 @@
 // `std`/`core`/`alloc` and external crates resolve to `external`.
 
 import path from 'node:path';
-import { stripCLikeComments } from '../comments.mjs';
 
 const dir = (rel) => path.posix.dirname(rel);
 const stem = (rel) => path.posix.basename(rel).replace(/\.rs$/, '');
-const MOD_RE = /\b(?:pub\s*(?:\([^)]*\)\s*)?)?mod\s+([A-Za-z_]\w*)\s*;/g;
-const USE_RE = /\b(?:pub\s*(?:\([^)]*\)\s*)?)?use\s+([^;]+);/g;
 
 /** Flatten `use a::b::{c, d::e, self};` into `['a::b::c','a::b::d::e','a::b']`. */
 function expandUse(raw) {
@@ -56,29 +53,26 @@ function expandUse(raw) {
 
 export default {
   id: 'rust',
+  langs: ['rust'],
   extensions: ['.rs'],
   detect: () => true,
 
-  extractImports(src) {
-    const code = stripCLikeComments(src);
+  // The extractor hands over a `use` declaration's argument exactly as written,
+  // because flattening `use a::{b, c::d}` into concrete paths is resolution
+  // work, not parsing work. `mod x;` needs no expansion.
+  expand(imports) {
     const out = [];
-    const seen = new Set();
-    const add = (spec, kind) => {
-      const k = `${kind} ${spec}`;
-      if (!seen.has(k)) {
-        seen.add(k);
-        out.push({ spec, kind });
+    for (const imp of imports) {
+      if (imp.kind !== 'use-raw') {
+        out.push(imp);
+        continue;
       }
-    };
-    let m;
-    MOD_RE.lastIndex = 0;
-    while ((m = MOD_RE.exec(code))) add(`mod ${m[1]}`, 'relative');
-    USE_RE.lastIndex = 0;
-    while ((m = USE_RE.exec(code))) for (const p of expandUse(m[1])) add(p, 'namespace');
+      for (const spec of expandUse(imp.spec)) out.push({ spec, kind: 'namespace' });
+    }
     return out;
   },
 
-  createResolver(root, { allFiles, readFile }) {
+  createResolver(root, { allFiles, importsOf }) {
     const rsSet = new Set(allFiles.filter((f) => f.endsWith('.rs')));
 
     const crateRoots = [];
@@ -112,14 +106,13 @@ export default {
       if (rsSet.has(b)) return b;
       return null;
     };
-    const modsIn = (file) => {
-      const code = stripCLikeComments(readFile(file) || '');
-      const names = [];
-      let m;
-      const re = new RegExp(MOD_RE.source, 'g');
-      while ((m = re.exec(code))) names.push(m[1]);
-      return names;
-    };
+    // Straight from the parse: every `mod x;` the extractor saw in this file.
+    // A commented-out or string-literal `mod` never reaches here, which a
+    // regex over the source could not promise.
+    const modsIn = (file) =>
+      importsOf(file)
+        .filter((i) => i.spec.startsWith('mod '))
+        .map((i) => i.spec.slice(4));
 
     const pathToFile = new Map();
     const fileToPath = new Map();

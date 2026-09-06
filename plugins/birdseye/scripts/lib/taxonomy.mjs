@@ -231,7 +231,7 @@ export function analyzeStructure(root, { ignore = [], routes = null } = {}) {
   if (!codeRoots.length) {
     const named = CODE_ROOT_NAMES.filter((n) => codeIn(n) >= 3).sort((a, b) => codeIn(b) - codeIn(a));
     // A Python package dir (holds __init__.py) is a strong code-root signal that
-    // no conventional name covers - `graphify/`, `mypkg/` and the like.
+    // no conventional name covers - `mypkg/`, `yourlib/` and the like.
     const pyPkg = childrenOf('')
       .filter(
         (d) =>

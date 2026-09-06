@@ -6,7 +6,7 @@ description: Find the spec and doc files an agent should read before touching a 
 # Extract docs
 
 > **Dormant as of the zero-token rewrite.** birdsEye's `/birdseye:map` no
-> longer invokes this skill - the map is now a pure local AST parse (graphify)
+> longer invokes this skill - the map is now a pure local AST parse (tree-sitter)
 > with no model calls. This file is kept for a future opt-in `--with-llm` mode.
 
 

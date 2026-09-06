@@ -7,7 +7,7 @@
 //
 // Inputs:  birdseye/.cache/ast.json           (from ast.mjs - required)
 //          birdseye/.cache/structure.scan.json (from structure.mjs scan - optional)
-// Output:  birdseye/graph.json                 (schema version 5)
+// Output:  birdseye/graph.json                 (schema version 6)
 //
 // No model calls. Everything here is arithmetic over the two cache files.
 
@@ -18,6 +18,7 @@ import { walkFiles } from './lib/walk.mjs';
 import { readCacheJson } from './lib/cache.mjs';
 import { GRAPH_VERSION, OUT_DIR, IGNORE_FILE } from './lib/const.mjs';
 import { sharedKindOf } from './lib/taxonomy.mjs';
+import { analyzeDead } from './lib/dead.mjs';
 
 const byString = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const posix = (p) => p.split(path.sep).join('/');
@@ -207,7 +208,7 @@ export function buildGraph(root) {
     link(parentId, id);
   }
   // Code files that sit directly in the code root, in no subdirectory module -
-  // the "spine" files of a flat library (graphify/extract.py, src/index.ts).
+  // the "spine" files of a flat library (mypkg/core.py, src/index.ts).
   // They get their own synthetic module so the top level stays a handful of
   // boxes instead of a hundred loose file circles.
   let coreModuleId = null;
@@ -389,6 +390,31 @@ export function buildGraph(root) {
     nodes.get(e.to).meta.fanIn = (nodes.get(e.to).meta.fanIn ?? 0) + 1;
   }
 
+  // ---- unused code ---------------------------------------------------
+  // Which files nothing reaches, and how that total rolls up the tree. This
+  // runs here rather than in the AST stage because the question needs the
+  // entry points, and those come from the structure scan, not the parser.
+  const deadReport = analyzeDead({
+    files: ast.files,
+    edges: ast.edges,
+    entryPoints,
+    codeRoot,
+    root,
+    config,
+  });
+  for (const d of deadReport.files) {
+    const n = nodes.get(fileId(d.path));
+    if (!n) continue;
+    n.meta.dead = d.reason;
+    if (d.caveat) n.meta.deadCaveat = d.caveat;
+    // Every container above it carries the count, so a collapsed module can
+    // say how much unused code is hiding inside without expanding it.
+    for (const a of ancestors(n.id)) {
+      const c = nodes.get(a);
+      if (c) c.meta.deadFiles = (c.meta.deadFiles ?? 0) + 1;
+    }
+  }
+
   const nodeList = [...nodes.values()].sort((a, b) => byString(a.id, b.id));
   const count = (t) => nodeList.filter((n) => n.type === t).length;
 
@@ -397,7 +423,7 @@ export function buildGraph(root) {
     repo: { name: config.name, root },
     config: { editor: config.editor },
     codeRoot,
-    graphify: { version: ast.graphifyVersion ?? null },
+    extractor: { version: ast.extractorVersion ?? null },
     stats: {
       modules: count('module'),
       featureModules: featureModules.length,
@@ -412,6 +438,12 @@ export function buildGraph(root) {
       externalRefs: ast.stats?.externalRefs ?? 0,
       unresolved: ast.stats?.unresolved ?? 0,
       failed: ast.stats?.failed ?? 0,
+      deadFiles: deadReport.files.length,
+    },
+    dead: {
+      mode: deadReport.mode,
+      entryPoints: deadReport.entryPoints,
+      exempt: deadReport.exempt,
     },
     nodes: nodeList,
     edges: [...finalContains.map((c) => ({ ...c, type: 'contains' })), ...depends, ...moduleDepends.map((e) => ({ ...e, type: 'module-depends' }))].sort(
@@ -433,6 +465,13 @@ if (isMain) {
       `${s.ambiguousModules ? `, ${s.ambiguousModules} unsure` : ''}), ` +
       `${s.folders} folders, ${s.files} files, ${s.dependEdges} dependency edges`,
   );
-  if (s.languages.length) console.log(`languages: ${s.languages.join(', ')}  ·  graphify ${graph.graphify.version ?? '?'}`);
-  if (s.unresolved || s.failed) console.log(`${s.unresolved} unresolved refs, ${s.failed} files graphify could not parse`);
+  if (s.languages.length) console.log(`languages: ${s.languages.join(', ')}  ·  extractor v${graph.extractor.version ?? '?'}`);
+  if (s.unresolved || s.failed) console.log(`${s.unresolved} unresolved refs, ${s.failed} files the parser could not read`);
+  console.log(
+    s.deadFiles
+      ? `unused: ${s.deadFiles} file${s.deadFiles === 1 ? '' : 's'} nothing reaches ` +
+          `(${graph.dead.mode}, from ${graph.dead.entryPoints.length} entry point${graph.dead.entryPoints.length === 1 ? '' : 's'}, ` +
+          `${graph.dead.exempt} conventionally-loaded files excluded)`
+      : 'unused: nothing unreachable found',
+  );
 }

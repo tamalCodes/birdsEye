@@ -62,18 +62,18 @@ Every stage is a script on your machine, so a map is exact, private, and free to
 | --- | --- |
 | `init.mjs` | Checks config, output ignore status, and that Python is ready. Asks one setup question at a time. |
 | `structure.mjs scan` | Finds the code root and makes a first-pass guess at which folders are features and which are shared infrastructure. |
-| `ast.mjs` | Hands every source file to [graphify](https://github.com/safishamsi/graphify)'s tree-sitter parser and collapses the symbol graph to a file-level dependency graph. |
+| `ast.mjs` | Parses every source file with tree-sitter, then resolves each import to the file it points at. |
 | `build.mjs` | Rolls that flat graph into the containment tree the viewer draws: root, modules, folders, files. |
 | `render.mjs` | Inlines the vendored Cytoscape and both fonts into one self-contained HTML file. No CDN, no server. |
 
-graphify keeps a per-file content hash, so a re-run only re-parses what changed, usually a second or two.
+The extractor keeps a per-file content hash, so a re-run only re-parses what changed, usually a second or two.
 
 ### Where it stops
 
 A map you can trust is a map that admits what it cannot see.
 
 - **Python 3.10+ is required.**
-  The parser is a Python package (graphify, Apache-2.0) that birdsEye installs into its own virtualenv on the first run.
+  Parsing runs on [tree-sitter](https://tree-sitter.github.io/) (MIT), which birdsEye installs into its own virtualenv on the first run along with one grammar per language.
   No Python, no map.
 - **A wrong edge is never guessed.**
   An import resolves to a real file or it is left out.

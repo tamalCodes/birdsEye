@@ -6,7 +6,7 @@ description: Turn each module's docs into a plain-language step-by-step flow a n
 # Extract flowcharts
 
 > **Dormant as of the zero-token rewrite.** birdsEye's `/birdseye:map` no
-> longer invokes this skill - the map is now a pure local AST parse (graphify)
+> longer invokes this skill - the map is now a pure local AST parse (tree-sitter)
 > with no model calls. This file is kept for a future opt-in `--with-llm` mode.
 
 

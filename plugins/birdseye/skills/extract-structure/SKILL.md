@@ -6,7 +6,7 @@ description: Work out a repo's folder taxonomy - where the code root is, which f
 # Extract structure
 
 > **Dormant as of the zero-token rewrite.** birdsEye's `/birdseye:map` no
-> longer invokes this skill - the map is now a pure local AST parse (graphify)
+> longer invokes this skill - the map is now a pure local AST parse (tree-sitter)
 > with no model calls. This file is kept for a future opt-in `--with-llm` mode.
 
 

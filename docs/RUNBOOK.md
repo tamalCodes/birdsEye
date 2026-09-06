@@ -29,8 +29,8 @@ The pipeline is five stages and each writes a file the next one reads:
 | --- | --- | --- | --- |
 | 1 | `node init.mjs status [root]` | config, `.gitignore`, Python | nothing (reports only) |
 | 2 | `node structure.mjs scan [root]` | the filesystem | `birdseye/.cache/structure.scan.json` |
-| 3 | `node ast.mjs [root]` | source files, via graphify | `birdseye/.cache/ast.json` |
-| 4 | `node build.mjs [root]` | `ast.json`, `structure.scan.json` | `birdseye/graph.json` (schema 5) |
+| 3 | `node ast.mjs [root]` | source files, via the extractor | `birdseye/.cache/ast.json` |
+| 4 | `node build.mjs [root]` | `ast.json`, `structure.scan.json` | `birdseye/graph.json` (schema 6) |
 | 5 | `node render.mjs [root]` | `graph.json`, template, vendor | `birdseye/index.html` |
 
 Only stage 5 reads the template.
@@ -87,12 +87,44 @@ node .../init.mjs write .            # write birdseye.config.json
 node .../init.mjs gitignore .        # add birdseye/ to .gitignore
 node .../structure.mjs check .       # validate a hand-written structure.json
 node .../structure.mjs estimate .    # rough token cost of a full map build
-node .../ast.mjs . --force           # ignore the graphify per-file cache
+node .../ast.mjs . --force           # ignore the per-file parse cache
 node .../ast.mjs . --json            # print the AST result instead of a summary
 ```
 
-`ast.mjs` needs Python with graphify available; `init.mjs status` is what tells you whether it is.
-graphify keeps a content-hash cache under `birdseye/.cache/graphify/`, so a second run only re-parses changed files.
+`ast.mjs` needs Python with tree-sitter available; `init.mjs status` is what tells you whether it is.
+The extractor keeps a content-hash cache at `birdseye/.cache/extract.cache.json`, so a second run only re-parses changed files.
+
+### Unused code
+
+`build.mjs` also works out which files nothing reaches, and prints a line about it:
+
+```
+unused: 33 files nothing reaches (reachability, from 2 entry points, 0 conventionally-loaded files excluded)
+```
+
+The analysis lives in `scripts/lib/dead.mjs`. It runs in the build stage, not the AST stage, because the question needs the entry points and those come from `structure.mjs scan`.
+
+Two modes, and the printed line always says which one ran:
+
+- **`reachability`** - real entry points were found, so the walk starts there and anything never arrived at is reported. This is the mode you want: it catches an abandoned island of files that import each other, which a fan-in count would call alive.
+- **`unreferenced`** - no entry point could be found (a library, a folder of scripts). Reachability would condemn the whole repo, so it falls back to the weaker claim that nothing imports the file at all.
+
+Tests, stories, `*.d.ts`, build config, and framework file-routes are never reported: they are entered from outside the import graph, so calling them unreachable would be wrong every time.
+Framework routes are only exempted when that framework is actually a dependency, and both the repo-root and the code-root `package.json` are read - a `site/` workspace with its own Next install is the common case.
+
+Tune it per repo in `birdseye.config.json`:
+
+```json
+{
+  "deadCode": {
+    "enabled": true,
+    "entryPoints": ["src/worker-entry.ts"],
+    "exclude": ["src/generated/**", "**/*.gen.ts"]
+  }
+}
+```
+
+**If it reports something obviously alive, that is a resolution bug, not a config problem.** Check the file's importer resolves: `node .../ast.mjs . --json` reports `unresolved`, and a high count there means dead-code output is untrustworthy for that repo.
 
 ## 4. Verify A Template Change
 
@@ -126,6 +158,9 @@ Open the regenerated `birdseye/index.html` in the already-running Brave browser.
 Never build a standalone preview or a mockup page to check a viewer change; the real artifact is the only honest check, and preview files rot immediately.
 
 Check both themes and all three responsive tiers listed in `plugins/birdseye/DESIGN_VIEWER.md`.
+
+For a change touching unused code, check it against a repo that has some and one that has none.
+`~/Gh/edilitics` has 33; this repository has none, and must show no header pill, no legend key, and no NEEDS A LOOK frame.
 
 ## 5. Site Commands
 

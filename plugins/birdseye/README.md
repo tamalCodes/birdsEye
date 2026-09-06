@@ -54,14 +54,21 @@ Nothing else in your source tree is ever touched.
 | Stage | What it does | Cost |
 |---|---|---|
 | `structure.mjs scan` | finds the code root and makes a first-pass feature-vs-infrastructure guess for each top-level folder | milliseconds, no model |
-| `ast.mjs` | hands every source file to [graphify](https://github.com/safishamsi/graphify)'s tree-sitter parser and collapses the symbol graph to a file-level dependency graph | seconds, **no model, no network** (after the one-time install) |
+| `ast.mjs` | parses every source file with tree-sitter, then resolves each import to the file it points at | seconds, **no model, no network** (after the one-time install) |
 | `build.mjs` | turns that flat graph into the containment tree (root → modules → folders → files) plus rolled-up dependency edges | milliseconds |
 | `render.mjs` | inlines the vendored Cytoscape and writes `index.html` | milliseconds |
 
-Extraction is [graphify](https://pypi.org/project/graphifyy/) (`graphifyy` on
-PyPI, Apache-2.0), pinned and installed into `birdseye/.cache/py/` on the first
-run. It parses ~25 languages to a real AST - deterministic, offline, token-free.
-Point `$BIRDSEYE_PYTHON` at your own interpreter to skip the managed venv.
+Extraction is birdsEye's own, and splits in two. `scripts/lib/py/extract.py`
+parses each file with [tree-sitter](https://tree-sitter.github.io/) and reports
+what it declares and imports, exactly as written. The modules in
+`scripts/lib/languages/` then resolve each specifier to a real file, using what
+only a repo can tell you: tsconfig path aliases, `go.mod` module paths, Python
+source roots, which namespaces are declared where. Deterministic, offline,
+token-free.
+
+tree-sitter and one grammar per language are pinned and installed into
+`birdseye/.cache/py/` on the first run. Point `$BIRDSEYE_PYTHON` at your own
+interpreter to skip the managed venv.
 
 Same input produces the same `graph.json` and `index.html`, so the output diffs
 cleanly and bugs reproduce.
@@ -110,8 +117,19 @@ hand in `birdseye/.cache/structure.json` (same shape as the scan's
 
 ## Languages
 
-Whatever graphify's tree-sitter grammars cover - JavaScript/TypeScript, Python,
-Go, Rust, Java, C/C++, C#, Ruby, PHP, Kotlin, Swift, Scala, Elixir, Lua and more.
+JavaScript/TypeScript, Vue, Svelte, Astro, Python, Go, Rust, Java, Kotlin,
+Scala, C#, PHP, Swift, Ruby, Dart, C/C++, Objective-C, Lua, Elixir, Julia, Zig,
+SQL, Terraform/HCL, PowerShell, shell and Groovy/Gradle.
+
+A dozen of these are core and always installed. The rest are optional: if a
+platform has no wheel for one, that language loses its edges and the run says
+so by name, rather than the whole map failing over a grammar nobody needed.
+
+Vue, Svelte and Astro are read by blanking everything outside the script block
+and parsing what is left as TypeScript, so an `import` written in a template or
+sitting in a comment cannot produce an edge. `tsconfig.json` and `jsconfig.json`
+are read for their `extends` chain; no other JSON is parsed, because a lockfile
+would cost more than the rest of the repo and name no code.
 The set that actually appears in a repo is detected automatically. A file in an
 unsupported language still counts toward its folder's totals, it just has no
 dependency edges.
@@ -130,4 +148,4 @@ dependency edges.
 Cytoscape.js is vendored under `scripts/vendor/` and inlined into the output
 (MIT; see [`scripts/vendor/LICENSES.txt`](scripts/vendor/LICENSES.txt)). The
 viewer places every node itself, so no force-layout engine is bundled.
-graphify (`graphifyy`) is installed at runtime, not vendored (Apache-2.0).
+tree-sitter and its language grammars are installed at runtime, not vendored (MIT).

@@ -4,39 +4,14 @@
 // compromise.
 
 import path from 'node:path';
-import { stripCLikeComments } from '../comments.mjs';
 
 const dir = (rel) => path.posix.dirname(rel);
 
 export default {
   id: 'go',
+  langs: ['go'],
   extensions: ['.go'],
   detect: () => true,
-
-  extractImports(src) {
-    const code = stripCLikeComments(src);
-    const seen = new Set();
-    const out = [];
-    const add = (s) => {
-      if (s && !seen.has(s)) {
-        seen.add(s);
-        out.push({ spec: s, kind: 'absolute' });
-      }
-    };
-    // Grouped: import ( "a"; alias "b"; _ "c" )
-    const block = code.match(/\bimport\s*\(([\s\S]*?)\)/);
-    if (block) {
-      for (const line of block[1].split('\n')) {
-        const m = line.match(/"([^"]+)"/);
-        if (m) add(m[1]);
-      }
-    }
-    // Single: import "a"  /  import alias "a"
-    const re = /\bimport\s+(?:[A-Za-z_.]+\s+)?"([^"]+)"/g;
-    let m;
-    while ((m = re.exec(code))) add(m[1]);
-    return out;
-  },
 
   createResolver(root, { allFiles, readFile }) {
     // Every go.mod dir -> its declared module path. Longest module path first so

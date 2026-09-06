@@ -23,7 +23,7 @@ Current positioning is agent-readiness and codebase structure: show where an age
 
 The default `/birdseye:map` flow is zero-token and local.
 It does not call a model.
-It uses graphify's tree-sitter parsing through `graphifyy`, then builds and renders a static viewer.
+It parses with tree-sitter through its own extractor, then builds and renders a static viewer.
 
 Active stages:
 

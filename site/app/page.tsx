@@ -283,7 +283,7 @@ const PIPELINE = [
   },
   {
     name: "ast.mjs",
-    body: "Hands every source file to graphify's tree-sitter parser and collapses the symbol graph to a file-level dependency graph.",
+    body: "Parses every source file with tree-sitter, then resolves each import to the exact file it points at.",
   },
   {
     name: "build.mjs",
@@ -298,11 +298,11 @@ const PIPELINE = [
 const LIMITS = [
   {
     h: "Python 3.10+ is required",
-    p: "The parser is a Python package (graphify, Apache-2.0) that birdsEye installs into its own virtualenv on the first run. No Python, no map.",
+    p: "Parsing runs on tree-sitter, which birdsEye installs into its own virtualenv on the first run. No Python, no map.",
   },
   {
     h: "A wrong edge is never guessed",
-    p: "graphify resolves an import to a real file or leaves it out. A missing edge is cheap; a wrong one poisons trust in the whole map.",
+    p: "An import resolves to a real file or it is left out. A missing edge is cheap; a wrong one poisons trust in the whole map.",
   },
   {
     h: "Your source tree is left alone",
@@ -316,7 +316,7 @@ function HowItWorks() {
       id="how"
       kicker="How it works"
       title="No model in the loop. Zero tokens."
-      intro="Extraction is graphify's tree-sitter parse - it runs on your machine and reads nothing back to anyone. Everything else is a few hundred lines of Node. Same repo in, same map out, every time."
+      intro="Extraction is a tree-sitter parse - it runs on your machine and reads nothing back to anyone. Everything else is a few hundred lines of Node. Same repo in, same map out, every time."
     >
       <ol className="mt-12 grid gap-px overflow-hidden rounded-t-2xl border border-hair bg-hair sm:grid-cols-2 lg:grid-cols-4">
         {PIPELINE.map((s, i) => (
@@ -335,7 +335,7 @@ function HowItWorks() {
       </ol>
 
       <Reveal className="mt-px rounded-b-2xl border-x border-b border-hair bg-raised/50 p-6 text-[0.95rem] leading-relaxed text-muted md:p-7">
-        Every stage runs locally with no model call. graphify keeps a per-file content
+        Every stage runs locally with no model call. The extractor keeps a per-file content
         hash, so a re-run only re-parses what changed - usually a second or two.
       </Reveal>
 
@@ -482,11 +482,11 @@ const FAQ = [
   },
   {
     q: "Does my code leave my machine?",
-    a: "No. graphify parses everything locally and reports nothing anywhere. There is no birdsEye server - nothing is uploaded to us, because there is no us to upload to.",
+    a: "No. Everything is parsed locally and reported nowhere. There is no birdsEye server - nothing is uploaded to us, because there is no us to upload to.",
   },
   {
     q: "Which languages does it cover?",
-    a: "Whatever graphify's tree-sitter grammars cover: JavaScript/TypeScript, Python, Go, Rust, Java, C/C++, C#, Ruby, PHP, Kotlin, Swift, Scala and more. A file in an unsupported language still counts toward its folder's totals, it just has no dependency edges. A monorepo with several package roots is approximated as one today.",
+    a: "JavaScript/TypeScript, Vue, Svelte, Astro, Python, Go, Rust, Java, Kotlin, Scala, C#, PHP, Swift, Ruby, Dart, C/C++, Objective-C, Lua, Elixir, Julia, Zig, SQL, Terraform, PowerShell, shell and Groovy/Gradle. A file in an unsupported language still counts toward its folder's totals, it just has no dependency edges. A monorepo with several package roots is approximated as one today.",
   },
   {
     q: "How stable is it?",
@@ -522,7 +522,7 @@ function Faq() {
 const FOOTER_FACTS = [
   { n: "0", label: "tokens to run", p: "No model call in the pipeline. The parse is local tree-sitter, start to finish." },
   { n: "1", label: "file to share", p: "One HTML file, everything inlined. It opens from file:// on a plane." },
-  { n: "OSS", label: "top to bottom", p: "Plugin MIT, the graphify parser Apache-2.0, vendored Cytoscape and fcose MIT." },
+  { n: "OSS", label: "top to bottom", p: "Plugin MIT, tree-sitter and its grammars MIT, vendored Cytoscape MIT." },
 ];
 
 const FOOTER_NAV = [

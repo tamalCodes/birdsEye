@@ -48,6 +48,7 @@ All constants live together near the top of the canvas section of the template.
 | `CHILD_GAP` | `26` | Gap between adjacent children, edge to edge |
 | `CHILD_ROWY` | `62` | Row pitch inside the INSIDE frame |
 | `CHILD_PER_ROW` | `6` | Upper bound on children per row |
+| `UNUSED_CAP` | `12` | Maximum chips drawn in the NEEDS A LOOK frame |
 | `LABEL_CAP` | `260` | Widest a node box may get before its label ellipses |
 | `LABEL_PAD` | `30` | Text width plus this equals box width |
 
@@ -81,13 +82,46 @@ The packing contract, which is the fix for the sparse-block problem:
 If the INSIDE block ever looks sparse again, tighten `CHILD_GAP`, `CHILD_ROWY`, or `FRAME_PAD`.
 Do not enlarge the frame, and do not pad it with placeholder children.
 
-## 5. Labels
+**The NEEDS A LOOK frame sits under INSIDE, when there is unused code.**
+It answers the second question a reader has after "what is in here": what of it is dead weight.
+It is also, deliberately, what stops the root view from being one box on an empty canvas - but it is real content, never filler.
+If a repo has no unreachable code the frame is absent, and the empty view is the honest answer.
+
+Its contract:
+
+1. It aggregates one level at a time. One chip per child subtree that holds unused files, labelled with the child's name and its count.
+2. A child that is itself an unused file is skipped, because the INSIDE grid above already draws it dimmed and warn-outlined. Saying it twice on one screen is worse than saying it once.
+3. A chip is a stand-in, not a node. Its id is `unused:<targetId>`, it carries `jump`, and tapping it focuses the target - which then shows its own NEEDS A LOOK frame, one level down, until the files themselves are the chips.
+4. No connector line runs down to it. The INSIDE edge means containment; this frame is an annotation, and an identical line would have to cross the INSIDE block to reach it and would claim something untrue on arrival.
+5. It uses the same packing rules as INSIDE (balanced rows, real measured widths, `CHILD_GAP`, `CHILD_ROWY`), so the two blocks read as one column.
+
+## 5. Unused Code
+
+Unused is a **state, not a type**, and the viewer's whole colour contract depends on keeping those separate.
+So an unused node keeps its type hue and changes only its treatment: fill drops to `0.34` opacity, the border turns dashed `--warn`, the label ink drops to `--text-dim`.
+Recolouring the fill to an alarm colour is forbidden - it would break the one rule the legend rests on.
+
+Where the state surfaces, in the order a reader meets it:
+
+| Surface | Treatment |
+| --- | --- |
+| Header subtitle | `--warn` pill with the repo-wide count |
+| Sidebar row | `--warn` count badge on any container; strikethrough label on an unused file |
+| Canvas | dimmed, dashed warn outline on the node; NEEDS A LOOK frame under INSIDE |
+| Detail panel | `.p-warn` callout on an unused file; "Nothing reaches these" section on a container |
+| Legend | dashed warn key, shown only when the repo has unused code |
+
+**Every verdict ships with its doubt.**
+The panel callout is two lines: what was found, then why it might be wrong (a dynamic import, a route table, a worker loaded by URL).
+An import graph cannot see those, so the finding is a lead, never a licence to delete, and the copy has to say so or the reader will over-trust it.
+
+## 6. Labels
 
 - A file label drops a known code extension so the label says what the thing is, not what it is written in. A name like `v1.2` keeps its tail.
 - A child folder label keeps a trailing slash. That marks it as "a folder living in here" rather than the same-named sibling module.
 - Diagram labels use the hand-lettered face; surrounding chrome stays in Outfit for dense prose.
 
-## 6. Detail Panel
+## 7. Detail Panel
 
 - 420px wide, top-right, `14px` radius, `--sheet` background, one `--shadow`.
 - Section order is fixed and starts with what a reader wants first: what is inside, then what it touches. Blast radius comes after, not before.
@@ -96,7 +130,7 @@ Do not enlarge the frame, and do not pad it with placeholder children.
 - A file's own imports stay folded in an accordion, since the canvas already draws them beside the node.
 - Body scrolls at `max-height: min(54vh, 560px)` so the panel never buries the diagram it describes.
 
-## 7. Responsive Tiers
+## 8. Responsive Tiers
 
 Three progressive steps, in this order:
 
@@ -109,12 +143,13 @@ Three progressive steps, in this order:
 The rule behind the tiers: never squeeze the diagram to keep chrome in place.
 Chrome floats or hides; the canvas keeps its area.
 
-## 8. Do Not
+## 9. Do Not
 
 - Do not reintroduce a physics or force layout. `fcose` was tried and rejected: it was laggy and produced blob-shaped clusters instead of a readable diagram.
 - Do not draw the whole graph at once. The viewer is a per-node focus canvas plus a tree, on purpose.
 - Do not add a second shadow level or a blur effect to chrome.
-- Do not reassign node hues for aesthetic reasons; they encode type.
+- Do not reassign node hues for aesthetic reasons; they encode type. That includes unused code: it is a state, and states are drawn with opacity and outline, never with a hue of their own.
+- Do not present an unused-code finding as a verdict. It is always "nothing here reaches it", and the doubt ships beside it.
 - Do not add a runtime fetch, CDN link, or external font URL.
 - Do not use `Math.random()` anywhere in layout.
 

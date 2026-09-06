@@ -87,8 +87,8 @@ function readTsConfig(absPath, seen = new Set()) {
 }
 
 /** Absolute-ise package.json `imports` (#subpath) entries. */
-function readPackageImports(root) {
-  const pkg = readJsonc(path.join(root, 'package.json'));
+function readPackageImports(dir) {
+  const pkg = readJsonc(path.join(dir, 'package.json'));
   const out = {};
   const flatten = (value) => {
     if (typeof value === 'string') return value;
@@ -101,13 +101,13 @@ function readPackageImports(root) {
   };
   for (const [pattern, target] of Object.entries(pkg?.imports ?? {})) {
     const t = flatten(target);
-    if (t) out[pattern] = [path.resolve(root, t)];
+    if (t) out[pattern] = [path.resolve(dir, t)];
   }
   return out;
 }
 
-function knownDependencies(root) {
-  const pkg = readJsonc(path.join(root, 'package.json')) ?? {};
+function knownDependencies(dir) {
+  const pkg = readJsonc(path.join(dir, 'package.json')) ?? {};
   return new Set([
     ...Object.keys(pkg.dependencies ?? {}),
     ...Object.keys(pkg.devDependencies ?? {}),
@@ -121,28 +121,67 @@ const packageNameOf = (spec) => {
   return spec.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
 };
 
-export function createResolver(root, { extensions }) {
-  const ts = readTsConfig(
-    ['tsconfig.json', 'jsconfig.json']
-      .map((f) => path.join(root, f))
-      .find((f) => isFile(f)) ?? null,
-  );
-  const aliases = { ...ts.paths, ...readPackageImports(root) };
-  const deps = knownDependencies(root);
-  const nodeModules = path.join(root, 'node_modules');
-
-  // Longest pattern prefix wins, matching TypeScript's own tie-break.
-  const exact = [];
-  const wildcard = [];
-  for (const [pattern, targets] of Object.entries(aliases)) {
-    if (pattern.includes('*')) {
-      const [prefix, suffix = ''] = pattern.split('*');
-      wildcard.push({ prefix, suffix, targets });
-    } else {
-      exact.push({ pattern, targets });
-    }
+/**
+ * Every ancestor directory of `fromDir`, nearest first, stopping at `root`.
+ * A file outside the repo (which should not happen) yields just its own dir.
+ */
+function upwards(fromDir, root) {
+  const out = [];
+  let dir = fromDir;
+  for (;;) {
+    out.push(dir);
+    if (dir === root) break;
+    const parent = path.dirname(dir);
+    if (parent === dir || !parent.startsWith(root)) break;
+    dir = parent;
   }
-  wildcard.sort((a, b) => b.prefix.length - a.prefix.length);
+  return out;
+}
+
+export function createResolver(root, { extensions }) {
+  // Configuration is resolved per importing file, nearest first, which is what
+  // TypeScript and Node both do. A repo whose real project lives in a
+  // subdirectory - `site/`, `packages/web/`, an examples app - has its tsconfig
+  // and its dependencies there, not at the repo root, so a single root-level
+  // read would silently drop every aliased import in it.
+  const contexts = new Map();
+
+  const contextFor = (fromFileAbs) => {
+    const fromDir = path.dirname(fromFileAbs);
+    const cached = contexts.get(fromDir);
+    if (cached) return cached;
+
+    const chain = upwards(fromDir, root);
+    const tsPath =
+      chain
+        .flatMap((dir) => ['tsconfig.json', 'jsconfig.json'].map((f) => path.join(dir, f)))
+        .find((f) => isFile(f)) ?? null;
+    const ts = readTsConfig(tsPath);
+
+    const pkgDir = chain.find((dir) => isFile(path.join(dir, 'package.json'))) ?? root;
+    const aliases = { ...ts.paths, ...readPackageImports(pkgDir) };
+    const deps = knownDependencies(pkgDir);
+
+    // Longest pattern prefix wins, matching TypeScript's own tie-break.
+    const exact = [];
+    const wildcard = [];
+    for (const [pattern, targets] of Object.entries(aliases)) {
+      if (pattern.includes('*')) {
+        const [prefix, suffix = ''] = pattern.split('*');
+        wildcard.push({ prefix, suffix, targets });
+      } else {
+        exact.push({ pattern, targets });
+      }
+    }
+    wildcard.sort((a, b) => b.prefix.length - a.prefix.length);
+
+    // node_modules is searched from the owning package upwards, the way Node
+    // itself does, so a hoisted monorepo dependency still reads as external.
+    const nodeModuleDirs = chain.map((dir) => path.join(dir, 'node_modules'));
+    const ctx = { ts, exact, wildcard, deps, nodeModuleDirs, aliasCount: Object.keys(aliases).length };
+    contexts.set(fromDir, ctx);
+    return ctx;
+  };
 
   const tryFile = (abs) => {
     if (isFile(abs) && extensions.includes(path.extname(abs))) return abs;
@@ -157,9 +196,9 @@ export function createResolver(root, { extensions }) {
   /** A path that exists but is not code (an asset, a stylesheet, JSON). */
   const isNonCodeFile = (abs) => isFile(abs) && !extensions.includes(path.extname(abs));
 
-  const isExternal = (spec) => {
+  const isExternal = (spec, ctx) => {
     const name = packageNameOf(spec);
-    return deps.has(name) || isDirectory(path.join(nodeModules, name));
+    return ctx.deps.has(name) || ctx.nodeModuleDirs.some((d) => isDirectory(path.join(d, name)));
   };
 
   /**
@@ -177,29 +216,30 @@ export function createResolver(root, { extensions }) {
       return { kind: 'unresolved' };
     }
 
+    const ctx = contextFor(fromFileAbs);
     const candidates = [];
-    for (const { pattern, targets } of exact) {
+    for (const { pattern, targets } of ctx.exact) {
       if (spec === pattern) candidates.push(...targets);
     }
-    for (const { prefix, suffix, targets } of wildcard) {
+    for (const { prefix, suffix, targets } of ctx.wildcard) {
       if (spec.length < prefix.length + suffix.length) continue;
       if (!spec.startsWith(prefix) || !spec.endsWith(suffix)) continue;
       const star = spec.slice(prefix.length, spec.length - (suffix.length || 0));
       candidates.push(...targets.map((t) => t.replace('*', star)));
     }
     const aliasMatched = candidates.length > 0;
-    if (ts.baseUrl) candidates.push(path.resolve(ts.baseUrl, spec));
+    if (ctx.ts.baseUrl) candidates.push(path.resolve(ctx.ts.baseUrl, spec));
 
     for (const abs of candidates) {
       const hit = tryFile(abs);
       if (hit) return { kind: 'file', path: hit };
     }
     if (candidates.some(isNonCodeFile)) return { kind: 'asset' };
-    if (isExternal(spec)) return { kind: 'external' };
+    if (isExternal(spec, ctx)) return { kind: 'external' };
     // An alias that matched a configured pattern but resolved to nothing is a
     // real problem worth reporting; an unknown bare specifier is just noise.
     return aliasMatched ? { kind: 'unresolved' } : { kind: 'external' };
   };
 
-  return { resolve, aliasCount: Object.keys(aliases).length, baseUrl: ts.baseUrl };
+  return { resolve };
 }

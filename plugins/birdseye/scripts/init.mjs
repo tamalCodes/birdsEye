@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadConfig, inferConfig } from './lib/config.mjs';
-import { probePython } from './lib/graphify.mjs';
+import { probePython } from './lib/extractor.mjs';
 import { CONFIG_FILE, OUT_DIR } from './lib/const.mjs';
 
 const IGNORE_LINE = `${OUT_DIR}/`;

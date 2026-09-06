@@ -66,7 +66,6 @@ export const DEFAULT_IGNORE = [
   '.turbo',
   '.cache',
   'vendor',
-  'graphify-out',
   OUT_DIR,
 ];
 

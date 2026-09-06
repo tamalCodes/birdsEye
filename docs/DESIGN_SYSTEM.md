@@ -52,6 +52,8 @@ Dark lives on bare `:root` (the viewer defaults to dark); light is redefined und
 | `--accent` | `#d97757` | `#bf5b36` | Clay: selection, links, primary button |
 | `--edge-out` | `#d97757` | `#bf5b36` | "Depends on" flow |
 | `--edge-in` | `#a9b764` | `#5e7524` | "Used by" flow |
+| `--warn` | `#e0a458` | `#9c6212` | Unused code: outlines, badges, the callout rule |
+| `--warn-soft` | `rgba(224,164,88,.13)` | `rgba(156,98,18,.12)` | Fill behind any of the above |
 
 Node hues carry meaning and must not be reassigned for looks:
 
@@ -63,6 +65,10 @@ Node hues carry meaning and must not be reassigned for looks:
 | `--c-shared` | `#c68f66` | `#a86b45` | Shared module (`meta.kind === 'shared'`) |
 | `--c-folder` | `#c9a56b` | `#9a6a12` | Folder |
 | `--c-file` | `#a9b764` | `#5e7524` | File |
+
+`--warn` is the one accent that is not clay, and it earns that by never competing with clay: clay marks what you selected, amber marks what needs a look.
+It is a **state** colour and must never be used as a node fill.
+An unused node keeps its type hue and is drawn back to `0.34` opacity with a dashed `--warn` border - so the hue still answers "what is this" while the outline answers "does anything reach it".
 
 Mapping lives in `colorVar()` in the template.
 Node label ink is computed per node by `idealText()` against the node fill, never hard-coded.
