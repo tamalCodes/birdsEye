@@ -4,7 +4,7 @@
 
 import { pathResolver, filesWithExtensions } from './shared.mjs';
 
-const EXTENSIONS = ['.c', '.h', '.cc', '.cpp', '.cxx', '.hpp', '.m'];
+const EXTENSIONS = ['.c', '.h', '.cc', '.cpp', '.cxx', '.hpp', '.m', '.mm', '.cu', '.cuh', '.metal'];
 
 export default {
   id: 'cfamily',

@@ -54,6 +54,9 @@ const EXEMPT_PATTERNS = [
   /\.(gradle|groovy)$/,
   /\.(tf|tfvars|hcl)$/,
   /\.(ps1|psm1|psd1)$/,
+  // A project file is entered by the build system, and a Rakefile by rake.
+  /\.(csproj|fsproj|vbproj|props|targets)$/,
+  /\.rake$/,
   // A migration is run in order by a tool; the first one imports nothing and
   // is imported by nothing, which is not the same as being dead.
   /(^|\/)migrations?\//,

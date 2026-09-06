@@ -486,7 +486,7 @@ const FAQ = [
   },
   {
     q: "Which languages does it cover?",
-    a: "JavaScript/TypeScript, Vue, Svelte, Astro, Python, Go, Rust, Java, Kotlin, Scala, C#, PHP, Swift, Ruby, Dart, C/C++, Objective-C, Lua, Elixir, Julia, Zig, SQL, Terraform, PowerShell, shell and Groovy/Gradle. A file in an unsupported language still counts toward its folder's totals, it just has no dependency edges. A monorepo with several package roots is approximated as one today.",
+    a: "80 file extensions across 33 grammars - JavaScript/TypeScript, Vue, Svelte, Astro, Python, Go, Rust, Java, Kotlin, Scala, C#, PHP, Swift, Ruby, Dart, Perl, C/C++, CUDA, Objective-C, Lua, Elixir, Julia, Zig, OCaml, Fortran, Pascal, Verilog, Common Lisp, SQL, Terraform, PowerShell, shell, Groovy/Gradle and MSBuild project files. A file in an unsupported language still counts toward its folder's totals, it just has no dependency edges. A monorepo with several package roots is approximated as one today.",
   },
   {
     q: "How stable is it?",

@@ -34,6 +34,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import re
+import warnings
 import json
 import os
 import sys
@@ -42,7 +43,7 @@ from pathlib import Path
 # Bump when the shape of a file record changes or a language handler is fixed.
 # Every cached entry keyed on an older version is discarded, so a fix reaches
 # existing repos without anyone needing to remember `--force`.
-EXTRACTOR_VERSION = 7
+EXTRACTOR_VERSION = 9
 
 # ---------------------------------------------------------------------------
 # language table
@@ -102,6 +103,45 @@ LANGS = {
     ".ps1":    ("powershell", "tree_sitter_powershell", "language"),
     ".psm1":   ("powershell", "tree_sitter_powershell", "language"),
     ".psd1":   ("powershell", "tree_sitter_powershell", "language"),
+    # Dialects that are their parent language for parsing purposes: CUDA and
+    # Metal are C++, Objective-C++ is Objective-C, a Rakefile is Ruby, Luau is
+    # Lua, ArkTS is TypeScript. No new grammar, no new handler.
+    ".mm":     ("objc", "tree_sitter_objc", "language"),
+    ".cu":     ("cpp", "tree_sitter_cpp", "language"),
+    ".cuh":    ("cpp", "tree_sitter_cpp", "language"),
+    ".metal":  ("cpp", "tree_sitter_cpp", "language"),
+    ".rake":   ("ruby", "tree_sitter_ruby", "language"),
+    ".luau":   ("lua", "tree_sitter_lua", "language"),
+    ".ets":    ("typescript", "tree_sitter_typescript", "language_typescript"),
+    ".ml":     ("ocaml", "tree_sitter_ocaml", "language_ocaml"),
+    ".mli":    ("ocaml", "tree_sitter_ocaml", "language_ocaml_interface"),
+    ".f":      ("fortran", "tree_sitter_fortran", "language"),
+    ".f90":    ("fortran", "tree_sitter_fortran", "language"),
+    ".f95":    ("fortran", "tree_sitter_fortran", "language"),
+    ".f03":    ("fortran", "tree_sitter_fortran", "language"),
+    ".f08":    ("fortran", "tree_sitter_fortran", "language"),
+    ".v":      ("verilog", "tree_sitter_verilog", "language"),
+    ".sv":     ("verilog", "tree_sitter_verilog", "language"),
+    ".svh":    ("verilog", "tree_sitter_verilog", "language"),
+    ".vh":     ("verilog", "tree_sitter_verilog", "language"),
+    ".pas":    ("pascal", "tree_sitter_pascal", "language"),
+    ".pp":     ("pascal", "tree_sitter_pascal", "language"),
+    ".dpr":    ("pascal", "tree_sitter_pascal", "language"),
+    ".dpk":    ("pascal", "tree_sitter_pascal", "language"),
+    ".lpr":    ("pascal", "tree_sitter_pascal", "language"),
+    ".lisp":   ("commonlisp", "tree_sitter_commonlisp", "language"),
+    ".cl":     ("commonlisp", "tree_sitter_commonlisp", "language"),
+    ".lsp":    ("commonlisp", "tree_sitter_commonlisp", "language"),
+    ".asd":    ("commonlisp", "tree_sitter_commonlisp", "language"),
+    ".pl":     ("perl", "tree_sitter_perl", "language"),
+    ".pm":     ("perl", "tree_sitter_perl", "language"),
+    # MSBuild project files: XML, and the one place a .NET repo states which
+    # project depends on which.
+    ".csproj": ("msbuild", "tree_sitter_xml", "language_xml"),
+    ".fsproj": ("msbuild", "tree_sitter_xml", "language_xml"),
+    ".vbproj": ("msbuild", "tree_sitter_xml", "language_xml"),
+    ".props":  ("msbuild", "tree_sitter_xml", "language_xml"),
+    ".targets": ("msbuild", "tree_sitter_xml", "language_xml"),
 }
 
 # Languages whose file is mostly markup with the code in a script region. The
@@ -818,6 +858,149 @@ def handle_sql(root, acc: Acc) -> None:
         acc.imp(txt(n).lower(), "namespace")
 
 
+def handle_ocaml(root, acc: Acc) -> None:
+    for n in walk(root):
+        t = n.type
+        if t in ("open_module", "include_module"):
+            p = first_of_type(n, "module_path")
+            if p is not None:
+                acc.imp(txt(p), "namespace")
+        elif t == "module_binding":
+            # `module M = Other.Thing` aliases another compilation unit.
+            p = first_of_type(n, "module_path")
+            if p is not None:
+                acc.imp(txt(p), "namespace")
+        elif t in ("value_definition", "type_definition", "module_definition",
+                   "class_definition", "exception_definition"):
+            acc.sym()
+
+
+def handle_fortran(root, acc: Acc) -> None:
+    for n in walk(root):
+        t = n.type
+        if t == "use_statement":
+            name = first_of_type(n, "module_name")
+            if name is not None:
+                # Fortran is case-insensitive, so both sides are folded.
+                acc.imp(txt(name).lower(), "namespace")
+        elif t == "module_statement":
+            name = first_of_type(n, "name")
+            if name is not None:
+                acc.decl(txt(name).lower())
+        elif t in ("subroutine", "function", "module", "program"):
+            acc.sym()
+
+
+def handle_verilog(root, acc: Acc) -> None:
+    for n in walk(root):
+        t = n.type
+        if t == "include_compiler_directive":
+            q = first_of_type(n, "double_quoted_string")
+            if q is not None:
+                acc.imp(unquote(txt(q)), "relative")
+        elif t == "module_declaration":
+            acc.sym()
+            header = first_of_type(n, "module_header")
+            if header is not None:
+                name = first_of_type(header, "simple_identifier")
+                if name is not None:
+                    acc.decl(txt(name).lower())
+
+
+def handle_pascal(root, acc: Acc) -> None:
+    for n in walk(root):
+        t = n.type
+        if t == "declUses":
+            # `uses UnitA, UnitB;` - every identifier in the clause is a unit.
+            for c in walk(n):
+                if c.type == "identifier":
+                    acc.imp(txt(c).lower(), "namespace")
+        elif t == "moduleName":
+            acc.decl(txt(n).lower())
+        elif t in ("declProc", "declFunc", "declType", "declClass"):
+            acc.sym()
+
+
+LISP_LOADERS = {"load", "require", "asdf:load-system", "load-system"}
+
+
+def handle_commonlisp(root, acc: Acc) -> None:
+    for n in walk(root):
+        t = n.type
+        if t == "list_lit":
+            head = None
+            for c in n.children:
+                if c.type == "sym_lit":
+                    head = c
+                    break
+            if head is None or txt(head).lower() not in LISP_LOADERS:
+                continue
+            for c in n.children:
+                if c.type == "str_lit":
+                    acc.imp(unquote(txt(c)), "relative")
+                    break
+                if c.type == "kwd_lit":
+                    acc.imp(txt(c).lstrip(":").lower(), "namespace")
+                    break
+        elif t in ("defun", "defmacro", "defclass", "defvar", "defparameter"):
+            acc.sym()
+
+
+def handle_perl(root, acc: Acc) -> None:
+    for n in walk(root):
+        t = n.type
+        if t == "use_statement":
+            pkg = first_of_type(n, "package")
+            if pkg is not None:
+                acc.imp(txt(pkg), "namespace")
+        elif t == "require_expression":
+            lits = string_literals_in(n)
+            if lits:
+                acc.imp(lits[0], "relative")
+            else:
+                bare = first_of_type(n, "package", "bareword")
+                if bare is not None:
+                    acc.imp(txt(bare), "namespace")
+        elif t == "package_statement":
+            pkg = first_of_type(n, "package")
+            if pkg is not None:
+                acc.decl(txt(pkg))
+        elif t == "subroutine_declaration_statement":
+            acc.sym()
+
+
+# element name -> (attribute holding the reference, kind)
+MSBUILD_REFS = {
+    "ProjectReference": ("Include", "relative"),
+    "Import": ("Project", "relative"),
+    "PackageReference": ("Include", "package"),
+}
+
+
+def handle_msbuild(root, acc: Acc) -> None:
+    for n in walk(root):
+        if n.type not in ("STag", "EmptyElemTag"):
+            continue
+        name = first_of_type(n, "Name")
+        if name is None:
+            continue
+        entry = MSBUILD_REFS.get(txt(name))
+        if entry is None:
+            continue
+        want, kind = entry
+        for attr in n.children:
+            if attr.type != "Attribute":
+                continue
+            attr_name = first_of_type(attr, "Name")
+            if attr_name is None or txt(attr_name) != want:
+                continue
+            value = first_of_type(attr, "AttValue")
+            if value is not None:
+                # MSBuild paths are written with backslashes as often as not.
+                acc.imp(unquote(txt(value)).replace("\\", "/"), kind)
+            break
+
+
 HANDLERS = {
     "typescript": handle_js,
     "javascript": handle_js,
@@ -848,6 +1031,13 @@ HANDLERS = {
     "terraform": handle_terraform,
     "powershell": handle_powershell,
     "sql": handle_sql,
+    "ocaml": handle_ocaml,
+    "fortran": handle_fortran,
+    "verilog": handle_verilog,
+    "pascal": handle_pascal,
+    "commonlisp": handle_commonlisp,
+    "perl": handle_perl,
+    "msbuild": handle_msbuild,
 }
 
 
@@ -950,6 +1140,9 @@ def extract_one(parsers: Parsers, abs_path: Path, rel: str, source: bytes) -> di
 
 
 def main() -> None:
+    # Some grammars still hand tree-sitter an int pointer, which warns. That is
+    # the grammar's business, not something a birdsEye user can act on.
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
     try:
         job = json.load(sys.stdin)
     except Exception as exc:  # noqa: BLE001

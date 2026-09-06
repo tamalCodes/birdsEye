@@ -3,7 +3,7 @@
 
 import { pathResolver, filesWithExtensions } from './shared.mjs';
 
-const EXTENSIONS = ['.lua'];
+const EXTENSIONS = ['.lua', '.luau'];
 
 export default {
   id: 'lua',

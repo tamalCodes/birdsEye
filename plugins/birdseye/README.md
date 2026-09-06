@@ -117,13 +117,20 @@ hand in `birdseye/.cache/structure.json` (same shape as the scan's
 
 ## Languages
 
-JavaScript/TypeScript, Vue, Svelte, Astro, Python, Go, Rust, Java, Kotlin,
-Scala, C#, PHP, Swift, Ruby, Dart, C/C++, Objective-C, Lua, Elixir, Julia, Zig,
-SQL, Terraform/HCL, PowerShell, shell and Groovy/Gradle.
+80 file extensions across 33 grammars:
 
-A dozen of these are core and always installed. The rest are optional: if a
+- **Web** JavaScript/TypeScript, Vue, Svelte, Astro, ArkTS
+- **Backend** Python, Go, Rust, Java, Kotlin, Scala, C#, PHP, Ruby, Perl, Elixir
+- **Apps** Swift, Dart/Flutter, Objective-C and Objective-C++
+- **Systems** C, C++, CUDA, Metal, Zig, Lua/Luau, Julia, OCaml, Common Lisp,
+  Fortran, Pascal/Delphi, Verilog/SystemVerilog
+- **Data and infra** SQL, Terraform/HCL, shell, PowerShell, Groovy/Gradle,
+  MSBuild project files, tsconfig `extends` chains
+
+Twelve grammars are core and always installed. The rest are optional: if a
 platform has no wheel for one, that language loses its edges and the run says
-so by name, rather than the whole map failing over a grammar nobody needed.
+so by name with the command that fixes it, rather than the whole map failing
+over a grammar nobody needed.
 
 Vue, Svelte and Astro are read by blanking everything outside the script block
 and parsing what is left as TypeScript, so an `import` written in a template or

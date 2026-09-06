@@ -31,6 +31,13 @@ import dart from './dart.mjs';
 import terraform from './terraform.mjs';
 import powershell from './powershell.mjs';
 import sql from './sql.mjs';
+import ocaml from './ocaml.mjs';
+import fortran from './fortran.mjs';
+import verilog from './verilog.mjs';
+import pascal from './pascal.mjs';
+import commonlisp from './commonlisp.mjs';
+import perl from './perl.mjs';
+import msbuild from './msbuild.mjs';
 
 export const LANGUAGES = [
   javascript, go, python, rust, csharp,
@@ -38,6 +45,7 @@ export const LANGUAGES = [
   ruby, php, cfamily, lua, julia, zig,
   bash, groovy, json,
   dart, terraform, powershell, sql,
+  ocaml, fortran, verilog, pascal, commonlisp, perl, msbuild,
 ];
 
 /** Every extension any language can parse - the widened `config.extensions`. */

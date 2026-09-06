@@ -3,7 +3,7 @@
 
 import { pathResolver, filesWithExtensions } from './shared.mjs';
 
-const EXTENSIONS = ['.rb'];
+const EXTENSIONS = ['.rb', '.rake'];
 
 export default {
   id: 'ruby',

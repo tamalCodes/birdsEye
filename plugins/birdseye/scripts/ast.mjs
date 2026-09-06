@@ -36,6 +36,11 @@ export const CODE_EXTENSIONS = [
   '.lua', '.ex', '.exs', '.jl', '.zig', '.m',
   '.sh', '.bash', '.groovy', '.gradle',
   '.dart', '.sql', '.tf', '.tfvars', '.hcl', '.ps1', '.psm1', '.psd1',
+  '.mm', '.cu', '.cuh', '.metal', '.rake', '.luau', '.ets',
+  '.ml', '.mli', '.f', '.f90', '.f95', '.f03', '.f08',
+  '.v', '.sv', '.svh', '.vh', '.pas', '.pp', '.dpr', '.dpk', '.lpr',
+  '.lisp', '.cl', '.lsp', '.asd', '.pl', '.pm',
+  '.csproj', '.fsproj', '.vbproj', '.props', '.targets',
 ];
 
 // JSON is not a code extension: parsing every `.json` would make a lockfile a

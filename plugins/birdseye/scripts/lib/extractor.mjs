@@ -71,6 +71,13 @@ export const OPTIONAL_GRAMMAR_PINS = [
   'tree-sitter-hcl==1.2.0',
   'tree-sitter-powershell==0.26.4',
   'tree-sitter-dart==0.1.0',
+  'tree-sitter-ocaml==0.25.0',
+  'tree-sitter-fortran==0.6.0',
+  'tree-sitter-verilog==1.0.3',
+  'tree-sitter-pascal==0.11.0',
+  'tree-sitter-commonlisp==0.4.1',
+  'tree-sitter-perl==1.2.1',
+  'tree-sitter-xml==0.7.0',
 ];
 export const GRAMMAR_PINS = [...CORE_GRAMMAR_PINS, ...OPTIONAL_GRAMMAR_PINS];
 export const ALL_PINS = [CORE_PIN, ...GRAMMAR_PINS];

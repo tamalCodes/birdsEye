@@ -13,6 +13,7 @@ const JS_EXTENSIONS = [
   // Probed as well as owned: `import Card from "./Card.vue"` has to land on
   // the component file, and a bare `./Card` should find it too.
   '.vue', '.svelte', '.astro',
+  '.ets',
 ];
 
 export default {
