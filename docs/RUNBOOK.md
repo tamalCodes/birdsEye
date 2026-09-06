@@ -59,10 +59,13 @@ This repository's own map:
 node plugins/birdseye/scripts/render.mjs .
 ```
 
-Known targets that have a valid `birdseye/graph.json` and can be re-rendered directly:
+A target can be re-rendered directly only if it already has a valid
+`birdseye/graph.json`. This repository does.
+Check before assuming, because a repo gets cleaned out from time to time:
 
-- `~/Gh/birdsEye` (this repository)
-- `~/Gh/edilitics` (edilitics-frontend, 18 modules, 1079 files)
+```bash
+ls /path/to/target-repo/birdseye/graph.json
+```
 
 If `graph.json` is missing, run the full pipeline in section 3 instead.
 
@@ -160,7 +163,10 @@ Never build a standalone preview or a mockup page to check a viewer change; the 
 Check both themes and all three responsive tiers listed in `plugins/birdseye/DESIGN_VIEWER.md`.
 
 For a change touching unused code, check it against a repo that has some and one that has none.
-`~/Gh/edilitics` has 33; this repository has none, and must show no header pill, no legend key, and no NEEDS A LOOK frame.
+This repository has none, and must show no header pill, no legend key, and no
+NEEDS A LOOK frame. For the other side, use any application repo and read the
+count off `build.mjs`'s own output rather than trusting a number written here -
+the count moves whenever the extractor learns a new language.
 
 ## 5. Site Commands
 

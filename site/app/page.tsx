@@ -158,12 +158,12 @@ const CAPABILITIES = [
   {
     dot: "var(--olive)",
     title: "Dependency arrows that follow you",
-    body: "Every import and call, rolled up to whichever level is open. Select a node and the panel tells you exactly what it depends on and what depends on it - the plain-language blast radius.",
+    body: "Every import, rolled up to whichever level is open. Select a node and the panel tells you exactly what it depends on and what depends on it - the plain-language blast radius.",
   },
   {
     dot: "var(--ochre)",
     title: "Parsed, not guessed",
-    body: "Around 25 languages through tree-sitter - JavaScript, Python, Go, Rust, Java, C#, Ruby and more. Deterministic: the same repo always produces the same map, so it diffs cleanly.",
+    body: "80 file extensions through tree-sitter - TypeScript, Vue, Python, Go, Rust, Java, C#, Swift, Dart, SQL, Terraform and more. Deterministic: the same repo always produces the same map, so it diffs cleanly.",
   },
 ];
 

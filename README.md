@@ -41,7 +41,7 @@ Every import is an edge, rolled up to whatever level you are looking at.
 The detail panel names the files on both ends of a dependency, so "what breaks if I touch this" is a list, not a guess.
 
 **Parsed, not guessed.**
-Around 25 languages through tree-sitter.
+80 file extensions through tree-sitter, from TypeScript and Python to Dart, SQL, Terraform and .NET project files.
 An import resolves to a real file or it is left out, and the same repo always produces the same map.
 
 ## The map
@@ -147,7 +147,7 @@ There is no birdsEye server, and nothing is uploaded to us, because there is no 
 
 **What does it do with an unfamiliar repo?**
 It degrades to what it can see.
-Around 25 languages parse; anything else still appears in the tree as folders and files, just without import edges.
+80 file extensions parse; anything else still appears in the tree as folders and files, just without import edges.
 A monorepo is treated as a single root today; per-package roots are on the list.
 
 **How stable is it?**
