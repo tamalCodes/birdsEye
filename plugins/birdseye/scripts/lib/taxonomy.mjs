@@ -21,11 +21,13 @@ import path from 'node:path';
 import { walkFiles } from './walk.mjs';
 import { IGNORE_FILE } from './const.mjs';
 import { readJsonc } from './config.mjs';
+// The same list the extractor parses. Counting fewer extensions here than the
+// extractor reads is what makes a Dart, SQL or Terraform repo look empty to the
+// folder taxonomy while its dependency graph comes out fine.
+import { CODE_EXTENSIONS } from './extensions.mjs';
 
-export const CODE_EXTENSIONS = [
-  '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.vue', '.svelte', '.astro',
-  '.py', '.go', '.rs', '.cs',
-];
+export { CODE_EXTENSIONS };
+
 
 // A folder whose name *alone* says "shared infrastructure, not a feature".
 // Tested case-insensitively against the bare folder name; the value is the kind
@@ -159,7 +161,7 @@ export function findEntryPoints(root, codeRoot, looseFiles, allFiles = []) {
     const v = pkg && pkg[key];
     if (typeof v !== 'string') continue;
     const norm = v.replace(/^\.\//, '');
-    if (exists(root, norm) && CODE_EXTENSIONS.includes(path.extname(norm))) out.add(norm);
+    if (exists(root, norm) && CODE_EXTENSIONS.includes(path.extname(norm).toLowerCase())) out.add(norm);
   }
   for (const f of looseFiles) {
     if (ENTRY_RE.test(f.split('/').pop())) out.add(f);
@@ -180,7 +182,7 @@ export function findEntryPoints(root, codeRoot, looseFiles, allFiles = []) {
       if (/^[a-z]+:\/\//i.test(m[1])) continue;
       const joined = path.posix.join(dir === '.' ? '' : dir, m[1].replace(/^\//, ''));
       const resolved = path.posix.normalize(joined).replace(/^(\.\.\/)+/, '');
-      if (exists(root, resolved) && CODE_EXTENSIONS.includes(path.extname(resolved))) out.add(resolved);
+      if (exists(root, resolved) && CODE_EXTENSIONS.includes(path.extname(resolved).toLowerCase())) out.add(resolved);
     }
   }
   return [...out].sort();
@@ -194,7 +196,7 @@ export function findEntryPoints(root, codeRoot, looseFiles, allFiles = []) {
  */
 export function analyzeStructure(root, { ignore = [], routes = null } = {}) {
   const files = walkFiles(root, { ignore: [...ignore], ignoreFiles: ['.gitignore', IGNORE_FILE] });
-  const codeFiles = files.filter((f) => CODE_EXTENSIONS.includes(path.extname(f)));
+  const codeFiles = files.filter((f) => CODE_EXTENSIONS.includes(path.extname(f).toLowerCase()));
 
   const dirAll = new Map();
   const dirCode = new Map();
@@ -229,7 +231,16 @@ export function analyzeStructure(root, { ignore = [], routes = null } = {}) {
     if (kids.length >= 2) codeRoots.push(...kids);
   }
   if (!codeRoots.length) {
-    const named = CODE_ROOT_NAMES.filter((n) => codeIn(n) >= 3).sort((a, b) => codeIn(b) - codeIn(a));
+    // A conventional name is a strong hint, not a licence to discard the rest
+    // of the repo. `lib/` wins outright in a Flutter app because nearly all the
+    // code is in it; in a repo that also carries migrations, infrastructure and
+    // scripts it holds a minority, and treating it as the code root would drop
+    // everything else from the map entirely. Test and docs trees are left out
+    // of the comparison so a well-covered project is not punished for it.
+    const sourceCodeFiles = codeFiles.filter((f) => !NON_SOURCE_ROOT_RE.test(f.split('/')[0]));
+    const codeRootFloor = sourceCodeFiles.length * 0.4;
+    const named = CODE_ROOT_NAMES.filter((n) => codeIn(n) >= 3 && codeIn(n) >= codeRootFloor)
+      .sort((a, b) => codeIn(b) - codeIn(a));
     // A Python package dir (holds __init__.py) is a strong code-root signal that
     // no conventional name covers - `mypkg/`, `yourlib/` and the like.
     const pyPkg = childrenOf('')
