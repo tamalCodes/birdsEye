@@ -66,6 +66,12 @@ const SHARED_NAME_RULES = [
 // screens - a feature, not a bucket.
 const PAGE_DIR_RE = /^(pages?|screens?|views?|scenes?|routes?|features?|modules?|flows?)$/i;
 
+// A narrower list, for when the folder *is* the thing rather than contains it.
+// `modules/` is left out because it means reusable infrastructure at least as
+// often as it means product features - Terraform modules, Node modules, Angular
+// modules - and `routes/` because a shared rule already claims it as routing.
+const SCREEN_DIR_RE = /^(pages?|screens?|views?|scenes?|flows?|features?)$/i;
+
 // Top-level folder names that are never the code root even when they hold the
 // most source files - test suites, docs, examples and tooling.
 const NON_SOURCE_ROOT_RE =
@@ -103,6 +109,13 @@ function classify(c) {
     feature += 3;
     reasons.push(`has its own ${c.pageDir}/ directory`);
   }
+  // `screens/` is not infrastructure that screens happen to use, it is where
+  // the screens are. Owning a page directory and being one are the same claim,
+  // so they score the same.
+  if (c.ownsScreens) {
+    feature += 3;
+    reasons.push(`"${c.name}" is where screens live`);
+  }
   if (c.screenFilesHere > 0) {
     feature += 2;
     reasons.push(`${c.screenFilesHere} routed screen file(s) live here`);
@@ -111,11 +124,14 @@ function classify(c) {
     feature += 1;
     reasons.push(`mirrors app structure (${c.nestedInfraNames.slice(0, 3).join(', ')})`);
   }
-  if (!c.nameKind && !c.hasPageDir && c.screenFilesHere === 0 && c.codeFileCount <= 4) {
+  // "Small and screenless" is the weakest signal there is - it guesses from
+  // size alone - so it only speaks when nothing named or structural already has.
+  const unsignalled = !c.nameKind && !c.hasPageDir && !c.ownsScreens && c.screenFilesHere === 0;
+  if (unsignalled && c.codeFileCount <= 4) {
     shared += 1;
     reasons.push(`only ${c.codeFileCount} code file(s), no screens`);
   }
-  if (!c.nameKind && !c.hasPageDir && c.screenFilesHere === 0 && c.codeFileCount > 4) {
+  if (unsignalled && c.codeFileCount > 4) {
     reasons.push('no obvious signal either way');
   }
 
@@ -297,6 +313,9 @@ export function analyzeStructure(root, { ignore = [], routes = null } = {}) {
         subdirs: subs,
         pageDir,
         hasPageDir: !!pageDir,
+        // A shared rule still wins where both match: `routes/` is a route
+        // table more often than a screen directory.
+        ownsScreens: !sharedKindOf(name) && SCREEN_DIR_RE.test(name),
         nestedInfra: nestedInfra.length,
         nestedInfraNames: nestedInfra,
         screenFilesHere,

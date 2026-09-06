@@ -32,7 +32,7 @@ const posix = (p) => p.split(path.sep).join('/');
 function kindOfCandidate(c) {
   if (c.guess === 'feature') return { kind: 'feature', ambiguous: false };
   if (c.guess === 'shared') return { kind: 'shared', ambiguous: false };
-  if (c.hasPageDir || c.screenFilesHere > 0) return { kind: 'feature', ambiguous: false };
+  if (c.hasPageDir || c.ownsScreens || c.screenFilesHere > 0) return { kind: 'feature', ambiguous: false };
   if (c.nameKind) return { kind: 'shared', ambiguous: false };
   return { kind: 'feature', ambiguous: true };
 }
