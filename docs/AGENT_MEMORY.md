@@ -122,11 +122,16 @@ Visual work is governed by two spec files that are source of truth, not notes.
 Keep them current.
 A visual change that breaks a stated rule must update the rule in the same change.
 
-## Known Active Spec
+## Deferred Ideas
 
-`plugins/birdseye/TASK_MODULE_DETAIL_VIEW.md` describes a module detail view for the generated viewer.
-The goal is a centralized, plain-language module story: grouped files, owned screens, docs and guardrails, stale references, fan-in, fan-out, and risky files.
-The natural hook point is the module case in `openPanel(id)` inside `plugins/birdseye/scripts/template/index.html`.
+There is no active spec file. `plugins/birdseye/TASK_MODULE_DETAIL_VIEW.md` was deleted on 2026-09-06 because the zero-token pivot had made almost all of it false: it was written against `screen`, `route` and `doc` nodes, `imports`/`navigates`/`renders`/`documents` edges, and five template helpers (`openPanel`, `select`, `nodeLink`, `listSection`, `related`), none of which still exist. Its interaction contract shipped anyway, under different names, and now lives in the Viewer Readability section below.
+
+Two ideas from it survive and are worth building, but neither is buildable today. Both need node types only the dormant LLM stages produce, so both are blocked on a `--with-llm` mode:
+
+- **Screens a module owns, in flow order.** Which screens belong to a module, including step-orchestrated flows where the steps are statically written down, so a reader sees the journey rather than a file list. Needs `screen` nodes from `extract-routes`.
+- **Docs that document a module, with their guardrails and stale references.** Which specs cover a module, the rules they state, and how many paths they name that git has since deleted - a doc that points at removed files is the clearest possible signal that it is out of date. Needs `doc` nodes from `extract-docs`, carrying `guardrails[]` and a `refs` verdict split into deleted, unknown and external.
+
+Do not start either by turning the dormant skills back on unilaterally; that is a product decision about whether `/birdseye:map` stays token-free.
 
 ## Verification Notes
 
