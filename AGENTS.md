@@ -16,6 +16,17 @@ Read the relevant README before editing:
 - `plugins/birdseye/README.md` for plugin behavior and command contract.
 - `site/README.md` for the marketing site.
 
+Read `docs/RUNBOOK.md` for every build, regeneration, verification, and release command.
+It is the single place those commands are recorded, so do not rediscover them by reading scripts.
+
+Read the design specs before changing anything visual:
+
+- `docs/DESIGN_SYSTEM.md` for color, typography, spacing, motion, theming, and accessibility rules across both surfaces.
+- `plugins/birdseye/DESIGN_VIEWER.md` for the map viewer's layout geometry, canvas contract, and rejected approaches.
+
+Treat those two files as binding.
+If a visual change makes a rule in them untrue, update the rule in the same change.
+
 ## Repository Shape
 
 This repository is a Claude Code plugin marketplace for birdsEye.
@@ -53,6 +64,9 @@ Do not wire them back into the default `/birdseye:map` flow without an explicit 
 The viewer template is `plugins/birdseye/scripts/template/index.html`.
 It is one self-contained HTML template with CSS, markup, and script.
 Keep it dependency-free at runtime and compatible with `file://`.
+Its design contract is `plugins/birdseye/DESIGN_VIEWER.md`.
+The template is baked into a map at render time, so editing it changes nothing in an already generated `birdseye/index.html`.
+Re-run the render stage against each map you want the change to appear in; see `docs/RUNBOOK.md`.
 
 ## Site Rules
 

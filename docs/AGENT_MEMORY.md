@@ -75,6 +75,25 @@ Main page copy lives in arrays and sections inside `site/app/page.tsx`.
 Deployment rules and Vercel verification live in `docs/DEPLOYMENT.md`.
 Release the site explicitly from `site/`; release the plugin marketplace by pushing signed source to `main`.
 
+## Commands
+
+`docs/RUNBOOK.md` records every command for this repository: the five pipeline stages and what each reads and writes, the cheap template-only re-render, mapping a fresh repository, the inline-script syntax check, site scripts, release, and the commit-signing check.
+Treat it as the command reference and keep it current instead of re-deriving commands from the scripts.
+
+A viewer template edit does not change any map that already exists.
+The template is inlined at render time, so each generated `birdseye/index.html` must be re-rendered with `node plugins/birdseye/scripts/render.mjs <repoRoot>` before the change is visible.
+That stage reads only `graph.json`, so no re-scan or re-parse is needed.
+
+## Design Specs
+
+Visual work is governed by two spec files that are source of truth, not notes.
+
+- `docs/DESIGN_SYSTEM.md` holds the shared design system: warm charcoal and cream palettes for both surfaces, node hue meanings, type scale, radii, elevation, motion, the theming contract, the accessibility floor, and the density rules that keep views from reading as empty.
+- `plugins/birdseye/DESIGN_VIEWER.md` holds the viewer surface spec: anatomy, canvas geometry constants, the neighbourhood and INSIDE grid layout contract, detail panel rules, responsive tiers, and the list of approaches already tried and rejected.
+
+Keep them current.
+A visual change that breaks a stated rule must update the rule in the same change.
+
 ## Known Active Spec
 
 `plugins/birdseye/TASK_MODULE_DETAIL_VIEW.md` describes a module detail view for the generated viewer.
