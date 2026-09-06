@@ -88,6 +88,32 @@ Prefer updating existing docs over adding scattered notes.
 
 When adding or changing long Markdown docs, put each full sentence on its own physical line.
 
+### Docs Move With The Code
+
+A change is not finished until the files that describe it are true again.
+This is binding for every change, not only visual ones, and it happens in the same commit as the change itself.
+A doc that lies is worse than no doc, because the next agent trusts it and works from a false picture.
+
+Before finishing any change, check each file below and update the ones the change made untrue:
+
+| File | Covers |
+| --- | --- |
+| `docs/AGENT_MEMORY.md` | architecture, active constraints, decisions and their reasons, what is dormant |
+| `docs/RUNBOOK.md` | every command, what each stage reads and writes, verification steps |
+| `docs/DESIGN_SYSTEM.md` | palette, type, spacing, motion, theming, accessibility, density |
+| `plugins/birdseye/DESIGN_VIEWER.md` | viewer anatomy, canvas geometry, layout contracts, rejected approaches |
+| `plugins/birdseye/README.md` | plugin behaviour, language coverage, command contract |
+| `plugins/birdseye/commands/map.md` | what `/birdseye:map` runs and reports |
+| `README.md` and `site/app/page.tsx` | user-facing claims: counts, language lists, what the map does |
+
+Two rules that catch most of the drift:
+
+- **Never state a number a repository will change.** A language count, an edge total, a file count in a named repo. Say how to read it off the tool's own output instead. Sample output inside a fenced block is fine; a claim in prose is not.
+- **Never describe a capability the code does not have.** Say what is parsed and what is not, and name what was deliberately left out so the next agent does not re-litigate a settled decision.
+
+Do not delete durable reasoning when you supersede it.
+Mark it superseded and say what replaced it, so a future agent does not repeat a rejected approach.
+
 ## Verification
 
 For plugin code, run the narrowest command that exercises the changed stage.

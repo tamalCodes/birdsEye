@@ -30,8 +30,28 @@ Active stages:
 1. `init.mjs` checks config, output ignore status, and Python readiness.
 2. `structure.mjs scan` detects code root and first-pass module taxonomy.
 3. `ast.mjs` parses source files and produces AST dependency data.
-4. `build.mjs` converts the flat graph into containment and dependency graph data.
+4. `build.mjs` converts the flat graph into containment and dependency graph data, and works out which files nothing reaches.
 5. `render.mjs` writes the self-contained HTML viewer.
+
+## Extraction
+
+Extraction is birdsEye's own, and splits along one line: parsing knows nothing about repositories, resolution knows everything about them.
+
+- `plugins/birdseye/scripts/lib/py/extract.py` parses with tree-sitter and reports what each file declares and imports exactly as written, plus symbol and line counts. It walks node types by hand rather than using tree-sitter's `Query` API, whose call shape changes between versions.
+- `plugins/birdseye/scripts/lib/languages/*.mjs` resolve a specifier to a real file using what only a repo can say: tsconfig path aliases, `go.mod` module paths, Python source roots, declared namespaces.
+- `plugins/birdseye/scripts/lib/extractor.mjs` manages the virtualenv and pins tree-sitter plus every grammar exactly.
+
+birdsEye used to shell out to a third-party parser and no longer does.
+Do not reintroduce that dependency and do not vendor its source: it is Apache-2.0, so copying it would oblige this repository to carry a `NOTICE` naming that project permanently, which is the opposite of the goal.
+tree-sitter itself is MIT parsing infrastructure with no product tie, so depending on it is fine.
+
+Three behaviours worth protecting:
+
+- **Barrel hop-through.** A named import of something an `index.js` merely re-exports is credited to the file that owns the name, so a barrel does not become a false hub and reachability does not call everything it forwards alive. Only named re-exports are followed; `export * from` cannot say which file owns which name.
+- **One extension list.** `plugins/birdseye/scripts/lib/extensions.mjs` is the single source, used by both the extractor and the folder taxonomy. When those drifted apart the map did not fail, it lied: a repo whose code is Dart or SQL got a correct dependency graph hung off a folder tree that thought the repo held no code.
+- **Core versus optional grammars.** A missing core grammar rejects the interpreter, because silently producing no edges for a mainstream language looks like a real map. A missing optional grammar costs that one language and is reported by name with the command that fixes it.
+
+Deliberately not parsed, so it does not get re-litigated: Apex and R have no tree-sitter grammar available; `.sln`, Razor, Blade and XAML would each need a hand-written parser, which is the class of code this extractor exists to avoid.
 
 Dormant stages:
 
@@ -52,6 +72,14 @@ Same input should produce stable `graph.json` and `index.html` output.
 Do not fabricate graph nodes or dependency edges to fill gaps.
 First-run setup must ask one yes/no question at a time.
 Ask about writing `birdseye.config.json` first, handle that answer, then separately ask about adding `birdseye/` to `.gitignore` if still needed.
+
+## Folder Taxonomy
+
+`plugins/birdseye/scripts/lib/taxonomy.mjs` decides the code root and which folders are features.
+Two rules there exist because their absence produced quietly wrong maps:
+
+- A conventional code-root name (`src/`, `lib/`) must hold at least 40% of the repo's non-test code to win. Trusting the name alone dropped everything outside it from the map.
+- A folder that *is* a screens directory (`pages`, `screens`, `views`, `scenes`, `flows`, `features`) scores as a feature, the same as one that contains a page directory. The size-based tiebreak only speaks when nothing named or structural already has. `modules/` is excluded because it means reusable infrastructure at least as often as product features, and `routes/` because a shared rule already claims it as routing.
 
 ## Generated Files
 
@@ -110,15 +138,17 @@ npm run build
 ```
 
 For plugin template or graph pipeline changes, use targeted Node stages where possible.
-The command doc says real-data rebuild can be tested against `/Users/tamalcodes/Gh/perccent-app` with:
+`merge.mjs`, `stages.mjs` and `lib/refs.mjs` are dormant and are not part of the active path; do not verify against them.
+
+For a real-data check, run the active stages against any application repository you have locally, and read the counts off the tool's own output:
 
 ```bash
-node plugins/birdseye/scripts/merge.mjs /Users/tamalcodes/Gh/perccent-app
-node plugins/birdseye/scripts/render.mjs /Users/tamalcodes/Gh/perccent-app
+node plugins/birdseye/scripts/ast.mjs   /path/to/repo --force
+node plugins/birdseye/scripts/build.mjs /path/to/repo
+node plugins/birdseye/scripts/render.mjs /path/to/repo
 ```
 
-That note may be stale because the current active pipeline uses `ast.mjs` and `build.mjs`.
-Confirm script entry points before relying on older task specs.
+A pipeline change should be checked against more than one shape of repository, because most of the bugs found so far were invisible in a single-language one.
 
 For requested local UI checks, use Tamal's already-running Brave browser.
 Do not use Codex's internal browser for this repository.
