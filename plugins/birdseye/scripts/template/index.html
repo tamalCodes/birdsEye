@@ -407,6 +407,24 @@
         margin-left: 6px; padding: 0 6px; border-radius: 999px;
         background: var(--warn-soft); color: var(--warn); font-size: 10px;
       }
+      /* A section reporting a problem is tinted like one. The list used to
+         sit on the plain sheet, which read as ordinary content directly under
+         a heading that says nothing reaches any of it. */
+      .p-sec.is-warn {
+        padding: 12px 13px 13px; border-radius: 10px;
+        background: var(--warn-soft); border: 1px solid var(--warn);
+        border-left-width: 3px;
+      }
+      .p-sec.is-warn h4 { color: var(--warn); margin-bottom: 4px; }
+      .p-sec-note { font-size: 11.5px; line-height: 1.5; color: var(--text-dim); margin-bottom: 10px; }
+      .p-sec-act {
+        display: inline-flex; align-items: center; gap: 6px; margin-top: 11px;
+        padding: 5px 10px; border-radius: 8px; cursor: pointer;
+        background: transparent; border: 1px solid var(--warn);
+        color: var(--warn); font: inherit; font-size: 11.5px; font-weight: 600;
+      }
+      .p-sec-act:hover { background: var(--warn); color: var(--sheet); }
+      .p-sec-act svg { width: 13px; height: 13px; }
       .dead-list { display: flex; flex-direction: column; gap: 2px; }
       .dead-row {
         display: flex; align-items: baseline; gap: 8px; width: 100%;
@@ -415,10 +433,6 @@
       }
       .dead-row:hover { background: var(--row-hover); }
       .dead-row .dead-name { flex: none; }
-      .dead-row .dead-dir {
-        flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        direction: rtl; text-align: left; font-size: 11px; color: var(--text-dim);
-      }
       .tag { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; background: var(--bg-raised); color: var(--text-dim); margin: 0 4px 4px 0; }
       .btn-open {
         display: inline-flex; align-items: center; gap: 6px; margin-top: 22px;
@@ -1509,6 +1523,19 @@
               if (t && nodeById[t]) focus(t);
             });
           });
+          b.querySelectorAll('[data-rm]').forEach(function (el) {
+            el.addEventListener('click', function () {
+              var target = el.getAttribute('data-rm');
+              var paths = (nodeById[target] && nodeById[target].type === 'file')
+                ? [nodeById[target].path]
+                : deadFilesUnder(target).map(function (fid) { return nodeById[fid].path; });
+              paths = paths.filter(Boolean);
+              if (!paths.length) return;
+              copyText(removeCommand(paths),
+                'Copied a delete command for ' + countPhrase(paths.length, 'file') +
+                ' - run it from ' + ((GRAPH.repo && GRAPH.repo.name) || 'the repo root'));
+            });
+          });
         }
         // The verdict, and immediately the reason it might be wrong. An import
         // graph cannot see a dynamic require, a string route table or a worker
@@ -1523,26 +1550,72 @@
             ? 'Worth a closer look here: ' + n.meta.deadCaveat + '.'
             : 'Starting from this repo\'s entry points, no import path arrives here. ' +
               'Check for a dynamic import or a route table before removing it.';
-          return '<div class="p-warn"><b>' + esc(verdict) + '</b><span>' + esc(doubt) + '</span></div>';
+          return '<div class="p-warn"><b>' + esc(verdict) + '</b><span>' + esc(doubt) + '</span>' +
+            (n.path ? '<button class="p-sec-act" data-rm="' + esc(n.id) + '">' + TRASH_ICON +
+              'Copy delete command</button>' : '') + '</div>';
         }
         // For a container: the actual files, not another count. A number the
         // reader cannot open is a dead end.
+        // A map opened from file:// cannot delete anything - there is no
+        // server behind it and no filesystem access, and adding either would
+        // break the one-file, offline contract the whole viewer rests on. So
+        // the action is to hand over the exact command instead. That also
+        // keeps the rule this feature was built under: nothing here reaches
+        // it is a lead, not a sentence, and a one-click delete would quietly
+        // turn the lead into a verdict. The human runs it, having read it.
+        function copyText(text, okMsg) {
+          function done() { hint(okMsg); }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, fallback);
+            return;
+          }
+          fallback();
+          function fallback() {
+            // file:// is not a secure context everywhere, so the old path has
+            // to stay for the browsers that refuse the async clipboard there.
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:absolute;left:-9999px;top:0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); done(); } catch (e) { hint('Could not copy'); }
+            document.body.removeChild(ta);
+          }
+        }
+
+        var TRASH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+          'stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>';
+
+        /** `rm` for every path, quoted, to run from the repo root. */
+        function removeCommand(paths) {
+          return 'rm ' + paths.map(function (x) { return '"' + x + '"'; }).join(' ');
+        }
+
         function deadSection(id) {
           var files = deadFilesUnder(id);
           var shown = files.slice(0, 40);
+          // Name only. The path was rendered ellipsised from the middle, which
+          // showed neither the folder nor the file clearly and made the list a
+          // wall of grey - the same reason dependency rows are names only. The
+          // full path is one hover away, and one click away in the file's own
+          // view.
           var rows = shown.map(function (fid) {
             var f = nodeById[fid];
-            var p = splitPath(f.path || f.label);
             return '<button class="dead-row file-jump" data-id="' + esc(fid) + '" title="' + esc(f.path || '') + '">' +
-              '<span class="dead-name">' + esc(p.name) + '</span>' +
-              '<span class="dead-dir">' + esc(p.dir) + '</span></button>';
+              '<span class="dead-name">' + esc(splitPath(f.path || f.label).name) + '</span></button>';
           }).join('');
           if (files.length > shown.length) {
             rows += '<div class="dep-more">' + (files.length - shown.length) + ' more not listed.</div>';
           }
-          return '<div class="p-sec"><h4>Nothing reaches these' +
+          return '<div class="p-sec is-warn"><h4>Nothing reaches these' +
             '<span class="warn-pill">' + files.length + '</span></h4>' +
-            '<div class="dead-list">' + rows + '</div></div>';
+            '<div class="p-sec-note">No import path from an entry point arrives at ' +
+            (files.length === 1 ? 'this file' : 'these files') +
+            '. Open one to see what it pulls in before acting on it.</div>' +
+            '<div class="dead-list">' + rows + '</div>' +
+            '<button class="p-sec-act" data-rm="' + esc(id) + '">' + TRASH_ICON +
+            'Copy delete command</button></div>';
         }
         function toggleDepFiles(el, id) {
           var otherId = el.getAttribute('data-other'), dir = el.getAttribute('data-dir');

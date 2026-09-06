@@ -131,8 +131,19 @@ Where the state surfaces, in the order a reader meets it:
 | Header subtitle | `--warn` pill with the repo-wide count |
 | Sidebar row | `--warn` count badge on any container; strikethrough label on an unused file |
 | Canvas | dimmed, dashed warn outline on the node; NEEDS A LOOK frame under INSIDE |
-| Detail panel | `.p-warn` callout on an unused file; "Nothing reaches these" section on a container |
+| Detail panel | `.p-warn` callout on an unused file; a warn-tinted "Nothing reaches these" section on a container |
 | Landing card | count, the three worst areas by count, and the doubt |
+
+**The unused section is tinted like the problem it reports.**
+`.p-sec.is-warn` gives it `--warn-soft` on a `--warn` border, matching the single-file callout.
+On the plain sheet it read as ordinary content sitting directly under a heading saying nothing reaches any of it.
+Its rows are **names only**, like every other list in the panel: the path used to be rendered ellipsised from the middle, which showed neither the folder nor the filename and turned the list into a wall of grey. The full path stays one hover away and one click away in the file's own view.
+
+**The viewer cannot delete anything, and must not pretend to.**
+It is one HTML file opened from `file://` with no server and no filesystem access, so the action is `Copy delete command`: an `rm` with every listed path, quoted, to be run from the repo root.
+That is also the only form this action may take on principle. The finding is "nothing here reaches it", which is a lead and not a sentence, and a one-click delete would quietly promote it to a verdict.
+The button appears in two places: the container's unused section, copying every file under it, and an unused file's own callout, copying just that one.
+`copyText()` falls back to a hidden textarea and `execCommand`, because `file://` is not a secure context in every browser and the async clipboard is refused there.
 
 **Every verdict ships with its doubt.**
 The panel callout is two lines: what was found, then why it might be wrong (a dynamic import, a route table, a worker loaded by URL).
