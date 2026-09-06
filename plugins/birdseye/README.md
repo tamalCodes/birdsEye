@@ -11,10 +11,10 @@
 
 One command, one HTML file: an **interactive flowchart of a repo's structure**.
 A collapsible tree of the whole repo runs down the left. Pick anything - a
-module, a folder, a file - and the canvas draws a focused flowchart of it: its
-contents fanning out below, the things it depends on to the right, the things
-that use it to the left. One node and its neighbours at a time, so it stays
-readable no matter how big the repo is.
+module, a folder, a file - and the canvas draws a focused flowchart of it: the
+things it depends on to the left, the things that use it to the right, and its
+own contents below. One node and its neighbours at a time, so it stays readable
+no matter how big the repo is.
 
 `/birdseye:map` runs **entirely on your machine and calls no model. Zero tokens.**
 
@@ -74,8 +74,9 @@ cleanly and bugs reproduce.
   one **General-purpose** entry; files that sit directly in the code root get a
   synthetic **core** module. **Expand** / **Collapse** open and close the lot.
 - **Pick anything** - in the sidebar or on the canvas - and the canvas redraws
-  around it: the selected node in the centre, its folders and files below, the
-  modules it **depends on** to the right, the ones that **use it** to the left.
+  around it: the selected node in the centre, the modules it **depends on** to
+  the left, the ones that **use it** to the right, and its own folders and files
+  in an **INSIDE** block below. Import flow therefore reads left to right.
   Arrow labels are the number of imports. Only ever one node's neighbourhood is
   drawn, and every position is computed once, so it never lags.
 - **The detail panel** stays closed while you choose items, then opens from its
@@ -83,7 +84,6 @@ cleanly and bugs reproduce.
   relationship without moving away from current map; an explicit button opens
   dependency's own details.
 - **The breadcrumb** above the canvas walks back up the tree.
-- **Search** filters the sidebar to matches and their parents.
 - Light / dark toggle, warm palette, remembers what you had open.
 
 ## Configuration

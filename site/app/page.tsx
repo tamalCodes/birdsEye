@@ -73,8 +73,9 @@ function Hero() {
           <span className="font-display-italic text-clay">before you touch it</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted md:text-xl">
-          One command turns any codebase into an interactive flowchart: the major modules
-          up top, expand any box to the files inside, dependency arrows between them.
+          One command turns any codebase into an interactive flowchart: the whole repo as a
+          tree on the left, and any node you pick drawn with what it depends on, what uses
+          it, and what lives inside it.
         </p>
 
         {/* No copyable command up here on purpose. `/birdseye:map` only runs for
@@ -150,8 +151,8 @@ const CAPABILITIES = [
   },
   {
     dot: "var(--plum)",
-    title: "Expand any box",
-    body: "Click a module and it opens in place to the folders and files inside it. Go as deep as you want, collapse it back when you are done. The layout settles around whatever you have open.",
+    title: "One node at a time",
+    body: "Pick a module, folder or file and the canvas draws that node alone: what it depends on to the left, what uses it to the right, and its own contents below. The whole graph is never dumped on screen, so a big repo stays as readable as a small one.",
   },
   {
     dot: "var(--olive)",
@@ -212,7 +213,7 @@ const VIEWER_NOTES = [
   "Click any file and it opens where you actually work - VS Code, Cursor, JetBrains, Zed.",
   "Self-contained: it opens from file:// with no server and no network at all.",
   "It remembers what you had expanded, and ships a light and a dark theme.",
-  "Search jumps to any module or file and opens the path down to it.",
+  "The whole repo stays browsable as a collapsible tree beside the canvas.",
 ];
 
 function TheMap() {

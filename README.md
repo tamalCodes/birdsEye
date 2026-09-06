@@ -11,8 +11,9 @@
 > birdsEye is under active development.
 > Expect rough edges, breaking changes between versions, and views that appear or disappear as the design settles.
 
-One command audits your repo for stale guardrails, uncovered modules, and the specs an agent should read first.
+One command turns any repo into an interactive flowchart of its structure: the modules, the folders and files inside them, and the imports between them.
 The whole picture lands as a single self-contained HTML file.
+It runs entirely on your machine and calls no model, so it costs nothing to run.
 
 This repository is a Claude Code plugin marketplace containing one plugin, [`birdsEye`](plugins/birdseye).
 
@@ -22,28 +23,26 @@ This repository is a Claude Code plugin marketplace containing one plugin, [`bir
 
 ## What an agent knows before it touches your code
 
-> *Before this agent edits auth - does it know what auth is wired to, which guardrails apply, and which spec to read first?*
+> *Before this agent edits auth - does it know what auth is wired to, and what breaks if it changes?*
 
-Open the map, click the node, get the answer in five seconds.
+Open the map, pick the node, get the answer in five seconds.
 Every decision in birdsEye was shaped by that one moment.
 
-**Agent-readiness, per module.**
-Every module answered on one question: does an agent have what it needs before it touches this code?
-The docs that cover it, the guardrails it has to respect, the flow it should follow.
-Where those are missing, you get a gap you can actually see.
+**The spine of the repo, up front.**
+The top level is a handful of boxes: the feature modules, plus one general-purpose group for the shared code everything imports.
+You see how the repo is organised before you read a line of it.
 
-**Guardrails that went stale.**
-Docs are matched to the code they really describe, guardrails quoted verbatim, then glossed in plain English.
-Any spec still pointing at a file git has since deleted is flagged.
-That is the one an agent will read and confidently act on.
+**One node and its neighbours at a time.**
+Pick anything - a module, a folder, a file - and the canvas draws that node alone with what it depends on, what uses it, and what lives inside it.
+The whole graph is never dumped on screen, so a big repo stays as readable as a small one.
 
-**Modules and dependencies.**
-Every module is a node, every import an edge.
-Click one to see its fan-in and fan-out, the plain-language version of what would break if you touched it.
+**Blast radius, in plain language.**
+Every import is an edge, rolled up to whatever level you are looking at.
+The detail panel names the files on both ends of a dependency, so "what breaks if I touch this" is a list, not a guess.
 
-**Routes and screens.**
-The navigation tree, laid out like an org chart and boxed by feature.
-Step-flows like onboarding or checkout show their real order, not a pile of screens.
+**Parsed, not guessed.**
+Around 25 languages through tree-sitter.
+An import resolves to a real file or it is left out, and the same repo always produces the same map.
 
 ## The map
 
@@ -51,38 +50,34 @@ One HTML file you can hand to anyone.
 
 - Click any file and it opens where you actually work: VS Code, Cursor, JetBrains.
 - Self-contained: it opens from `file://` with no server and no network at all.
-- Shape carries the type as much as colour does, so the map reads without colour vision.
-- A repo with no router gets a line saying so, not an empty canvas.
+- A collapsible tree of the whole repo on the left, the focused flowchart on the right.
+- Light and dark themes, and it remembers what you had open.
 
 ## How it works
 
-Mechanical work is code.
-Judgement is the model.
+No model is in the loop.
+Every stage is a script on your machine, so a map is exact, private, and free to build.
 
-Anything a script can do exactly is a script, so it is exact and free.
-The model runs only where a person would have to think, and only once, because the result is cached.
-Same input, same output, every time.
+| Stage | What it does |
+| --- | --- |
+| `init.mjs` | Checks config, output ignore status, and that Python is ready. Asks one setup question at a time. |
+| `structure.mjs scan` | Finds the code root and makes a first-pass guess at which folders are features and which are shared infrastructure. |
+| `ast.mjs` | Hands every source file to [graphify](https://github.com/safishamsi/graphify)'s tree-sitter parser and collapses the symbol graph to a file-level dependency graph. |
+| `build.mjs` | Rolls that flat graph into the containment tree the viewer draws: root, modules, folders, files. |
+| `render.mjs` | Inlines the vendored Cytoscape and both fonts into one self-contained HTML file. No CDN, no server. |
 
-| Stage | Model | What it does |
-| --- | --- | --- |
-| `imports.mjs` | no | tsconfig aliases, barrels, comment-stripped parsing. Re-parses only what changed. |
-| `extract-routes` | yes | Reads the router and describes it, the one place judgement is genuinely required. |
-| `extract-docs` | yes | Attaches docs to the code they describe. Guardrails quoted verbatim, then glossed. |
-| `extract-flowcharts` | yes | Turns each module's docs into a step-by-step flow, grounded in what the docs say. |
-| `merge.mjs` + `render.mjs` | no | One canonical `graph.json`, re-checked against git, then a single HTML file. |
-
-Later runs take seconds and cost nothing.
-The model stages are skipped when nothing they read has changed.
+graphify keeps a per-file content hash, so a re-run only re-parses what changed, usually a second or two.
 
 ### Where it stops
 
 A map you can trust is a map that admits what it cannot see.
 
+- **Python 3.10+ is required.**
+  The parser is a Python package (graphify, Apache-2.0) that birdsEye installs into its own virtualenv on the first run.
+  No Python, no map.
 - **A wrong edge is never guessed.**
-  When a navigation target is computed, the edge is skipped, not invented.
+  An import resolves to a real file or it is left out.
   A missing edge is cheap; a wrong one destroys trust in the whole map.
-- **Import edges are JS and TS only.**
-  Another language still gets module nodes and a full doc map, just no dependency edges between files.
 - **Your source tree is left alone.**
   Nothing is written into it except `birdseye.config.json`, and only after it asks.
   The map lives in a gitignored folder.
@@ -142,20 +137,17 @@ Follow the [deployment guide](docs/DEPLOYMENT.md) for the exact build, productio
 ## FAQ
 
 **What does it cost to run?**
-It runs on your own Claude Code session.
-The mechanical stages use no model at all.
-The two extraction stages run once and are cached afterwards, so a refresh is effectively free.
+Nothing.
+No stage calls a model, so building a map costs zero tokens no matter how large the repo is.
 
 **Does my code leave my machine?**
-Only what Claude reads during the two extraction stages, exactly like any other Claude Code session.
-There is no birdsEye server.
-Nothing is uploaded to us, because there is no us to upload to.
+No.
+The parse is a local Python process and the viewer is a local file.
+There is no birdsEye server, and nothing is uploaded to us, because there is no us to upload to.
 
-**What if the repo has no router or no docs?**
+**What does it do with an unfamiliar repo?**
 It degrades to what it can see.
-No router gets a canvas that says so.
-No docs gets a map of modules and dependencies.
-One README is a perfectly valid result.
+Around 25 languages parse; anything else still appears in the tree as folders and files, just without import edges.
 A monorepo is treated as a single root today; per-package roots are on the list.
 
 **How stable is it?**
@@ -168,13 +160,15 @@ Expect rough edges, breaking changes between versions, and views that appear or 
 .claude-plugin/marketplace.json    the catalog
 AGENTS.md                          repository rules for coding agents
 docs/AGENT_MEMORY.md               durable project memory for agents
+docs/RUNBOOK.md                    every build, regenerate, verify and release command
+docs/DESIGN_SYSTEM.md              palette, type, motion and layout rules
 plugins/birdseye/                  the plugin
 ├── .claude-plugin/plugin.json     manifest
 ├── commands/map.md                /birdseye:map
-├── skills/extract-routes/         router detection
-├── skills/extract-docs/           doc attachment
-├── skills/extract-flowcharts/     doc -> step-by-step flow
-├── scripts/                       deterministic pipeline + vendored libs
+├── scripts/                       the deterministic pipeline + vendored libs
+├── scripts/template/index.html    the viewer, one self-contained file
+├── skills/                        dormant LLM stages, not part of the default flow
+├── DESIGN_VIEWER.md               the viewer layout contract
 └── README.md                      everything else
 site/                              the marketing site (birdseye.tamal.me)
 ```
