@@ -141,8 +141,9 @@ function ToolRow() {
 
 /* ------------------------------------------------------------- what it does */
 
-/* Dot colours stay bound to their concept, echoing the map legend further down
-   (ochre root, clay module, plum folder, olive file). */
+/* These dots are decorative punctuation, not the map legend. The legend's four
+   hues are bound to node kinds in KIND_COLOR and must match the viewer; these
+   only need to stay distinct from each other. */
 const CAPABILITIES = [
   {
     dot: "var(--clay)",
@@ -203,9 +204,9 @@ function WhatItDoes() {
 /* ------------------------------------------------------------------ the map */
 
 const LEGEND = [
-  { shape: "box", color: "var(--ochre)", label: "code root" },
+  { shape: "box", color: "var(--bark)", label: "code root" },
   { shape: "box", color: "var(--clay)", label: "module" },
-  { shape: "box-sm", color: "var(--plum)", label: "folder" },
+  { shape: "box-sm", color: "var(--ochre)", label: "folder" },
   { shape: "circle-sm", color: "var(--olive)", label: "file" },
 ];
 

@@ -3,8 +3,10 @@
 /* ------------------------------------------------------------------ tokens
    birdsEye reads as an AI product, so the site is warm in both themes: cream
    in the light, warm-charcoal in the dark, with the same clay accent and the
-   five node hues the map itself paints with (clay / olive / ochre / plum /
-   rose). The light theme is the same paper the map viewer uses (#faf9f5), so
+   node hues the map itself paints with. Those hues carry meaning and match the
+   viewer one for one: bark is the code root, clay a module, ochre a folder,
+   olive a file. Plum, rose and teal are decorative accents only and must never
+   be attached to a node kind. The light theme is the same paper the map viewer uses (#faf9f5), so
    the two never read as two different products.
 
    Light lives on bare :root and is the default. Dark is redefined under the
@@ -24,6 +26,7 @@
   --muted: #665f51;
   --faint: #7a7160;
 
+  --bark: #4a3f30;
   --clay: #b04e29;
   --clay-bright: #98411f;
   --olive: #5f741f;
@@ -64,6 +67,7 @@
     --muted: #a49b8c;
     --faint: #776f62;
 
+    --bark: #e8d9c4;
     --clay: #d97757;
     --clay-bright: #e79075;
     --olive: #a9b764;
@@ -94,6 +98,7 @@
   --muted: #a49b8c;
   --faint: #776f62;
 
+  --bark: #e8d9c4;
   --clay: #d97757;
   --clay-bright: #e79075;
   --olive: #a9b764;
@@ -119,6 +124,7 @@
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
+  --color-bark: var(--bark);
   --color-clay: var(--clay);
   --color-clay-bright: var(--clay-bright);
   --color-olive: var(--olive);

@@ -73,8 +73,21 @@ Defined in `site/app/globals.css`.
 The site is light-first: light on bare `:root`, dark under both `@media (prefers-color-scheme: dark)` (guarded with `:root:not([data-theme="light"])`) and `:root[data-theme="dark"]`.
 
 Core: `--canvas`, `--panel`, `--raised`, `--hair`, `--hair-soft`, `--ink`, `--muted`, `--faint`.
-Accents: `--clay`, `--clay-bright`, `--olive`, `--ochre`, `--plum`, `--rose`, `--teal`.
+Accents: `--bark`, `--clay`, `--clay-bright`, `--olive`, `--ochre`, `--plum`, `--rose`, `--teal`.
 `--box-ink` is the ink for a label sitting on a filled hue box, and it flips opposite the page.
+
+Four of those accents are not decorative. They are the node hues, and they match the viewer one for one, because the hero diagram is a recreation of a real map and has to teach the same colour language the product uses:
+
+| Site token | Node kind | Viewer token |
+| --- | --- | --- |
+| `--bark` (`#4a3f30` / `#e8d9c4`) | code root | `--c-root` |
+| `--clay` | module | `--c-feature` |
+| `--ochre` | folder | `--c-folder` |
+| `--olive` | file | `--c-file` |
+
+`--plum`, `--rose` and `--teal` are decorative accents only.
+Never attach one to a node kind.
+Folders were drawn in plum until 6 September 2026, which made the site's own legend disagree with every map the product generates.
 
 The site's clay is `#b04e29` (light) / `#d97757` (dark).
 The viewer's is `#bf5b36` / `#d97757`.

@@ -213,10 +213,15 @@ export const KIND_LABEL: Record<NodeKind, string> = {
   file: "file",
 };
 
+/* The hues the viewer itself paints with, one for one: bark for the code root,
+   clay for a module, ochre for a folder, olive for a file. This diagram is a
+   recreation of a real map, so it has to teach the same colour language the
+   product uses - a folder drawn in a hue the viewer never paints would make
+   the legend here a lie. */
 export const KIND_COLOR: Record<NodeKind, string> = {
-  root: "var(--ochre)",
+  root: "var(--bark)",
   module: "var(--clay)",
-  folder: "var(--plum)",
+  folder: "var(--ochre)",
   file: "var(--olive)",
 };
 
