@@ -129,6 +129,40 @@ Tune it per repo in `birdseye.config.json`:
 
 **If it reports something obviously alive, that is a resolution bug, not a config problem.** Check the file's importer resolves: `node .../ast.mjs . --json` reports `unresolved`, and a high count there means dead-code output is untrustworthy for that repo.
 
+## 3a. Simulate A Repository To Test Against
+
+Most pipeline bugs are invisible in a single-language repository.
+The ones found so far all needed a shape that no repo on this machine had: a Vue script block, a barrel that re-exports a default, a Dart `package:` import, a SQL migration chain, a `.csproj` project reference.
+So build a throwaway repo, point the pipeline at it, and read the counts.
+
+Put it in a scratch directory, never inside a real repository.
+A fixture is a handful of tiny files, each written to exercise exactly one rule:
+
+```bash
+R=/tmp/fixture; rm -rf $R; mkdir -p $R/src/hooks
+printf 'export { useThing } from "./useThing";\n'          > $R/src/hooks/index.js
+printf 'export function useThing() {}\n'                    > $R/src/hooks/useThing.js
+printf 'import { useThing } from "./hooks";\nuseThing();\n' > $R/src/index.js
+
+S=~/Gh/birdsEye/plugins/birdseye/scripts
+node $S/structure.mjs scan $R
+node $S/ast.mjs $R --force
+node $S/build.mjs $R
+```
+
+That one is the barrel test: the edge must land on `useThing.js`, not on `hooks/index.js`.
+
+**Always include a trap.** A fixture that only contains valid code cannot catch the failure that matters, which is an edge invented from something that merely looks like an import:
+
+- a `<template>` or JSX block containing the literal text `import Thing from "./NotReal"`
+- a commented-out import
+- a string that contains an import statement
+- a table alias in SQL (`FROM users u`) that must not resolve as a table
+
+**Read the counts, not the picture.** `0 unresolved` and the exact expected edge list is the pass condition; open the map only when the change was visual.
+
+Beware one macOS trap that cost real time: the filesystem is case-insensitive, so `mkdir Modules` inside a fixture that already has `modules/` silently writes into the existing directory and the resulting "bug" is in the fixture, not the code.
+
 ## 4. Verify A Template Change
 
 The viewer is one HTML file with inline CSS, markup, and script, so there is no build step and no type checker guarding it.

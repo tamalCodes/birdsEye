@@ -109,6 +109,15 @@ Print the absolute path of the generated HTML, then one short paragraph from
   can fix that in `structure.json`
 - if `unresolved` refs or `failed` files are non-zero, mention the count plainly
   - an import that resolved to no file, or a file the parser could not read
+- the `unused:` line, if it reports anything. Say the count, say which mode ran,
+  and say the caveat in the same breath - never present it as a verdict:
+  - `reachability` means real entry points were found and the walk started
+    there, so nothing arrived at these files
+  - `unreferenced` means no entry point was found, so this is only "nothing
+    imports it", which is a weaker claim
+  - either way an import graph cannot see a dynamic import, a route table built
+    from strings, or a worker loaded by URL. It is a lead to check, never a
+    licence to delete, and the sentence you write has to say so.
 
 Do not summarise the architecture. The map is the deliverable; the point is that
 the user opens it rather than reads a description of it.

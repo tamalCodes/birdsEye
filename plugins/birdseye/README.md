@@ -90,6 +90,18 @@ cleanly and bugs reproduce.
   control when you want supporting detail. Choosing a dependency explains that
   relationship without moving away from current map; an explicit button opens
   dependency's own details.
+- **Unused code** is surfaced wherever you would meet it: a count in the header,
+  a badge in the sidebar, a dimmed and dashed outline on the node itself, a
+  **NEEDS A LOOK** frame under the children of whatever you are looking at, and
+  a tinted section in the detail panel listing every file with a **Copy delete
+  command** button. Two modes: `reachability` when real entry points were found
+  and the walk starts there, `unreferenced` when none were and the claim
+  weakens to "nothing imports it". Files a runner or bundler enters rather than
+  an import - tests, stories, config, migrations, shell - are exempt, because a
+  finding that is always wrong trains you to ignore the section.
+  **It is a lead, not a verdict.** An import graph cannot see a dynamic import,
+  a string route table, or a worker loaded by URL, so the doubt is printed
+  beside the count and the viewer copies an `rm` command rather than running one.
 - **The breadcrumb** above the canvas walks back up the tree.
 - Light / dark toggle, warm palette, remembers what you had open.
 

@@ -73,6 +73,28 @@ Do not fabricate graph nodes or dependency edges to fill gaps.
 First-run setup must ask one yes/no question at a time.
 Ask about writing `birdseye.config.json` first, handle that answer, then separately ask about adding `birdseye/` to `.gitignore` if still needed.
 
+## Unused Code
+
+`plugins/birdseye/scripts/lib/dead.mjs` answers "what does nothing reach", and it runs in the **build** stage rather than the AST stage, because the question needs entry points and those come from `structure.mjs scan`.
+
+It is a reachability question, not a fan-in count.
+A file with one importer looks alive to a fan-in count even when that importer is itself unreachable, so a whole abandoned corner of a repo can hide behind a single internal edge.
+
+Two modes, and the printed line always names the one that ran:
+
+- **`reachability`** - real entry points were found, so the walk starts there and anything never arrived at is reported. This is the mode worth having.
+- **`unreferenced`** - no entry point was found, so the claim weakens to "nothing imports it". Honest, but a weaker statement, and the output says so.
+
+**Exemptions are as important as the finding.**
+Files entered by a runner or a bundler rather than by an import would otherwise be reported every single time, and a section that is always wrong teaches the reader to ignore the whole thing.
+`EXEMPT_PATTERNS` covers tests and fixtures, stories, ambient `.d.ts`, build and tooling config, Python and Go package plumbing, and - added when the extractor learned those languages - tsconfig/jsconfig, shell, Gradle, Terraform, PowerShell, MSBuild project files and SQL migrations.
+**Anything added to the parsed set has to be exempted here too, or it is reported as dead code.** A tsconfig was, briefly.
+
+**The verdict always ships with its doubt.**
+An import graph cannot see a dynamic import, a route table built from strings, or a worker loaded by URL.
+So the finding is "nothing here reaches it" - a lead, never a sentence - and every surface that shows it also shows why it might be wrong.
+That is why the viewer offers a **Copy delete command** rather than a delete button: see `plugins/birdseye/DESIGN_VIEWER.md` for how the state is drawn.
+
 ## Folder Taxonomy
 
 `plugins/birdseye/scripts/lib/taxonomy.mjs` decides the code root and which folders are features.
@@ -154,6 +176,7 @@ node plugins/birdseye/scripts/render.mjs /path/to/repo
 ```
 
 A pipeline change should be checked against more than one shape of repository, because most of the bugs found so far were invisible in a single-language one.
+When no repository on the machine has the shape you need, build a throwaway fixture with a deliberate trap in it; `docs/RUNBOOK.md` section 3a has the recipe and the pass condition.
 
 For requested local UI checks, use Tamal's already-running Brave browser.
 Do not use Codex's internal browser for this repository.

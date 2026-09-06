@@ -44,6 +44,11 @@ The detail panel names the files on both ends of a dependency, so "what breaks i
 80 file extensions through tree-sitter, from TypeScript and Python to Dart, SQL, Terraform and .NET project files.
 An import resolves to a real file or it is left out, and the same repo always produces the same map.
 
+**What nothing reaches.**
+Starting from the files that actually boot the app, birdsEye follows every import and reports what it never arrives at.
+That catches an abandoned corner of a repo whose files import each other, which a plain "is anything importing this" count calls alive.
+It is a lead, never a verdict: an import graph cannot see a dynamic import or a route table built from strings, so the map says so wherever it shows the finding, and offers you the delete command rather than a delete button.
+
 ## The map
 
 One HTML file you can hand to anyone.
