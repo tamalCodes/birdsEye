@@ -61,10 +61,15 @@ git commit -S -m "Describe the release"
 git push origin main
 cd site
 vercel whoami
-vercel deploy --prod --yes
+vercel deploy --prod --yes --scope tamal-das-projects-4bdfe0d9
 ```
 
 The last command prints a unique deployment address and aliases it to production when successful.
+
+Pass `--scope` explicitly.
+Verified on 6 September 2026: `vercel deploy --prod --yes` without it fails with `"message": "Not authorized"` even though `vercel whoami` reports `tamalcodes` and `site/.vercel/project.json` is linked.
+The project lives under the team `tamal-das-projects-4bdfe0d9` ("Tamal Das' projects"), and naming that scope is what makes the deploy succeed.
+`vercel teams ls` lists the scope if the id ever changes.
 Save that address with the release notes or pull request.
 
 Before committing, confirm Git signing is configured for the repository identity.

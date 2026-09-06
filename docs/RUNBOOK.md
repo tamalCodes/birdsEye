@@ -148,13 +148,20 @@ Full detail lives in `docs/DEPLOYMENT.md`. The short form:
 ```bash
 # marketing site (birdseye.tamal.me)
 cd site && npm run build
-vercel deploy --prod --yes
+vercel deploy --prod --yes --scope tamal-das-projects-4bdfe0d9
+
+# verify the alias actually serves the new build
+curl -s -o /dev/null -w "%{http_code}\n" https://birdseye.tamal.me
 
 # plugin marketplace
 # push a SIGNED commit to GitHub main from the repository root
 ```
 
 A GitHub push does not deploy the site. The Vercel command is the verified route.
+
+`--scope` is not optional.
+Without it the deploy fails with `"message": "Not authorized"` even when `vercel whoami` succeeds and the project is linked, because the project belongs to the team `tamal-das-projects-4bdfe0d9` rather than the personal scope.
+Run `vercel teams ls` if the scope id ever changes, and `vercel ls birdseye --scope <id>` to see recent deployments and their status.
 
 ## 7. Commit Safety
 
