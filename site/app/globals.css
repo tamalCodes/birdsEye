@@ -204,7 +204,7 @@ body {
 }
 
 .t-hero {
-  font-size: clamp(2.9rem, 6.2vw, 5.25rem);
+  font-size: clamp(2.5rem, 5.2vw, 3.75rem);
 }
 
 .t-section {

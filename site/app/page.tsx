@@ -67,12 +67,15 @@ const EDITORS = [
 function Hero() {
   return (
     <section className="shell relative pt-20 pb-20 md:pt-28 md:pb-28">
-      <div className="reveal mx-auto max-w-3xl text-center">
+      <div className="reveal mx-auto max-w-4xl text-center">
+        {/* Two lines on a wide screen, never three: the italic half is forced
+            onto its own line from md up, so the headline keeps a fixed shape
+            instead of rewrapping with the viewport. */}
         <h1 className="font-display t-hero text-ink">
           See how a repo fits together{" "}
-          <span className="font-display-italic text-clay">before you touch it</span>
+          <span className="font-display-italic text-clay md:block">before you touch it</span>
         </h1>
-        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted md:text-xl">
+        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted md:text-xl">
           One command turns any codebase into an interactive flowchart: the whole repo as a
           tree on the left, and any node you pick drawn with what it depends on, what uses
           it, and what lives inside it.
